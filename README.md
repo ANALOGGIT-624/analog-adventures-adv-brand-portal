@@ -1,4 +1,38 @@
-# Shopify App Template - React Router
+# Analog Adventures Brand Portal
+
+Shopify application for managing Analog Adventures brand kits, organization
+micro-stores, campaigns, artwork approvals, product selections, and payouts
+inside one Shopify store.
+
+The canonical development configuration is linked to **Analog Adventures Test**
+with client ID `8158f984f0ec6fed1e5f85b44a588777`.
+
+## Portal surfaces
+
+- Embedded Shopify Admin dashboard for Analog Adventures staff
+- Organization-store creation linked to Shopify Companies
+- Campaign setup with products, dates, payout rules, and fulfillment mode
+- Payout rule and statement oversight
+- Full-page New Customer Accounts extension for approved organization contacts
+- Authenticated `/public/portal` endpoint for customer-specific portal data
+
+See [the implementation roadmap](docs/brand-portal-roadmap.md) for the Gantt
+chart, launch gates, pilot sequence, and remaining Neighborhood-style features.
+
+## Local verification
+
+```shell
+npm install
+npm run lint
+npm run typecheck
+npm run build
+shopify app config validate --json
+```
+
+Run `shopify app dev` after validation to update the development URLs, approve
+the expanded scopes, and preview the app on Analog Adventures Test.
+
+## Shopify template reference
 
 This is a template for building a [Shopify app](https://shopify.dev/docs/apps/getting-started) using [React Router](https://reactrouter.com/). It was forked from the [Shopify Remix app template](https://github.com/Shopify/shopify-app-template-remix) and converted to React Router.
 
