@@ -15,7 +15,7 @@ export const loader = async ({ request }) => {
     `#graphql
       query OrganizationStoreIndex($type: String!) {
         companies(first: 50) {
-          nodes { id name locationsCount contactsCount }
+          nodes { id name }
         }
         metaobjects(type: $type, first: 100) {
           nodes { id handle displayName updatedAt fields { key value } }
