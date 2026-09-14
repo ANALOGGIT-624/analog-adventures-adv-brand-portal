@@ -1,21 +1,22 @@
-# Customer account UI Extension
+# Analog Adventures Brand Portal extension
 
-## Prerequisites
+This full-page New Customer Accounts extension gives approved organization
+contacts access to their organization stores, active campaigns, and payout
+statements.
 
-Before you start building your extension, make sure that you’ve created a [development store](https://shopify.dev/docs/apps/tools/development-stores) with the [Checkout and Customer Accounts Extensibility](https://shopify.dev/docs/api/release-notes/developer-previews#previewing-new-features).
+## Configuration
 
-## Your new Extension
+1. Deploy the app and extension.
+2. In Shopify's checkout and accounts editor, add **Brand Portal** to customer
+   accounts and include it in the account menu.
+3. Set **Portal API URL** to the hosted app URL ending in `/public/portal`.
+4. Approve network access and protected customer-data access.
+5. Test with a customer who is a contact for a Shopify Company referenced by an
+   `aa_organization_store` entry.
 
-Your new extension contains the following files:
+The backend verifies Shopify's customer-account session token and derives the
+customer and company server-side. The extension never accepts organization or
+payout identifiers supplied by the browser.
 
-- `README.md`, the file you are reading right now.
-- `shopify.extension.toml`, the configuration file for your extension. This file defines your extension’s name.
-- `src/*.jsx`, the source code for your extension.
-- `locales/en.default.json` and `locales/fr.json`, which contain translations used to [localized your extension](https://shopify.dev/docs/apps/checkout/best-practices/localizing-ui-extensions).
-
-## Useful Links
-
-- [Customer account UI extension documentation](https://shopify.dev/docs/api/customer-account-ui-extensions)
-  - [Configuration](https://shopify.dev/docs/api/customer-account-ui-extensions/unstable/configuration)
-  - [API Reference](https://shopify.dev/docs/api/customer-account-ui-extensions/unstable/apis)
-  - [UI Components](https://shopify.dev/docs/api/customer-account-ui-extensions/unstable/components)
+Customer account extension documentation:
+https://shopify.dev/docs/api/customer-account-ui-extensions/2026-07
