@@ -58,6 +58,83 @@ name = "Organization payout rule ID"
 type = "single_line_text_field"
 access.admin = "merchant_read"
 
+[metaobjects.app.artwork_proof]
+name = "Artwork proof"
+description = "Immutable, versioned campaign artwork submitted for organizer approval."
+display_name_field = "proof_name"
+access.admin = "merchant_read"
+
+[metaobjects.app.artwork_proof.fields.proof_name]
+name = "Proof name"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.artwork_proof.fields.proof_id]
+name = "Proof ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.artwork_proof.fields.organization_store_id]
+name = "Organization store ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.artwork_proof.fields.campaign_id]
+name = "Campaign ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.artwork_proof.fields.version_number]
+name = "Version"
+type = "number_integer"
+required = true
+
+[metaobjects.app.artwork_proof.fields.status]
+name = "Status"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.artwork_proof.fields.asset_file]
+name = "Proof file"
+type = "file_reference"
+required = true
+
+[metaobjects.app.artwork_proof.fields.original_filename]
+name = "Original filename"
+type = "single_line_text_field"
+
+[metaobjects.app.artwork_proof.fields.mime_type]
+name = "MIME type"
+type = "single_line_text_field"
+
+[metaobjects.app.artwork_proof.fields.content_hash]
+name = "SHA-256 hash"
+type = "single_line_text_field"
+
+[metaobjects.app.artwork_proof.fields.staff_notes]
+name = "Staff notes"
+type = "multi_line_text_field"
+
+[metaobjects.app.artwork_proof.fields.organizer_notes]
+name = "Organizer notes"
+type = "multi_line_text_field"
+
+[metaobjects.app.artwork_proof.fields.submitted_at]
+name = "Submitted at"
+type = "date_time"
+
+[metaobjects.app.artwork_proof.fields.reviewed_at]
+name = "Reviewed at"
+type = "date_time"
+
+[metaobjects.app.artwork_proof.fields.reviewed_by_customer_id]
+name = "Reviewed by customer ID"
+type = "single_line_text_field"
+
+[metaobjects.app.artwork_proof.fields.previous_version_id]
+name = "Previous version ID"
+type = "single_line_text_field"
+
 [build]
 include_config_on_deploy = true
 automatically_update_urls_on_dev = true
