@@ -161,7 +161,7 @@ function PortalPage() {
                     </s-stack>
                     <s-text>{organization.description}</s-text>
                     <s-text color="subdued">
-                      Public path: /community/{organization.slug}
+                      Public path: /community/stores/{organization.slug}
                     </s-text>
                   </s-stack>
                 </s-box>
