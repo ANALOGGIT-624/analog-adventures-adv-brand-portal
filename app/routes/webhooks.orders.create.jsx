@@ -3,6 +3,7 @@ import { authenticate } from "../shopify.server";
 import { PORTAL_TYPES, normalizeMetaobject } from "../lib/brand-portal.server";
 import { referenceIds } from "../lib/public-storefront.server";
 import { signedLineAttributions } from "../lib/attribution.server";
+import { approvedProofForCampaign } from "../lib/proof-workflow.server";
 
 function oneOrMultiple(values) {
   const unique = [...new Set(values)];
@@ -27,11 +28,15 @@ export const action = async ({ request }) => {
       query AttributionReferenceData(
         $campaignType: String!
         $payoutRuleType: String!
+        $proofType: String!
       ) {
         campaigns: metaobjects(type: $campaignType, first: 100) {
           nodes { id handle displayName fields { key value } }
         }
         payoutRules: metaobjects(type: $payoutRuleType, first: 100) {
+          nodes { id handle displayName fields { key value } }
+        }
+        proofs: metaobjects(type: $proofType, first: 100) {
           nodes { id handle displayName fields { key value } }
         }
       }
@@ -40,6 +45,7 @@ export const action = async ({ request }) => {
       variables: {
         campaignType: PORTAL_TYPES.campaign,
         payoutRuleType: PORTAL_TYPES.payoutRule,
+        proofType: PORTAL_TYPES.artworkProof,
       },
     },
   );
@@ -54,6 +60,7 @@ export const action = async ({ request }) => {
     referencePayload.data.campaigns.nodes.map(normalizeMetaobject);
   const payoutRules =
     referencePayload.data.payoutRules.nodes.map(normalizeMetaobject);
+  const proofs = referencePayload.data.proofs.nodes.map(normalizeMetaobject);
   const orderCreatedAt = new Date(payload.created_at);
   const manifest = signedLines.flatMap(({ line, token }) => {
     const campaign = campaigns.find(({ handle }) => handle === token.c);
@@ -72,6 +79,7 @@ export const action = async ({ request }) => {
       ({ id }) => id === campaign.payout_rule,
     );
     if (!payoutRule) return [];
+    const approvedProof = approvedProofForCampaign(proofs, campaign.id);
 
     return [
       {
@@ -91,6 +99,14 @@ export const action = async ({ request }) => {
           basis: payoutRule.basis,
           settlementDelayDays: payoutRule.settlement_delay_days || "0",
         },
+        artworkProofSnapshot: approvedProof
+          ? {
+              id: approvedProof.id,
+              version: Number(approvedProof.version_number || 0),
+              fileId: approvedProof.asset_file,
+              contentHash: approvedProof.content_hash,
+            }
+          : null,
       },
     ];
   });
@@ -110,7 +126,7 @@ export const action = async ({ request }) => {
       key: "attribution_manifest",
       type: "json",
       value: JSON.stringify({
-        version: 1,
+        version: 2,
         verifiedAt: new Date().toISOString(),
         lines: manifest,
       }),
