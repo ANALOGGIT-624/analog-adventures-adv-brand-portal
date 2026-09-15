@@ -1,14 +1,17 @@
+import process from "node:process";
 import { authenticate } from "../shopify.server";
-import {
-  PORTAL_TYPES,
-  normalizeMetaobject,
-} from "../lib/brand-portal.server";
+import { PORTAL_TYPES, normalizeMetaobject } from "../lib/brand-portal.server";
 import {
   escapeHtml,
   isCampaignLive,
   referenceIds,
   safeColor,
 } from "../lib/public-storefront.server";
+import {
+  ATTRIBUTION_PROPERTY,
+  attributionTokenForVariant,
+  tokenExpiry,
+} from "../lib/attribution.server";
 
 function money(value) {
   return new Intl.NumberFormat("en-US", {
@@ -17,14 +20,43 @@ function money(value) {
   }).format(Number(value || 0));
 }
 
-function renderStore({ organization, campaign, products }) {
+function renderStore({ organization, campaign, products, secret }) {
   const primary = safeColor(organization.primary_color, "#111827");
   const secondary = safeColor(organization.secondary_color, "#f3f4f6");
   const productCards = products.length
     ? products
         .map((product) => {
           const image = product.featuredMedia?.preview?.image;
-          const price = product.variants.nodes[0]?.price;
+          const variants = product.variants.nodes.filter(
+            ({ availableForSale }) => availableForSale,
+          );
+          const firstVariant = variants[0];
+          const expiresAt = tokenExpiry(campaign);
+          const variantOptions = variants
+            .map((variant) => {
+              const token = attributionTokenForVariant({
+                campaignHandle: campaign.handle,
+                productId: product.legacyResourceId,
+                variantId: variant.legacyResourceId,
+                expiresAt,
+                secret,
+              });
+              const title =
+                variant.title === "Default Title"
+                  ? money(variant.price)
+                  : `${variant.title} — ${money(variant.price)}`;
+              return `<option value="${variant.legacyResourceId}" data-aa-token="${escapeHtml(token)}">${escapeHtml(title)}</option>`;
+            })
+            .join("");
+          const firstToken = firstVariant
+            ? attributionTokenForVariant({
+                campaignHandle: campaign.handle,
+                productId: product.legacyResourceId,
+                variantId: firstVariant.legacyResourceId,
+                expiresAt,
+                secret,
+              })
+            : "";
           return `
             <article class="aa-product-card">
               ${
@@ -36,8 +68,19 @@ function renderStore({ organization, campaign, products }) {
               }
               <div class="aa-product-card__content">
                 <h3>${escapeHtml(product.title)}</h3>
-                ${price ? `<p>${money(price)}</p>` : ""}
-                <a href="/products/${encodeURIComponent(product.handle)}">View product</a>
+                ${
+                  firstVariant
+                    ? `<form action="/cart/add" method="post" class="aa-product-form">
+                        <label for="aa-variant-${product.legacyResourceId}">Choose an option</label>
+                        <select id="aa-variant-${product.legacyResourceId}" name="id" data-aa-variant-select>${variantOptions}</select>
+                        <input type="hidden" name="properties[${ATTRIBUTION_PROPERTY}]" value="${escapeHtml(firstToken)}" data-aa-attribution-token>
+                        <input type="hidden" name="properties[_aa_campaign_name]" value="${escapeHtml(campaign.campaign_name)}">
+                        <input type="hidden" name="properties[_aa_organization_name]" value="${escapeHtml(organization.store_name)}">
+                        <input type="hidden" name="return_to" value="/cart">
+                        <button type="submit">Add to cart</button>
+                      </form>`
+                    : "<p>Sold out</p>"
+                }
               </div>
             </article>`;
         })
@@ -57,7 +100,10 @@ function renderStore({ organization, campaign, products }) {
       .aa-product-card img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; }
       .aa-product-card__content { padding: 18px; }
       .aa-product-card__content h3 { margin: 0 0 8px; }
-      .aa-product-card__content a { display: inline-block; background: var(--aa-primary); color: #fff; border-radius: 999px; padding: 10px 18px; text-decoration: none; }
+      .aa-product-form { display: grid; gap: 10px; }
+      .aa-product-form label { font-size: .9rem; }
+      .aa-product-form select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
+      .aa-product-form button { border: 0; background: var(--aa-primary); color: #fff; border-radius: 999px; padding: 11px 18px; cursor: pointer; }
     </style>
     <main class="aa-store">
       <section class="aa-store__hero">
@@ -79,7 +125,15 @@ function renderStore({ organization, campaign, products }) {
         }
       </section>
       <section class="aa-product-grid">${productCards}</section>
-    </main>`;
+    </main>
+    <script>
+      document.querySelectorAll('[data-aa-variant-select]').forEach(function (select) {
+        select.addEventListener('change', function () {
+          var tokenInput = select.closest('form').querySelector('[data-aa-attribution-token]');
+          tokenInput.value = select.options[select.selectedIndex].dataset.aaToken || '';
+        });
+      });
+    </script>`;
 }
 
 export const loader = async ({ request, params }) => {
@@ -157,6 +211,7 @@ export const loader = async ({ request, params }) => {
           nodes(ids: $ids) {
             ... on Product {
               id
+              legacyResourceId
               title
               handle
               status
@@ -165,7 +220,9 @@ export const loader = async ({ request, params }) => {
                   image { url altText width height }
                 }
               }
-              variants(first: 1) { nodes { price } }
+              variants(first: 100) {
+                nodes { id legacyResourceId title price availableForSale }
+              }
             }
           }
         }
@@ -183,7 +240,15 @@ export const loader = async ({ request, params }) => {
     );
   }
 
-  return liquid(renderStore({ organization, campaign, products }), {
-    layout: true,
-  });
+  return liquid(
+    renderStore({
+      organization,
+      campaign,
+      products,
+      secret: process.env.SHOPIFY_API_SECRET,
+    }),
+    {
+      layout: true,
+    },
+  );
 };
