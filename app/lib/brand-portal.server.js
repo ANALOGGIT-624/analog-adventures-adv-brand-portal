@@ -103,19 +103,30 @@ export function slugify(value) {
 }
 
 export async function upsertMetaobject(admin, { type, handle, values }) {
+  const fields = Object.entries(values)
+    .filter(([, value]) => value !== undefined && value !== null)
+    .map(([key, value]) => ({
+      key,
+      value: typeof value === "object" ? JSON.stringify(value) : String(value),
+    }));
   const response = await admin.graphql(
     `#graphql
       mutation UpsertPortalMetaobject(
         $handle: MetaobjectHandleInput!
-        $values: JSON!
+        $metaobject: MetaobjectUpsertInput!
       ) {
-        metaobjectUpsert(handle: $handle, values: $values) {
+        metaobjectUpsert(handle: $handle, metaobject: $metaobject) {
           metaobject { id handle displayName updatedAt }
           userErrors { field message code }
         }
       }
     `,
-    { variables: { handle: { type, handle }, values } },
+    {
+      variables: {
+        handle: { type, handle },
+        metaobject: { handle, fields },
+      },
+    },
   );
 
   const payload = await response.json();
