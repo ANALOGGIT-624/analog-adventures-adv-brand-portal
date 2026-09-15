@@ -2,10 +2,27 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   fieldsToObject,
+  missingPortalDefinitions,
   normalizeMetaobject,
   slugify,
   upsertMetaobject,
 } from "../app/lib/brand-portal.server.js";
+
+test("app-owned proof definition is recognized through its direct lookup", () => {
+  const merchantDefinitions = [
+    "aa_brand_kit",
+    "aa_organization_store",
+    "aa_store_campaign",
+    "aa_payout_rule",
+    "aa_payout_statement",
+  ].map((type) => ({ type }));
+  assert.deepEqual(
+    missingPortalDefinitions(merchantDefinitions, {
+      type: "app--123456--artwork_proof",
+    }),
+    [],
+  );
+});
 
 test("slugify creates stable public handles", () => {
   assert.equal(slugify(" Providence Country Club "), "providence-country-club");
