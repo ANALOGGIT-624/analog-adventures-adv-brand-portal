@@ -45,19 +45,19 @@ gantt
 
 ## Current implementation
 
-| Capability | Status | Notes |
-|---|---|---|
-| Correct test-app identity | Complete | Client ID ending in `8777` is canonical |
-| Shopify custom-data model | Complete in test store | Brand, production, store, campaign, proof, and payout definitions exist |
-| Staff dashboard | Built locally | Reads live metaobject counts and readiness |
-| Organization-store creation | Built locally | Connects a micro-store record to a Shopify company |
-| Campaign creation | Built locally | Selects organization, dates, products, payout rule, pricing, and fulfillment |
-| Payout oversight | Built locally | Displays rules and settlement records |
-| Customer-account portal | Built locally | Authenticated full-page extension with organization, campaign, and proceeds data |
-| Public micro-store | Built locally | App proxy serves live organization campaigns and their selected products at `/community/stores/:slug` |
-| Proof/asset actions | Not started | Must preserve immutable asset versions |
-| Order attribution | Not started | Requires protected server-side campaign validation |
-| Automated payouts | Not started | Pilot manually before automating financial settlement |
+| Capability                  | Status                 | Notes                                                                                                 |
+| --------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------- |
+| Correct test-app identity   | Complete               | Client ID ending in `8777` is canonical                                                               |
+| Shopify custom-data model   | Complete in test store | Brand, production, store, campaign, proof, and payout definitions exist                               |
+| Staff dashboard             | Built locally          | Reads live metaobject counts and readiness                                                            |
+| Organization-store creation | Built locally          | Connects a micro-store record to a Shopify company                                                    |
+| Campaign creation           | Built locally          | Selects organization, dates, products, payout rule, pricing, and fulfillment                          |
+| Payout oversight            | Built locally          | Displays rules and settlement records                                                                 |
+| Customer-account portal     | Built locally          | Authenticated full-page extension with organization, campaign, and proceeds data                      |
+| Public micro-store          | Built locally          | App proxy serves live organization campaigns and their selected products at `/community/stores/:slug` |
+| Proof/asset actions         | Not started            | Must preserve immutable asset versions                                                                |
+| Order attribution           | Built locally          | Signed variant tokens are verified on `orders/create` before app-owned order metafields are written   |
+| Automated payouts           | Not started            | Pilot manually before automating financial settlement                                                 |
 
 ## Required launch gates
 
