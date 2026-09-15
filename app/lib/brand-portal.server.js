@@ -9,6 +9,14 @@ export const PORTAL_TYPES = {
 
 export const REQUIRED_PORTAL_DEFINITIONS = Object.values(PORTAL_TYPES);
 
+export function missingPortalDefinitions(definitions = [], proofDefinition) {
+  const installedTypes = new Set(definitions.map(({ type }) => type));
+  if (proofDefinition) installedTypes.add(PORTAL_TYPES.artworkProof);
+  return REQUIRED_PORTAL_DEFINITIONS.filter(
+    (type) => !installedTypes.has(type),
+  );
+}
+
 export function fieldsToObject(fields = []) {
   return Object.fromEntries(
     fields.flatMap(({ key, value, reference }) => {
@@ -51,6 +59,9 @@ export async function getPortalSnapshot(admin) {
       ) {
         definitions: metaobjectDefinitions(first: 100) {
           nodes { type name metaobjectsCount }
+        }
+        proofDefinition: metaobjectDefinitionByType(type: $proofType) {
+          type name metaobjectsCount
         }
         organizations: metaobjects(type: $organizationType, first: 50) {
           nodes { id handle displayName updatedAt fields { key value } }
@@ -95,14 +106,11 @@ export async function getPortalSnapshot(admin) {
   const normalizeConnection = (connection) =>
     connection.nodes.map(normalizeMetaobject);
 
-  const installedTypes = new Set(
-    payload.data.definitions.nodes.map(({ type }) => type),
-  );
-
   return {
     definitions: payload.data.definitions.nodes,
-    missingDefinitions: REQUIRED_PORTAL_DEFINITIONS.filter(
-      (type) => !installedTypes.has(type),
+    missingDefinitions: missingPortalDefinitions(
+      payload.data.definitions.nodes,
+      payload.data.proofDefinition,
     ),
     organizations: normalizeConnection(payload.data.organizations),
     campaigns: normalizeConnection(payload.data.campaigns),
