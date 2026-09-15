@@ -5,60 +5,90 @@ retail shopping, bulk/custom quotes, and branded organization micro-stores.
 Analog Adventures remains the merchant of record and each organization receives
 a controlled portal rather than a separate Shopify installation.
 
-## Delivery Gantt
+## Delivery Gantt — updated September 15, 2026
+
+Completed work reflects the Analog Adventures Test store. Remaining durations
+are planning estimates and begin after development resumes.
 
 ```mermaid
 gantt
-    title Analog Adventures Brand Portal and Organization Stores
+    title Analog Adventures Brand Portal — Neighborhood CLT Model
     dateFormat  YYYY-MM-DD
     axisFormat  %b %d
 
-    section Foundation
-    Repository and test-app audit           :done, audit, 2026-09-14, 2d
-    Reconcile app configuration             :done, config, after audit, 2d
-    Permission reauthorization              :done, auth, after config, 2d
-    Hosting and persistent database          :crit, hosting, after config, 7d
+    section Foundation — complete
+    Repository and test-app audit             :done, audit, 2026-09-14, 1d
+    Reconcile app configuration               :done, config, 2026-09-14, 2d
+    Permission and customer-data access        :done, auth, 2026-09-14, 2d
 
-    section Staff Operations
-    Portal dashboard                        :done, dashboard, 2026-09-15, 1d
-    Organization-store workflow             :done, orgs, after dashboard, 1d
-    Campaign and product workflow            :done, campaigns, after orgs, 1d
-    Proof and asset approval workflow        :proofs, after campaigns, 8d
-    Payout statements and adjustments        :active, payouts, 2026-09-15, 7d
+    section Organization-store MVP — complete
+    Staff dashboard and readiness              :done, dashboard, 2026-09-15, 1d
+    Organization-store workflow                :done, orgs, 2026-09-15, 1d
+    Campaign product and payout setup           :done, campaigns, 2026-09-15, 1d
+    Public branded micro-store                  :done, storefront, 2026-09-15, 1d
+    Customer-account portal                     :done, customer, 2026-09-15, 1d
+    Proof upload versioning and approval        :done, proofs, 2026-09-15, 1d
+    Signed order and proof attribution          :done, orders, 2026-09-15, 1d
+    Refund and payout reconciliation            :done, payouts, 2026-09-15, 1d
+    Tot Time end-to-end pilot                   :done, e2e, 2026-09-15, 1d
 
-    section Customer Portal
-    Full-page customer-account portal        :done, customer, 2026-09-15, 1d
-    Brand asset and proof actions             :customer-actions, after customer, 8d
-    Sales, proceeds, and report downloads     :reports, after customer-actions, 7d
+    section Production hardening
+    Stable HTTPS application hosting            :crit, hosting, 2026-09-16, 7d
+    Durable production database                 :crit, database, after hosting, 4d
+    Webhook retries and background jobs          :reliability, after database, 5d
+    Security privacy and retention review        :security, after database, 5d
+    Production deployment and smoke test         :crit, deploy, after reliability, 3d
 
-    section Micro-store
-    Public branded page and app proxy         :done, storefront, 2026-09-15, 1d
-    Server-side product and payout validation :done, validation, after storefront, 1d
-    Order attribution and fulfillment routing :active, orders, after validation, 8d
+    section Portal completion
+    Campaign close archive and relaunch controls :lifecycle, after database, 5d
+    Sales and payout report downloads            :reports, after database, 5d
+    Payout approval payment and audit trail      :payment, after lifecycle, 5d
+    Organization self-service requests           :selfservice, after reports, 6d
+    Fulfillment routing and production exports   :fulfillment, after reports, 6d
 
-    section Pilot
-    Mahjong instructor pilot                 :pilot1, after orders, 14d
-    School or church fundraiser pilot         :pilot2, after pilot1, 14d
-    Country club or golf pilot                :pilot3, after pilot1, 14d
-    Pilot review and automation               :review, after pilot2, 10d
+    section Three-service expansion
+    Retail path homepage presentation            :retail, after deploy, 3d
+    Bulk and custom quote intake                  :quotes, after deploy, 8d
+    Quote proof and draft-order workflow          :draftorders, after quotes, 6d
+    Three-path homepage navigation                :threepaths, after draftorders, 3d
+
+    section External pilots
+    Mahjong instructor pilot                     :pilot1, after threepaths, 14d
+    School or church fundraiser pilot             :pilot2, after threepaths, 14d
+    Country club or golf pilot                    :pilot3, after pilot1, 14d
+    Pilot review and prioritized automation       :review, after pilot3, 10d
 ```
 
 ## Current implementation
 
-| Capability                  | Status                  | Notes                                                                                                 |
-| --------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------- |
-| Correct test-app identity   | Complete                | Client ID ending in `8777` is canonical                                                               |
-| Shopify custom-data model   | Complete in test store  | Brand, production, store, campaign, proof, and payout definitions exist                               |
-| Staff dashboard             | Built locally           | Reads live metaobject counts and readiness                                                            |
-| Organization-store creation | Built locally           | Connects a micro-store record to a Shopify company                                                    |
-| Campaign creation           | Built locally           | Selects organization, dates, products, payout rule, pricing, and fulfillment                          |
-| Payout reconciliation       | Built locally           | Recalculates verified orders, cancellations, refunds, deductions, settlement delay, and proceeds      |
-| Customer-account portal     | Built locally           | Authenticated full-page extension with organization, campaign, and proceeds data                      |
-| Public micro-store          | Built locally           | App proxy serves live organization campaigns and their selected products at `/community/stores/:slug` |
-| Proof/asset actions         | Not started             | Must preserve immutable asset versions                                                                |
-| Order attribution           | Merged and E2E verified | Signed variant tokens are verified on `orders/create` before app-owned order metafields are written   |
-| Payout statements           | Built locally           | Creates one idempotent statement per Shopify campaign and locks paid statements                       |
-| Automated payouts           | Not started             | Pilot manually before automating financial settlement                                                 |
+| Capability                             | Status              | Notes                                                                                                    |
+| -------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------- |
+| Correct test-app identity              | Complete            | Client ID ending in `8777` is canonical                                                                  |
+| Shopify custom-data model              | Complete and tested | Brand, store, campaign, proof, and payout definitions resolve in Analog Adventures Test                  |
+| Staff dashboard                        | Complete and tested | Reads live records and reports launch readiness without false app-owned-definition warnings              |
+| Organization and campaign setup        | Complete and tested | Tot Time Preschool is connected to its company, products, dates, payout rule, and fulfillment mode       |
+| Public micro-store                     | Complete and tested | App proxy serves the Tot Time campaign and creates signed line attribution                               |
+| Customer-account portal                | Complete and tested | Company-authorized contacts see only their store, campaigns, proofs, and statements                      |
+| Proof and asset actions                | Complete and tested | Upload, immutable versions, superseding, approval, and revision requests passed end to end               |
+| Order and production-proof attribution | Complete and tested | Orders `#1002` and `#1003` captured approved Proof Version 2; the unapproved revision did not replace it |
+| Refund and payout reconciliation       | Complete and tested | Refunds, eligible units, fixed proceeds, idempotent draft statements, and settlement delay passed        |
+| Report downloads                       | Not started         | Add downloadable campaign sales, production, and payout reports                                          |
+| Fulfillment routing and exports        | Not started         | Add batch-production and bulk-to-organizer work queues/exports                                           |
+| Bulk/custom quote workflow             | Not started         | Add guided intake, estimates, artwork review, and Shopify draft-order conversion                         |
+| Stable hosting and database            | Not started         | Replace temporary tunnels and SQLite before any external pilot                                           |
+| Automated payouts                      | Deferred            | Continue manual review and payment through initial external pilots                                       |
+
+## September 15 test checkpoint
+
+- Tot Time Preschool completed the organization, campaign, storefront, customer
+  portal, proof, checkout, attribution, refund, and payout-statement cycle.
+- Proof Version 2 was approved. A later revision-request test did not alter the
+  approved production proof.
+- Orders `#1002` and `#1003` both recorded Version 2; legacy order `#1001`
+  correctly shows no proof snapshot.
+- The payout statement showed one eligible unit and `$5.00` before order
+  `#1003`. Reconcile once after work resumes; the expected result is two
+  eligible units and `$10.00` in organization proceeds.
 
 ## Required launch gates
 
