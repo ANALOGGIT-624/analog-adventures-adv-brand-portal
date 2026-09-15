@@ -12,7 +12,8 @@ with client ID `8158f984f0ec6fed1e5f85b44a588777`.
 - Embedded Shopify Admin dashboard for Analog Adventures staff
 - Organization-store creation linked to Shopify Companies
 - Campaign setup with products, dates, payout rules, and fulfillment mode
-- Payout rule and statement oversight
+- Payout reconciliation from verified orders, refunds, cancellations, and deductions
+- Idempotent campaign statements with settlement and paid-status safeguards
 - Full-page New Customer Accounts extension for approved organization contacts
 - Authenticated `/public/portal` endpoint for customer-specific portal data
 
@@ -23,6 +24,7 @@ chart, launch gates, pilot sequence, and remaining Neighborhood-style features.
 
 ```shell
 npm install
+npm test
 npm run lint
 npm run typecheck
 npm run build
