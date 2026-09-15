@@ -19,6 +19,12 @@ function PortalPage() {
     data: null,
     error: "",
   });
+  const [review, setReview] = useState({
+    handle: "",
+    notes: "",
+    busy: false,
+    error: "",
+  });
   const apiUrlSetting = shopify.settings.value.portal_api_url;
   const apiUrl = typeof apiUrlSetting === "string" ? apiUrlSetting : "";
   const authenticatedCustomer = shopify.authenticatedAccount.customer.value;
@@ -37,7 +43,8 @@ function PortalPage() {
           headers: { Authorization: "Bearer " + token },
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Portal request failed.");
+        if (!response.ok)
+          throw new Error(data.error || "Portal request failed.");
         if (!cancelled) setState({ status: "ready", data, error: "" });
       } catch (error) {
         if (!cancelled) {
@@ -99,7 +106,13 @@ function PortalPage() {
 
   if (!state.data) return null;
 
-  const { customer, organizations, campaigns, statements } = state.data;
+  const {
+    customer,
+    organizations,
+    campaigns,
+    statements,
+    proofs = [],
+  } = state.data;
   const liveCampaigns = campaigns.filter(
     ({ status }) => String(status).toLowerCase() === "live",
   );
@@ -107,6 +120,58 @@ function PortalPage() {
     (total, statement) => total + statement.organizationProceeds,
     0,
   );
+
+  async function submitReview(proofHandle, intent) {
+    setReview((current) => ({
+      ...current,
+      handle: proofHandle,
+      busy: true,
+      error: "",
+    }));
+    try {
+      const token = await shopify.sessionToken.get();
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          intent,
+          proofHandle,
+          notes: review.handle === proofHandle ? review.notes : "",
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Proof review failed.");
+      setState((current) => ({
+        ...current,
+        data: {
+          ...current.data,
+          proofs: current.data.proofs.map((proof) =>
+            proof.handle === proofHandle
+              ? {
+                  ...proof,
+                  status:
+                    intent === "approve-proof"
+                      ? "approved"
+                      : "changes_requested",
+                  organizerNotes: review.notes,
+                  reviewedAt: new Date().toISOString(),
+                }
+              : proof,
+          ),
+        },
+      }));
+      setReview({ handle: "", notes: "", busy: false, error: "" });
+    } catch (error) {
+      setReview((current) => ({
+        ...current,
+        busy: false,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+    }
+  }
 
   return (
     <s-page
@@ -155,9 +220,7 @@ function PortalPage() {
                   <s-stack direction="block" gap="small-200">
                     <s-stack direction="inline" gap="base" alignItems="center">
                       <s-heading>{organization.name}</s-heading>
-                      <s-badge tone="neutral">
-                        {organization.status}
-                      </s-badge>
+                      <s-badge tone="neutral">{organization.status}</s-badge>
                     </s-stack>
                     <s-text>{organization.description}</s-text>
                     <s-text color="subdued">
@@ -188,9 +251,7 @@ function PortalPage() {
                         alignItems="center"
                       >
                         <s-heading>{campaign.name}</s-heading>
-                        <s-badge tone="neutral">
-                          {campaign.status}
-                        </s-badge>
+                        <s-badge tone="neutral">{campaign.status}</s-badge>
                       </s-stack>
                       <s-text>
                         {campaign.startsAt || "Start date pending"} –{" "}
@@ -207,6 +268,112 @@ function PortalPage() {
                     </s-stack>
                   </s-box>
                 ))}
+              </s-stack>
+            )}
+          </s-section>
+
+          <s-section heading="Artwork proofs">
+            {review.error && (
+              <s-banner heading="Proof review was not saved" tone="critical">
+                {review.error}
+              </s-banner>
+            )}
+            {proofs.length === 0 ? (
+              <s-text>No artwork proofs are ready for review.</s-text>
+            ) : (
+              <s-stack direction="block" gap="base">
+                {[...proofs]
+                  .sort((a, b) => b.version - a.version)
+                  .map((proof) => (
+                    <s-box
+                      key={proof.id}
+                      padding="base"
+                      border="base"
+                      borderRadius="base"
+                    >
+                      <s-stack direction="block" gap="small-200">
+                        <s-stack
+                          direction="inline"
+                          gap="base"
+                          alignItems="center"
+                        >
+                          <s-heading>{proof.name}</s-heading>
+                          <s-badge
+                            tone={
+                              proof.status === "approved"
+                                ? "success"
+                                : proof.status === "changes_requested"
+                                  ? "warning"
+                                  : "info"
+                            }
+                          >
+                            {proof.status}
+                          </s-badge>
+                        </s-stack>
+                        {proof.staffNotes && (
+                          <s-text>{proof.staffNotes}</s-text>
+                        )}
+                        {proof.assetUrl ? (
+                          <s-link href={proof.assetUrl} target="_blank">
+                            Open proof file
+                          </s-link>
+                        ) : (
+                          <s-text color="subdued">
+                            Proof file is processing.
+                          </s-text>
+                        )}
+                        {proof.status === "submitted" && (
+                          <>
+                            <s-text-area
+                              label="Revision notes (required when requesting changes)"
+                              value={
+                                review.handle === proof.handle
+                                  ? review.notes
+                                  : ""
+                              }
+                              onInput={(event) =>
+                                setReview({
+                                  handle: proof.handle,
+                                  notes: event.currentTarget.value,
+                                  busy: false,
+                                  error: "",
+                                })
+                              }
+                              rows={3}
+                            />
+                            <s-stack direction="inline" gap="base">
+                              <s-button
+                                variant="primary"
+                                loading={
+                                  review.busy && review.handle === proof.handle
+                                }
+                                onClick={() =>
+                                  submitReview(proof.handle, "approve-proof")
+                                }
+                              >
+                                Approve proof
+                              </s-button>
+                              <s-button
+                                loading={
+                                  review.busy && review.handle === proof.handle
+                                }
+                                onClick={() =>
+                                  submitReview(proof.handle, "request-changes")
+                                }
+                              >
+                                Request changes
+                              </s-button>
+                            </s-stack>
+                          </>
+                        )}
+                        {proof.organizerNotes && (
+                          <s-text color="subdued">
+                            Organizer note: {proof.organizerNotes}
+                          </s-text>
+                        )}
+                      </s-stack>
+                    </s-box>
+                  ))}
               </s-stack>
             )}
           </s-section>
@@ -228,9 +395,7 @@ function PortalPage() {
                   >
                     <s-stack direction="inline" gap="base" alignItems="center">
                       <s-text type="strong">{statement.statementId}</s-text>
-                      <s-badge tone="neutral">
-                        {statement.status}
-                      </s-badge>
+                      <s-badge tone="neutral">{statement.status}</s-badge>
                       <s-text>
                         {money(
                           statement.organizationProceeds,
