@@ -19,6 +19,7 @@ export default function App() {
         <s-link href="/app">Dashboard</s-link>
         <s-link href="/app/organizations">Organization stores</s-link>
         <s-link href="/app/campaigns">Campaigns</s-link>
+        <s-link href="/app/proofs">Artwork proofs</s-link>
         <s-link href="/app/attributions">Attributed orders</s-link>
         <s-link href="/app/payouts">Payouts</s-link>
       </s-app-nav>
