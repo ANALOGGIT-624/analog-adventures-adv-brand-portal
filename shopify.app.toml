@@ -7,7 +7,12 @@ application_url = "https://shopify.dev/apps/default-app-home"
 embedded = true
 
 [access_scopes]
-scopes = "read_companies,read_customers,read_orders,read_products,write_products,read_metaobjects,write_metaobjects,read_metaobject_definitions,write_metaobject_definitions,read_files,write_files,read_draft_orders,write_draft_orders"
+scopes = "read_companies,read_customers,read_orders,read_products,write_products,read_metaobjects,write_metaobjects,read_metaobject_definitions,write_metaobject_definitions,read_files,write_files,read_draft_orders,write_draft_orders,write_app_proxy"
+
+[app_proxy]
+url = "/community/stores"
+prefix = "community"
+subpath = "stores"
 
 [auth]
 redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
