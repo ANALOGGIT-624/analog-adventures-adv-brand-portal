@@ -7,7 +7,7 @@ application_url = "https://shopify.dev/apps/default-app-home"
 embedded = true
 
 [access_scopes]
-scopes = "read_companies,read_customers,read_orders,read_products,write_products,read_metaobjects,write_metaobjects,read_metaobject_definitions,write_metaobject_definitions,read_files,write_files,read_draft_orders,write_draft_orders,write_app_proxy"
+scopes = "read_companies,read_customers,read_orders,write_orders,read_products,write_products,read_metaobjects,write_metaobjects,read_metaobject_definitions,write_metaobject_definitions,read_files,write_files,read_draft_orders,write_draft_orders,write_app_proxy"
 
 [app_proxy]
 url = "/community/stores"
@@ -27,6 +27,36 @@ api_version = "2026-07"
   [[webhooks.subscriptions]]
   uri = "/webhooks/app/scopes_update"
   topics = [ "app/scopes_update" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/orders/create"
+  topics = [ "orders/create" ]
+
+[order.metafields.app.attribution_manifest]
+name = "Organization attribution manifest"
+description = "Server-verified organization campaign attribution for this order."
+type = "json"
+access.admin = "merchant_read"
+
+[order.metafields.app.attribution_status]
+name = "Organization attribution status"
+type = "single_line_text_field"
+access.admin = "merchant_read"
+
+[order.metafields.app.organization_store_id]
+name = "Organization store ID"
+type = "single_line_text_field"
+access.admin = "merchant_read"
+
+[order.metafields.app.campaign_id]
+name = "Organization campaign ID"
+type = "single_line_text_field"
+access.admin = "merchant_read"
+
+[order.metafields.app.payout_rule_id]
+name = "Organization payout rule ID"
+type = "single_line_text_field"
+access.admin = "merchant_read"
 
 [build]
 include_config_on_deploy = true
