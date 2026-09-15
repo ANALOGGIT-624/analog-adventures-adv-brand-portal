@@ -54,7 +54,7 @@ gantt
 | Campaign creation | Built locally | Selects organization, dates, products, payout rule, pricing, and fulfillment |
 | Payout oversight | Built locally | Displays rules and settlement records |
 | Customer-account portal | Built locally | Authenticated full-page extension with organization, campaign, and proceeds data |
-| Public micro-store | Not started | Requires hosted app URL and app-proxy configuration |
+| Public micro-store | Built locally | App proxy serves live organization campaigns and their selected products at `/community/stores/:slug` |
 | Proof/asset actions | Not started | Must preserve immutable asset versions |
 | Order attribution | Not started | Requires protected server-side campaign validation |
 | Automated payouts | Not started | Pilot manually before automating financial settlement |
