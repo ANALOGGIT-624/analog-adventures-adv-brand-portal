@@ -4,13 +4,23 @@ export const PORTAL_TYPES = {
   campaign: "aa_store_campaign",
   payoutRule: "aa_payout_rule",
   payoutStatement: "aa_payout_statement",
-  artworkProof: "aa_artwork_proof",
+  artworkProof: "$app:artwork_proof",
 };
 
 export const REQUIRED_PORTAL_DEFINITIONS = Object.values(PORTAL_TYPES);
 
 export function fieldsToObject(fields = []) {
-  return Object.fromEntries(fields.map(({ key, value }) => [key, value]));
+  return Object.fromEntries(
+    fields.flatMap(({ key, value, reference }) => {
+      const url = reference?.image?.url || reference?.url;
+      return url
+        ? [
+            [key, value],
+            [`${key}_url`, url],
+          ]
+        : [[key, value]];
+    }),
+  );
 }
 
 export function normalizeMetaobject(node) {
@@ -54,8 +64,17 @@ export async function getPortalSnapshot(admin) {
         payoutStatements: metaobjects(type: $payoutStatementType, first: 50) {
           nodes { id handle displayName updatedAt fields { key value } }
         }
-        proofs: metaobjects(type: $proofType, first: 50) {
-          nodes { id handle displayName updatedAt fields { key value } }
+        proofs: metaobjects(type: $proofType, first: 100) {
+          nodes {
+            id handle displayName updatedAt
+            fields {
+              key value
+              reference {
+                ... on MediaImage { image { url } }
+                ... on GenericFile { url }
+              }
+            }
+          }
         }
       }
     `,

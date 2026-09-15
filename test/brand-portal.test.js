@@ -22,6 +22,22 @@ test("fieldsToObject preserves Shopify metaobject values", () => {
   );
 });
 
+test("fieldsToObject exposes resolved file-reference URLs", () => {
+  assert.deepEqual(
+    fieldsToObject([
+      {
+        key: "asset_file",
+        value: "gid://shopify/GenericFile/1",
+        reference: { url: "https://cdn.shopify.com/proof.pdf" },
+      },
+    ]),
+    {
+      asset_file: "gid://shopify/GenericFile/1",
+      asset_file_url: "https://cdn.shopify.com/proof.pdf",
+    },
+  );
+});
+
 test("normalizeMetaobject combines identity and custom fields", () => {
   assert.deepEqual(
     normalizeMetaobject({

@@ -35,7 +35,9 @@ export default function Dashboard() {
     ({ status }) => String(status).toLowerCase() === "live",
   );
   const unpaidStatements = data.payoutStatements.filter(
-    ({ status }) => String(status).toLowerCase() !== "paid",
+    ({ status, organization_proceeds }) =>
+      String(status).toLowerCase() !== "paid" &&
+      Number(organization_proceeds || 0) > 0,
   );
   const outstandingProceeds = unpaidStatements.reduce(
     (sum, statement) => sum + Number(statement.organization_proceeds || 0),
@@ -47,7 +49,11 @@ export default function Dashboard() {
       heading="Analog Adventures Brand Portal"
       subheading="Manage organization micro-stores, campaigns, proofs, and payouts."
     >
-      <s-button slot="primary-action" href="/app/organizations" variant="primary">
+      <s-button
+        slot="primary-action"
+        href="/app/organizations"
+        variant="primary"
+      >
         Add organization store
       </s-button>
 
@@ -80,7 +86,7 @@ export default function Dashboard() {
               style: "currency",
               currency: "USD",
             }).format(outstandingProceeds)}
-            detail={unpaidStatements.length + " unpaid statements"}
+            detail={unpaidStatements.length + " statement(s) requiring payment"}
           />
         </s-grid>
       </s-section>
