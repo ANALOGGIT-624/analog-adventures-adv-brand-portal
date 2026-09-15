@@ -1,5 +1,6 @@
 import { useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
+import { productionProofLabel } from "../lib/attribution-display";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
@@ -56,6 +57,7 @@ export default function AttributedOrders() {
               <s-table-header>Status</s-table-header>
               <s-table-header>Campaign</s-table-header>
               <s-table-header>Attributed units</s-table-header>
+              <s-table-header>Production proof</s-table-header>
               <s-table-header>Created</s-table-header>
             </s-table-header-row>
             <s-table-body>
@@ -78,6 +80,9 @@ export default function AttributedOrders() {
                     </s-table-cell>
                     <s-table-cell>{campaigns}</s-table-cell>
                     <s-table-cell>{units}</s-table-cell>
+                    <s-table-cell>
+                      {productionProofLabel(order.attribution)}
+                    </s-table-cell>
                     <s-table-cell>
                       {new Date(order.createdAt).toLocaleString()}
                     </s-table-cell>
