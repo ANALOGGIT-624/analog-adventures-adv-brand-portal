@@ -8,6 +8,20 @@ import {
   tokenExpiry,
   verifyAttribution,
 } from "../app/lib/attribution.server.js";
+import { productionProofLabel } from "../app/lib/attribution-display.js";
+
+test("production proof label reports immutable manifest versions", () => {
+  assert.equal(
+    productionProofLabel({
+      lines: [
+        { artworkProofSnapshot: { version: 2 } },
+        { artworkProofSnapshot: { version: 2 } },
+      ],
+    }),
+    "Version 2",
+  );
+  assert.equal(productionProofLabel({ lines: [{}] }), "Not captured");
+});
 
 const secret = "test-secret";
 const now = new Date("2026-09-15T12:00:00Z");
