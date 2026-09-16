@@ -72,6 +72,8 @@ gantt
 | Proof and asset actions                | Complete and tested | Upload, immutable versions, superseding, approval, and revision requests passed end to end               |
 | Order and production-proof attribution | Complete and tested | Orders `#1002` and `#1003` captured approved Proof Version 2; the unapproved revision did not replace it |
 | Refund and payout reconciliation       | Complete and tested | Refunds, fulfillment gating, deductions, fixed proceeds, idempotent drafts, and settlement protection passed             |
+| Payout approval and paid-record lock   | Complete and tested | Approval eligibility, payment confirmation, paid timestamp, and immutable settled records passed                         |
+| Campaign lifecycle and relaunch        | In progress         | Close and archive passed; safe new-ID relaunch and paid-campaign reopening protection are being added                     |
 | Report downloads                       | Not started         | Add downloadable campaign sales, production, and payout reports                                          |
 | Fulfillment routing and exports        | Not started         | Add batch-production and bulk-to-organizer work queues/exports                                           |
 | Bulk/custom quote workflow             | Not started         | Add guided intake, estimates, artwork review, and Shopify draft-order conversion                         |
@@ -92,8 +94,10 @@ gantt
   unfulfilled orders. The correction passed: only fulfilled, non-refunded
   units now contribute to proceeds, and manual deductions reconcile correctly.
 - Premature approval was blocked while the campaign remained live and inside
-  its settlement delay. Campaign lifecycle controls are the next build step so
-  closed, eligible campaigns can complete approval and paid-lock testing.
+  its settlement delay. Close, approval, payment confirmation, paid timestamp,
+  immutable paid-record locking, and archive behavior subsequently passed.
+- Relaunch now requires a new campaign identity so new sales cannot be attached
+  to a paid and locked statement from an earlier campaign period.
 
 ## Required launch gates
 
