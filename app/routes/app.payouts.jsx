@@ -218,9 +218,7 @@ export default function Payouts() {
                     {reconciliation.campaign.campaign_name}
                   </s-table-cell>
                   <s-table-cell>{reconciliation.orderCount}</s-table-cell>
-                  <s-table-cell>
-                    {reconciliation.units - reconciliation.refundedUnits}
-                  </s-table-cell>
+                  <s-table-cell>{reconciliation.eligibleUnits}</s-table-cell>
                   <s-table-cell>
                     {moneyFromCents(
                       reconciliation.grossRevenueCents,
