@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildCampaignRelaunch,
   buildCampaignLifecycleValues,
   campaignDateTime,
 } from "../app/lib/campaign-lifecycle.server.js";
@@ -46,6 +47,71 @@ test("closed campaigns cannot retain a future close date", () => {
         now: new Date("2026-09-16T12:00:00Z"),
       }),
     /cannot close in the future/,
+  );
+});
+
+test("campaigns with paid statements cannot be reopened", () => {
+  assert.throws(
+    () =>
+      buildCampaignLifecycleValues(campaign, {
+        status: "live",
+        startsAt: "",
+        closesAt: "",
+        isPaid: true,
+      }),
+    /Relaunch it as a new campaign/,
+  );
+});
+
+test("archiving remains available after a campaign is paid", () => {
+  const values = buildCampaignLifecycleValues(campaign, {
+    status: "archived",
+    startsAt: "",
+    closesAt: "",
+    isPaid: true,
+    now: new Date("2026-09-16T12:00:00Z"),
+  });
+
+  assert.equal(values.status, "archived");
+});
+
+test("relaunch creates a new identity while preserving configuration", () => {
+  const relaunch = buildCampaignRelaunch(
+    { ...campaign, status: "archived" },
+    {
+      campaignName: "Pilot Spring 2027",
+      campaignId: "PILOT-SPRING-2027",
+      status: "scheduled",
+      startsAt: "2027-03-01",
+      closesAt: "2027-03-31",
+      existingCampaigns: [campaign],
+    },
+  );
+
+  assert.equal(relaunch.handle, "pilot-spring-2027");
+  assert.equal(relaunch.values.campaign_id, "PILOT-SPRING-2027");
+  assert.equal(relaunch.values.status, "scheduled");
+  assert.equal(relaunch.values.products, campaign.products);
+  assert.equal(relaunch.values.payout_rule, campaign.payout_rule);
+  assert.equal(relaunch.values.starts_at, "2027-03-01T00:00:00Z");
+  assert.equal(relaunch.values.closes_at, "2027-03-31T23:59:59Z");
+});
+
+test("relaunch rejects an existing campaign identity", () => {
+  assert.throws(
+    () =>
+      buildCampaignRelaunch(
+        { ...campaign, status: "archived" },
+        {
+          campaignName: "Duplicate",
+          campaignId: campaign.campaign_id,
+          status: "draft",
+          startsAt: "2027-03-01",
+          closesAt: "2027-03-31",
+          existingCampaigns: [campaign],
+        },
+      ),
+    /new campaign ID/,
   );
 });
 
