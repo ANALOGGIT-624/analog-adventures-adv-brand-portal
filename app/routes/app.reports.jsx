@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useLoaderData } from "react-router";
+import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { getCampaignReportData } from "../lib/campaign-report.server";
 
@@ -31,6 +33,43 @@ function reportUrl(campaignId, kind) {
 
 export default function Reports() {
   const { campaigns } = useLoaderData();
+  const shopify = useAppBridge();
+  const [downloading, setDownloading] = useState("");
+
+  const downloadReport = async (campaign, kind, label) => {
+    const downloadId = `${campaign.id}-${kind}`;
+    setDownloading(downloadId);
+    try {
+      const response = await fetch(reportUrl(campaign.id, kind), {
+        headers: { Accept: "text/csv" },
+      });
+      const contentType = response.headers.get("content-type") || "";
+      if (!response.ok || !contentType.includes("text/csv")) {
+        const message = await response.text();
+        throw new Error(
+          message && message.length < 240
+            ? message
+            : "The report server did not return a CSV file.",
+        );
+      }
+
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = `${campaign.campaignId}-${kind}.csv`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      shopify.toast.show(`${label} report downloaded`);
+    } catch (error) {
+      shopify.toast.show(error.message || "Report download failed", {
+        isError: true,
+      });
+    } finally {
+      setDownloading("");
+    }
+  };
 
   return (
     <s-page
@@ -68,22 +107,28 @@ export default function Reports() {
                   <s-table-cell>
                     <s-stack direction="inline" gap="small">
                       <s-button
-                        href={reportUrl(campaign.id, "sales")}
-                        download={`${campaign.campaignId}-sales.csv`}
+                        onClick={() =>
+                          downloadReport(campaign, "sales", "Sales")
+                        }
+                        loading={downloading === `${campaign.id}-sales`}
                         variant="secondary"
                       >
                         Sales
                       </s-button>
                       <s-button
-                        href={reportUrl(campaign.id, "production")}
-                        download={`${campaign.campaignId}-production.csv`}
+                        onClick={() =>
+                          downloadReport(campaign, "production", "Production")
+                        }
+                        loading={downloading === `${campaign.id}-production`}
                         variant="secondary"
                       >
                         Production
                       </s-button>
                       <s-button
-                        href={reportUrl(campaign.id, "payout")}
-                        download={`${campaign.campaignId}-payout.csv`}
+                        onClick={() =>
+                          downloadReport(campaign, "payout", "Payout")
+                        }
+                        loading={downloading === `${campaign.id}-payout`}
                         variant="secondary"
                       >
                         Payout
