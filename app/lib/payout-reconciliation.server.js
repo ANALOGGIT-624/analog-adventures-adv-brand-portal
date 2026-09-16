@@ -81,6 +81,21 @@ function refundsForLine(order, lineItemId) {
   );
 }
 
+function visibleCustomizations(attributes = []) {
+  return attributes
+    .filter(({ key, value }) => key && value && !String(key).startsWith("_"))
+    .map(({ key, value }) => `${key}: ${value}`)
+    .join(" | ");
+}
+
+function fulfillmentState({ cancelled, currentQuantity, unfulfilledQuantity }) {
+  if (cancelled || currentQuantity <= 0) return "cancelled_or_refunded";
+  if (!Number.isFinite(unfulfilledQuantity)) return "unknown";
+  if (unfulfilledQuantity <= 0) return "fulfilled";
+  if (unfulfilledQuantity < currentQuantity) return "partially_fulfilled";
+  return "unfulfilled";
+}
+
 export function reconcileCampaignOrders(orders, campaignId) {
   const result = {
     campaignId,
@@ -112,6 +127,7 @@ export function reconcileCampaignOrders(orders, campaignId) {
     let orderRefundedUnits = 0;
     let orderEligibleUnits = 0;
     let orderCurrency = order.currencyCode || result.currency;
+    const orderLines = [];
 
     for (const manifestLine of manifestLines) {
       const lineItem = (order.lineItems?.nodes || []).find(
@@ -163,6 +179,34 @@ export function reconcileCampaignOrders(orders, campaignId) {
       orderUnits += quantity;
       orderRefundedUnits += refundedQuantity;
       orderEligibleUnits += eligibleQuantity;
+      orderLines.push({
+        lineItemId: manifestLine.lineItemId,
+        productId: manifestLine.productId || null,
+        variantId: manifestLine.variantId || null,
+        itemName: lineItem?.name || "Attributed item",
+        sku: lineItem?.sku || "",
+        variantTitle: lineItem?.variantTitle || "",
+        customization: visibleCustomizations(lineItem?.customAttributes),
+        orderedUnits: quantity,
+        currentUnits: nonRefundedQuantity,
+        refundedUnits: refundedQuantity,
+        eligibleUnits: eligibleQuantity,
+        unfulfilledUnits: Number.isFinite(unfulfilledQuantity)
+          ? Math.min(nonRefundedQuantity, Math.max(0, unfulfilledQuantity))
+          : null,
+        fulfillmentState: fulfillmentState({
+          cancelled: isCancelled,
+          currentQuantity: nonRefundedQuantity,
+          unfulfilledQuantity,
+        }),
+        grossRevenueCents: grossCents,
+        refundsCents: refundCents,
+        proceedsCents,
+        proofId: manifestLine.artworkProofSnapshot?.id || null,
+        proofVersion: manifestLine.artworkProofSnapshot?.version || null,
+        proofContentHash:
+          manifestLine.artworkProofSnapshot?.contentHash || null,
+      });
     }
 
     const createdAt = order.createdAt || null;
@@ -192,6 +236,7 @@ export function reconcileCampaignOrders(orders, campaignId) {
       grossRevenueCents: orderGrossCents,
       refundsCents: orderRefundsCents,
       proceedsCents: orderProceedsCents,
+      lines: orderLines,
     });
   }
 
@@ -214,9 +259,13 @@ const ORDERS_QUERY = `#graphql
         lineItems(first: 100) {
           nodes {
             id
+            name
+            sku
+            variantTitle
             quantity
             currentQuantity
             unfulfilledQuantity
+            customAttributes { key value }
             discountedTotalSet { shopMoney { amount currencyCode } }
           }
         }
