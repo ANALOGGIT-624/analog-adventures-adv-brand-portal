@@ -11,6 +11,8 @@ function order({
   lineId = "gid://shopify/LineItem/10",
   amount = "100.00",
   quantity = 2,
+  currentQuantity = quantity,
+  unfulfilledQuantity = 0,
   method = "fixed_per_unit",
   basis = "eligible_unit",
   rate = "5.00",
@@ -42,6 +44,8 @@ function order({
         {
           id: lineId,
           quantity,
+          currentQuantity,
+          unfulfilledQuantity,
           discountedTotalSet: {
             shopMoney: { amount, currencyCode: "USD" },
           },
@@ -72,13 +76,19 @@ function refund(lineId, quantity, amount) {
 test("fixed proceeds use eligible units after refunds", () => {
   const lineId = "gid://shopify/LineItem/10";
   const result = reconcileCampaignOrders(
-    [order({ refunds: [refund(lineId, 1, "50.00")] })],
+    [
+      order({
+        currentQuantity: 1,
+        refunds: [refund(lineId, 1, "50.00")],
+      }),
+    ],
     campaignId,
   );
 
   assert.equal(result.orderCount, 1);
   assert.equal(result.units, 2);
   assert.equal(result.refundedUnits, 1);
+  assert.equal(result.eligibleUnits, 1);
   assert.equal(result.grossRevenueCents, 10000);
   assert.equal(result.refundsCents, 5000);
   assert.equal(result.proceedsCents, 500);
@@ -101,6 +111,43 @@ test("percentage proceeds use revenue after refunds", () => {
   assert.equal(result.proceedsCents, 750);
 });
 
+test("fulfilled-unit proceeds exclude units that are not fulfilled", () => {
+  const result = reconcileCampaignOrders(
+    [
+      order({
+        basis: "eligible_fulfilled_units",
+        quantity: 2,
+        currentQuantity: 2,
+        unfulfilledQuantity: 1,
+      }),
+    ],
+    campaignId,
+  );
+
+  assert.equal(result.eligibleUnits, 1);
+  assert.equal(result.proceedsCents, 500);
+});
+
+test("fulfilled-unit proceeds default to zero without fulfillment data", () => {
+  const attributedOrder = order({ basis: "eligible_fulfilled_units" });
+  delete attributedOrder.lineItems.nodes[0].unfulfilledQuantity;
+
+  const result = reconcileCampaignOrders([attributedOrder], campaignId);
+
+  assert.equal(result.eligibleUnits, 0);
+  assert.equal(result.proceedsCents, 0);
+});
+
+test("non-fulfillment unit rules continue to use non-refunded units", () => {
+  const result = reconcileCampaignOrders(
+    [order({ basis: "eligible_unit", unfulfilledQuantity: 2 })],
+    campaignId,
+  );
+
+  assert.equal(result.eligibleUnits, 2);
+  assert.equal(result.proceedsCents, 1000);
+});
+
 test("cancelled orders are fully reversed", () => {
   const result = reconcileCampaignOrders(
     [order({ cancelledAt: "2026-09-16T12:00:00Z" })],
@@ -109,6 +156,7 @@ test("cancelled orders are fully reversed", () => {
 
   assert.equal(result.refundsCents, 10000);
   assert.equal(result.refundedUnits, 2);
+  assert.equal(result.eligibleUnits, 0);
   assert.equal(result.proceedsCents, 0);
 });
 
