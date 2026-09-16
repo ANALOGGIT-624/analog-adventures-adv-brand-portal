@@ -71,7 +71,7 @@ gantt
 | Customer-account portal                | Complete and tested | Company-authorized contacts see only their store, campaigns, proofs, and statements                      |
 | Proof and asset actions                | Complete and tested | Upload, immutable versions, superseding, approval, and revision requests passed end to end               |
 | Order and production-proof attribution | Complete and tested | Orders `#1002` and `#1003` captured approved Proof Version 2; the unapproved revision did not replace it |
-| Refund and payout reconciliation       | Complete and tested | Refunds, eligible units, fixed proceeds, idempotent draft statements, and settlement delay passed        |
+| Refund and payout reconciliation       | In progress         | Refunds, idempotent draft statements, and settlement delay passed; fulfilled-unit gating is being corrected and retested |
 | Report downloads                       | Not started         | Add downloadable campaign sales, production, and payout reports                                          |
 | Fulfillment routing and exports        | Not started         | Add batch-production and bulk-to-organizer work queues/exports                                           |
 | Bulk/custom quote workflow             | Not started         | Add guided intake, estimates, artwork review, and Shopify draft-order conversion                         |
@@ -86,9 +86,11 @@ gantt
   approved production proof.
 - Orders `#1002` and `#1003` both recorded Version 2; legacy order `#1001`
   correctly shows no proof snapshot.
-- The payout statement showed one eligible unit and `$5.00` before order
-  `#1003`. Reconcile once after work resumes; the expected result is two
-  eligible units and `$10.00` in organization proceeds.
+- Reconciliation remained idempotent after order `#1003`: it updated the
+  existing statement instead of creating a duplicate.
+- The follow-up audit found that `eligible_fulfilled_units` was counting
+  unfulfilled orders. Retest after the fulfillment-gating correction: only
+  fulfilled, non-refunded units should contribute to organization proceeds.
 
 ## Required launch gates
 
