@@ -71,7 +71,7 @@ gantt
 | Customer-account portal                | Complete and tested | Company-authorized contacts see only their store, campaigns, proofs, and statements                      |
 | Proof and asset actions                | Complete and tested | Upload, immutable versions, superseding, approval, and revision requests passed end to end               |
 | Order and production-proof attribution | Complete and tested | Orders `#1002` and `#1003` captured approved Proof Version 2; the unapproved revision did not replace it |
-| Refund and payout reconciliation       | In progress         | Refunds, idempotent draft statements, and settlement delay passed; fulfilled-unit gating is being corrected and retested |
+| Refund and payout reconciliation       | Complete and tested | Refunds, fulfillment gating, deductions, fixed proceeds, idempotent drafts, and settlement protection passed             |
 | Report downloads                       | Not started         | Add downloadable campaign sales, production, and payout reports                                          |
 | Fulfillment routing and exports        | Not started         | Add batch-production and bulk-to-organizer work queues/exports                                           |
 | Bulk/custom quote workflow             | Not started         | Add guided intake, estimates, artwork review, and Shopify draft-order conversion                         |
@@ -89,8 +89,11 @@ gantt
 - Reconciliation remained idempotent after order `#1003`: it updated the
   existing statement instead of creating a duplicate.
 - The follow-up audit found that `eligible_fulfilled_units` was counting
-  unfulfilled orders. Retest after the fulfillment-gating correction: only
-  fulfilled, non-refunded units should contribute to organization proceeds.
+  unfulfilled orders. The correction passed: only fulfilled, non-refunded
+  units now contribute to proceeds, and manual deductions reconcile correctly.
+- Premature approval was blocked while the campaign remained live and inside
+  its settlement delay. Campaign lifecycle controls are the next build step so
+  closed, eligible campaigns can complete approval and paid-lock testing.
 
 ## Required launch gates
 

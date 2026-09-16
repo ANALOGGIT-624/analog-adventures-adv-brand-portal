@@ -4,10 +4,16 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import {
   PORTAL_TYPES,
+  getPortalSnapshot,
   normalizeMetaobject,
   slugify,
   upsertMetaobject,
 } from "../lib/brand-portal.server";
+import {
+  buildCampaignLifecycleValues,
+  campaignDateTime,
+} from "../lib/campaign-lifecycle.server";
+import { CAMPAIGN_STATUSES } from "../lib/campaign-lifecycle";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
@@ -53,14 +59,36 @@ export const loader = async ({ request }) => {
   };
 };
 
-function dateTimeValue(value, endOfDay = false) {
-  if (!value) return null;
-  return value + (endOfDay ? "T23:59:59Z" : "T00:00:00Z");
-}
-
 export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
+  const intent = String(formData.get("intent") || "create");
+
+  if (intent === "lifecycle") {
+    try {
+      const campaignRecordId = String(
+        formData.get("campaign_record_id") || "",
+      );
+      const snapshot = await getPortalSnapshot(admin);
+      const campaign = snapshot.campaigns.find(
+        ({ id }) => id === campaignRecordId,
+      );
+      const values = buildCampaignLifecycleValues(campaign, {
+        status: String(formData.get("status") || ""),
+        startsAt: String(formData.get("starts_at") || ""),
+        closesAt: String(formData.get("closes_at") || ""),
+      });
+      const updatedCampaign = await upsertMetaobject(admin, {
+        type: PORTAL_TYPES.campaign,
+        handle: campaign.handle,
+        values,
+      });
+      return { ok: true, campaign: updatedCampaign, intent };
+    } catch (error) {
+      return { ok: false, error: error.message, intent };
+    }
+  }
+
   const campaignName = String(formData.get("campaign_name") || "").trim();
   const organizationStore = String(
     formData.get("organization_store") || "",
@@ -79,8 +107,8 @@ export const action = async ({ request }) => {
   const campaignId =
     String(formData.get("campaign_id") || "").trim() ||
     "CAMPAIGN-" + Date.now();
-  const startsAt = dateTimeValue(String(formData.get("starts_at") || ""));
-  const closesAt = dateTimeValue(
+  const startsAt = campaignDateTime(String(formData.get("starts_at") || ""));
+  const closesAt = campaignDateTime(
     String(formData.get("closes_at") || ""),
     true,
   );
@@ -136,7 +164,13 @@ export default function Campaigns() {
     organizations.length > 0 && payoutRules.length > 0 && products.length > 0;
 
   useEffect(() => {
-    if (fetcher.data?.ok) shopify.toast.show("Campaign saved");
+    if (fetcher.data?.ok) {
+      shopify.toast.show(
+        fetcher.data.intent === "lifecycle"
+          ? "Campaign lifecycle updated"
+          : "Campaign saved",
+      );
+    }
   }, [fetcher.data, shopify]);
 
   return (
@@ -145,7 +179,7 @@ export default function Campaigns() {
       subheading="Schedule products, payout terms, and fulfillment for each organization store."
     >
       <s-section heading="Create campaign">
-        {fetcher.data?.error && (
+        {fetcher.data?.error && fetcher.data?.intent !== "lifecycle" && (
           <s-banner heading="Campaign was not saved" tone="critical">
             {fetcher.data.error}
           </s-banner>
@@ -258,6 +292,56 @@ export default function Campaigns() {
             </s-stack>
           </fetcher.Form>
         )}
+      </s-section>
+
+      <s-section heading="Update campaign lifecycle">
+        {fetcher.data?.error && fetcher.data?.intent === "lifecycle" && (
+          <s-banner heading="Campaign was not updated" tone="critical">
+            {fetcher.data.error}
+          </s-banner>
+        )}
+        <s-paragraph>
+          Change campaign availability without replacing its products, payout
+          rule, fulfillment settings, or permanent campaign identity.
+        </s-paragraph>
+        <fetcher.Form method="post">
+          <input type="hidden" name="intent" value="lifecycle" />
+          <s-stack direction="block" gap="base">
+            <s-select
+              label="Campaign"
+              name="campaign_record_id"
+              required
+            >
+              <s-option value="">Select a campaign</s-option>
+              {campaigns.map((campaign) => (
+                <s-option key={campaign.id} value={campaign.id}>
+                  {campaign.campaign_name} — {campaign.status}
+                </s-option>
+              ))}
+            </s-select>
+            <s-grid gridTemplateColumns="1fr 1fr" gap="base">
+              <s-select label="New status" name="status" required>
+                <s-option value="">Select a status</s-option>
+                {CAMPAIGN_STATUSES.map((status) => (
+                  <s-option key={status} value={status}>
+                    {status}
+                  </s-option>
+                ))}
+              </s-select>
+              <s-date-field
+                label="New close date (optional)"
+                name="closes_at"
+              />
+            </s-grid>
+            <s-date-field
+              label="New start date (optional)"
+              name="starts_at"
+            />
+            <s-button type="submit" variant="primary" loading={busy}>
+              Update campaign lifecycle
+            </s-button>
+          </s-stack>
+        </fetcher.Form>
       </s-section>
 
       <s-section heading="Campaign history">
