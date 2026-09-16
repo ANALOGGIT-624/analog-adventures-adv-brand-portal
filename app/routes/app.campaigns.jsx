@@ -10,10 +10,14 @@ import {
   upsertMetaobject,
 } from "../lib/brand-portal.server";
 import {
+  buildCampaignRelaunch,
   buildCampaignLifecycleValues,
   campaignDateTime,
 } from "../lib/campaign-lifecycle.server";
-import { CAMPAIGN_STATUSES } from "../lib/campaign-lifecycle";
+import {
+  CAMPAIGN_RELAUNCH_STATUSES,
+  CAMPAIGN_STATUSES,
+} from "../lib/campaign-lifecycle";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
@@ -73,10 +77,16 @@ export const action = async ({ request }) => {
       const campaign = snapshot.campaigns.find(
         ({ id }) => id === campaignRecordId,
       );
+      const paidStatement = snapshot.payoutStatements.find(
+        (statement) =>
+          statement.campaign === campaignRecordId &&
+          String(statement.status).toLowerCase() === "paid",
+      );
       const values = buildCampaignLifecycleValues(campaign, {
         status: String(formData.get("status") || ""),
         startsAt: String(formData.get("starts_at") || ""),
         closesAt: String(formData.get("closes_at") || ""),
+        isPaid: Boolean(paidStatement),
       });
       const updatedCampaign = await upsertMetaobject(admin, {
         type: PORTAL_TYPES.campaign,
@@ -84,6 +94,34 @@ export const action = async ({ request }) => {
         values,
       });
       return { ok: true, campaign: updatedCampaign, intent };
+    } catch (error) {
+      return { ok: false, error: error.message, intent };
+    }
+  }
+
+  if (intent === "relaunch") {
+    try {
+      const sourceCampaignId = String(
+        formData.get("source_campaign_id") || "",
+      );
+      const snapshot = await getPortalSnapshot(admin);
+      const sourceCampaign = snapshot.campaigns.find(
+        ({ id }) => id === sourceCampaignId,
+      );
+      const relaunch = buildCampaignRelaunch(sourceCampaign, {
+        campaignName: formData.get("campaign_name"),
+        campaignId: formData.get("campaign_id"),
+        status: String(formData.get("status") || ""),
+        startsAt: String(formData.get("starts_at") || ""),
+        closesAt: String(formData.get("closes_at") || ""),
+        existingCampaigns: snapshot.campaigns,
+      });
+      const campaign = await upsertMetaobject(admin, {
+        type: PORTAL_TYPES.campaign,
+        handle: relaunch.handle,
+        values: relaunch.values,
+      });
+      return { ok: true, campaign, intent };
     } catch (error) {
       return { ok: false, error: error.message, intent };
     }
@@ -168,7 +206,9 @@ export default function Campaigns() {
       shopify.toast.show(
         fetcher.data.intent === "lifecycle"
           ? "Campaign lifecycle updated"
-          : "Campaign saved",
+          : fetcher.data.intent === "relaunch"
+            ? "Campaign relaunched"
+            : "Campaign saved",
       );
     }
   }, [fetcher.data, shopify]);
@@ -179,7 +219,8 @@ export default function Campaigns() {
       subheading="Schedule products, payout terms, and fulfillment for each organization store."
     >
       <s-section heading="Create campaign">
-        {fetcher.data?.error && fetcher.data?.intent !== "lifecycle" && (
+        {fetcher.data?.error &&
+          !["lifecycle", "relaunch"].includes(fetcher.data?.intent) && (
           <s-banner heading="Campaign was not saved" tone="critical">
             {fetcher.data.error}
           </s-banner>
@@ -292,6 +333,67 @@ export default function Campaigns() {
             </s-stack>
           </fetcher.Form>
         )}
+      </s-section>
+
+      <s-section heading="Relaunch campaign">
+        {fetcher.data?.error && fetcher.data?.intent === "relaunch" && (
+          <s-banner heading="Campaign was not relaunched" tone="critical">
+            {fetcher.data.error}
+          </s-banner>
+        )}
+        <s-paragraph>
+          Copy a closed campaign into a new permanent campaign ID. Its product,
+          payout, organization, and fulfillment settings are preserved while
+          prior orders and statements remain attached to the original campaign.
+        </s-paragraph>
+        <fetcher.Form method="post">
+          <input type="hidden" name="intent" value="relaunch" />
+          <s-stack direction="block" gap="base">
+            <s-select
+              label="Source campaign"
+              name="source_campaign_id"
+              required
+            >
+              <s-option value="">Select a closed campaign</s-option>
+              {campaigns
+                .filter(({ status }) =>
+                  ["closed", "archived"].includes(String(status)),
+                )
+                .map((campaign) => (
+                  <s-option key={campaign.id} value={campaign.id}>
+                    {campaign.campaign_name} — {campaign.status}
+                  </s-option>
+                ))}
+            </s-select>
+            <s-grid gridTemplateColumns="1fr 1fr" gap="base">
+              <s-text-field
+                label="New campaign name"
+                name="campaign_name"
+                required
+              />
+              <s-text-field
+                label="New campaign ID"
+                name="campaign_id"
+                required
+              />
+            </s-grid>
+            <s-grid gridTemplateColumns="1fr 1fr" gap="base">
+              <s-date-field label="New start date" name="starts_at" required />
+              <s-date-field label="New close date" name="closes_at" required />
+            </s-grid>
+            <s-select label="Initial status" name="status" required>
+              <s-option value="">Select a status</s-option>
+              {CAMPAIGN_RELAUNCH_STATUSES.map((status) => (
+                <s-option key={status} value={status}>
+                  {status}
+                </s-option>
+              ))}
+            </s-select>
+            <s-button type="submit" variant="primary" loading={busy}>
+              Relaunch as new campaign
+            </s-button>
+          </s-stack>
+        </fetcher.Form>
       </s-section>
 
       <s-section heading="Update campaign lifecycle">
