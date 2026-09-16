@@ -5,7 +5,7 @@ retail shopping, bulk/custom quotes, and branded organization micro-stores.
 Analog Adventures remains the merchant of record and each organization receives
 a controlled portal rather than a separate Shopify installation.
 
-## Delivery Gantt — updated September 15, 2026
+## Delivery Gantt — updated September 16, 2026
 
 Completed work reflects the Analog Adventures Test store. Remaining durations
 are planning estimates and begin after development resumes.
@@ -31,6 +31,8 @@ gantt
     Signed order and proof attribution          :done, orders, 2026-09-15, 1d
     Refund and payout reconciliation            :done, payouts, 2026-09-15, 1d
     Tot Time end-to-end pilot                   :done, e2e, 2026-09-15, 1d
+    Payout approval payment and audit trail      :done, payment, 2026-09-16, 1d
+    Campaign close archive and safe relaunch     :done, lifecycle, 2026-09-16, 1d
 
     section Production hardening
     Stable HTTPS application hosting            :crit, hosting, 2026-09-16, 7d
@@ -40,9 +42,7 @@ gantt
     Production deployment and smoke test         :crit, deploy, after reliability, 3d
 
     section Portal completion
-    Campaign close archive and relaunch controls :lifecycle, after database, 5d
     Sales and payout report downloads            :reports, after database, 5d
-    Payout approval payment and audit trail      :payment, after lifecycle, 5d
     Organization self-service requests           :selfservice, after reports, 6d
     Fulfillment routing and production exports   :fulfillment, after reports, 6d
 
@@ -73,14 +73,14 @@ gantt
 | Order and production-proof attribution | Complete and tested | Orders `#1002` and `#1003` captured approved Proof Version 2; the unapproved revision did not replace it |
 | Refund and payout reconciliation       | Complete and tested | Refunds, fulfillment gating, deductions, fixed proceeds, idempotent drafts, and settlement protection passed             |
 | Payout approval and paid-record lock   | Complete and tested | Approval eligibility, payment confirmation, paid timestamp, and immutable settled records passed                         |
-| Campaign lifecycle and relaunch        | In progress         | Close and archive passed; safe new-ID relaunch and paid-campaign reopening protection are being added                     |
+| Campaign lifecycle and relaunch        | Complete and tested | Close, archive, safe new-ID relaunch, preserved configuration, and paid-campaign reopening protection passed              |
 | Report downloads                       | Not started         | Add downloadable campaign sales, production, and payout reports                                          |
 | Fulfillment routing and exports        | Not started         | Add batch-production and bulk-to-organizer work queues/exports                                           |
 | Bulk/custom quote workflow             | Not started         | Add guided intake, estimates, artwork review, and Shopify draft-order conversion                         |
 | Stable hosting and database            | Not started         | Replace temporary tunnels and SQLite before any external pilot                                           |
 | Automated payouts                      | Deferred            | Continue manual review and payment through initial external pilots                                       |
 
-## September 15 test checkpoint
+## September 15–16 test checkpoint
 
 - Tot Time Preschool completed the organization, campaign, storefront, customer
   portal, proof, checkout, attribution, refund, and payout-statement cycle.
@@ -96,8 +96,11 @@ gantt
 - Premature approval was blocked while the campaign remained live and inside
   its settlement delay. Close, approval, payment confirmation, paid timestamp,
   immutable paid-record locking, and archive behavior subsequently passed.
-- Relaunch now requires a new campaign identity so new sales cannot be attached
-  to a paid and locked statement from an earlier campaign period.
+- Relaunch created campaign `TC-PILOT-002` with a new identity while preserving
+  the organization, products, payout rule, pricing, production, and fulfillment
+  settings from the archived campaign.
+- Reopening the original archived campaign was blocked because its statement is
+  paid. The original campaign and its historical statement remained unchanged.
 
 ## Required launch gates
 
