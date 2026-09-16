@@ -70,7 +70,6 @@ export default function Reports() {
                       <s-button
                         href={reportUrl(campaign.id, "sales")}
                         download={`${campaign.campaignId}-sales.csv`}
-                        target="_blank"
                         variant="secondary"
                       >
                         Sales
@@ -78,7 +77,6 @@ export default function Reports() {
                       <s-button
                         href={reportUrl(campaign.id, "production")}
                         download={`${campaign.campaignId}-production.csv`}
-                        target="_blank"
                         variant="secondary"
                       >
                         Production
@@ -86,7 +84,6 @@ export default function Reports() {
                       <s-button
                         href={reportUrl(campaign.id, "payout")}
                         download={`${campaign.campaignId}-payout.csv`}
-                        target="_blank"
                         variant="secondary"
                       >
                         Payout
