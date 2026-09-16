@@ -31,6 +31,12 @@ function payoutMethod(snapshot = {}) {
   return "unsupported";
 }
 
+function requiresFulfillment(snapshot = {}) {
+  return String(snapshot.basis || "")
+    .toLowerCase()
+    .includes("fulfilled");
+}
+
 export function calculateProceedsCents({
   payoutRuleSnapshot,
   eligibleRevenueCents,
@@ -81,6 +87,7 @@ export function reconcileCampaignOrders(orders, campaignId) {
     orderCount: 0,
     units: 0,
     refundedUnits: 0,
+    eligibleUnits: 0,
     grossRevenueCents: 0,
     refundsCents: 0,
     proceedsCents: 0,
@@ -103,6 +110,7 @@ export function reconcileCampaignOrders(orders, campaignId) {
     let orderProceedsCents = 0;
     let orderUnits = 0;
     let orderRefundedUnits = 0;
+    let orderEligibleUnits = 0;
     let orderCurrency = order.currencyCode || result.currency;
 
     for (const manifestLine of manifestLines) {
@@ -122,7 +130,20 @@ export function reconcileCampaignOrders(orders, campaignId) {
         ? quantity
         : Math.min(quantity, refunded.quantity);
       const eligibleRevenueCents = Math.max(0, grossCents - refundCents);
-      const eligibleQuantity = Math.max(0, quantity - refundedQuantity);
+      const currentQuantity = Number(lineItem?.currentQuantity);
+      const nonRefundedQuantity = isCancelled
+        ? 0
+        : Number.isFinite(currentQuantity)
+          ? Math.min(quantity, Math.max(0, currentQuantity))
+          : Math.max(0, quantity - refundedQuantity);
+      const unfulfilledQuantity = Number(lineItem?.unfulfilledQuantity);
+      const eligibleQuantity = requiresFulfillment(
+        manifestLine.payoutRuleSnapshot,
+      )
+        ? Number.isFinite(unfulfilledQuantity)
+          ? Math.max(0, nonRefundedQuantity - unfulfilledQuantity)
+          : 0
+        : nonRefundedQuantity;
       const proceedsCents = calculateProceedsCents({
         payoutRuleSnapshot: manifestLine.payoutRuleSnapshot,
         eligibleRevenueCents,
@@ -141,12 +162,14 @@ export function reconcileCampaignOrders(orders, campaignId) {
       orderProceedsCents += proceedsCents;
       orderUnits += quantity;
       orderRefundedUnits += refundedQuantity;
+      orderEligibleUnits += eligibleQuantity;
     }
 
     const createdAt = order.createdAt || null;
     result.orderCount += 1;
     result.units += orderUnits;
     result.refundedUnits += orderRefundedUnits;
+    result.eligibleUnits += orderEligibleUnits;
     result.grossRevenueCents += orderGrossCents;
     result.refundsCents += orderRefundsCents;
     result.proceedsCents += orderProceedsCents;
@@ -165,6 +188,7 @@ export function reconcileCampaignOrders(orders, campaignId) {
       createdAt,
       units: orderUnits,
       refundedUnits: orderRefundedUnits,
+      eligibleUnits: orderEligibleUnits,
       grossRevenueCents: orderGrossCents,
       refundsCents: orderRefundsCents,
       proceedsCents: orderProceedsCents,
@@ -191,6 +215,8 @@ const ORDERS_QUERY = `#graphql
           nodes {
             id
             quantity
+            currentQuantity
+            unfulfilledQuantity
             discountedTotalSet { shopMoney { amount currencyCode } }
           }
         }
