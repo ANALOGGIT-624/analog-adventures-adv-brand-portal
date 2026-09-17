@@ -44,7 +44,7 @@ gantt
 
     section Portal completion
     Organization self-service requests           :selfservice, after reports, 6d
-    Fulfillment routing and batch work queues     :active, fulfillment, 2026-09-17, 3d
+    Fulfillment routing and batch work queues     :done, fulfillment, 2026-09-17, 1d
 
     section Three-service expansion
     Retail path homepage presentation            :retail, after deploy, 3d
@@ -61,24 +61,24 @@ gantt
 
 ## Current implementation
 
-| Capability                             | Status              | Notes                                                                                                                                                        |
-| -------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Correct test-app identity              | Complete            | Client ID ending in `8777` is canonical                                                                                                                      |
-| Shopify custom-data model              | Extension ready     | Brand, store, campaign, proof, payout, and production-batch definitions are version-controlled; deploy and test the new batch definition                     |
-| Staff dashboard                        | Complete and tested | Reads live records and reports launch readiness without false app-owned-definition warnings                                                                  |
-| Organization and campaign setup        | Complete and tested | Tot Time Preschool is connected to its company, products, dates, payout rule, and fulfillment mode                                                           |
-| Public micro-store                     | Complete and tested | App proxy serves the Tot Time campaign and creates signed line attribution                                                                                   |
-| Customer-account portal                | Complete and tested | Company-authorized contacts see only their store, campaigns, proofs, and statements                                                                          |
-| Proof and asset actions                | Complete and tested | Upload, immutable versions, superseding, approval, and revision requests passed end to end                                                                   |
-| Order and production-proof attribution | Complete and tested | Orders `#1002` and `#1003` captured approved Proof Version 2; the unapproved revision did not replace it                                                     |
-| Refund and payout reconciliation       | Complete and tested | Refunds, fulfillment gating, deductions, fixed proceeds, idempotent drafts, and settlement protection passed                                                 |
-| Payout approval and paid-record lock   | Complete and tested | Approval eligibility, payment confirmation, paid timestamp, and immutable settled records passed                                                             |
-| Campaign lifecycle and relaunch        | Complete and tested | Close, archive, safe new-ID relaunch, preserved configuration, and paid-campaign reopening protection passed                                                 |
-| Report downloads                       | Complete and tested | Sales, production, and payout CSV files download in place and reconcile to Tot Time orders and statements                                                    |
-| Fulfillment routing and exports        | Built; test pending | Production exports passed; the staff queue now snapshots unfulfilled units, proof/customization data, fulfillment mode, and guarded batch status transitions |
-| Bulk/custom quote workflow             | Not started         | Add guided intake, estimates, artwork review, and Shopify draft-order conversion                                                                             |
-| Stable hosting and database            | Not started         | Replace temporary tunnels and SQLite before any external pilot                                                                                               |
-| Automated payouts                      | Deferred            | Continue manual review and payment through initial external pilots                                                                                           |
+| Capability                             | Status              | Notes                                                                                                                                                         |
+| -------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Correct test-app identity              | Complete            | Client ID ending in `8777` is canonical                                                                                                                       |
+| Shopify custom-data model              | Complete and tested | Brand, store, campaign, proof, payout, and production-batch definitions resolve in Analog Adventures Test                                                     |
+| Staff dashboard                        | Complete and tested | Reads live records and reports launch readiness without false app-owned-definition warnings                                                                   |
+| Organization and campaign setup        | Complete and tested | Tot Time Preschool is connected to its company, products, dates, payout rule, and fulfillment mode                                                            |
+| Public micro-store                     | Complete and tested | App proxy serves the Tot Time campaign and creates signed line attribution                                                                                    |
+| Customer-account portal                | Complete and tested | Company-authorized contacts see only their store, campaigns, proofs, and statements                                                                           |
+| Proof and asset actions                | Complete and tested | Upload, immutable versions, superseding, approval, and revision requests passed end to end                                                                    |
+| Order and production-proof attribution | Complete and tested | Orders `#1002` and `#1003` captured approved Proof Version 2; the unapproved revision did not replace it                                                      |
+| Refund and payout reconciliation       | Complete and tested | Refunds, fulfillment gating, deductions, fixed proceeds, idempotent drafts, and settlement protection passed                                                  |
+| Payout approval and paid-record lock   | Complete and tested | Approval eligibility, payment confirmation, paid timestamp, and immutable settled records passed                                                              |
+| Campaign lifecycle and relaunch        | Complete and tested | Close, archive, safe new-ID relaunch, preserved configuration, and paid-campaign reopening protection passed                                                  |
+| Report downloads                       | Complete and tested | Sales, production, and payout CSV files download in place and reconcile to Tot Time orders and statements                                                     |
+| Fulfillment routing and exports        | Complete and tested | Production exports, duplicate-batch prevention, bulk-to-organizer routing, guarded status transitions, Shopify fulfillment, and terminal batch locking passed |
+| Bulk/custom quote workflow             | Not started         | Add guided intake, estimates, artwork review, and Shopify draft-order conversion                                                                              |
+| Stable hosting and database            | Not started         | Replace temporary tunnels and SQLite before any external pilot                                                                                                |
+| Automated payouts                      | Deferred            | Continue manual review and payment through initial external pilots                                                                                            |
 
 ## September 15–17 test checkpoint
 
@@ -107,8 +107,10 @@ gantt
 - The production export preserved Proof Version 2 for orders `#1002` and `#1003`,
   retained the legacy no-proof state for order `#1001`, and correctly separated
   fulfilled, unfulfilled, and cancelled/refunded quantities.
-- The fulfillment workspace and app-owned production-batch schema are built for
-  review. End-to-end testing remains before this phase can be marked complete.
+- The fulfillment workflow passed end to end with the Tot Time bulk-to-organizer
+  order: one unfulfilled unit was snapshotted, excluded from duplicate batching,
+  advanced through queued, in-production, and ready-to-ship states, fulfilled in
+  Shopify, completed in the portal, and locked with its audit record intact.
 
 ## Required launch gates
 
