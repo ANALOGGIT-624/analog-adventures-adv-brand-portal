@@ -5,7 +5,7 @@ retail shopping, bulk/custom quotes, and branded organization micro-stores.
 Analog Adventures remains the merchant of record and each organization receives
 a controlled portal rather than a separate Shopify installation.
 
-## Delivery Gantt — updated September 16, 2026
+## Delivery Gantt — updated September 17, 2026
 
 Completed work reflects the Analog Adventures Test store. Remaining durations
 are planning estimates and begin after development resumes.
@@ -33,6 +33,7 @@ gantt
     Tot Time end-to-end pilot                   :done, e2e, 2026-09-15, 1d
     Payout approval payment and audit trail      :done, payment, 2026-09-16, 1d
     Campaign close archive and safe relaunch     :done, lifecycle, 2026-09-16, 1d
+    Sales payout and production CSV exports       :done, reports, 2026-09-17, 1d
 
     section Production hardening
     Stable HTTPS application hosting            :crit, hosting, 2026-09-16, 7d
@@ -42,9 +43,8 @@ gantt
     Production deployment and smoke test         :crit, deploy, after reliability, 3d
 
     section Portal completion
-    Sales and payout report downloads            :reports, after database, 5d
     Organization self-service requests           :selfservice, after reports, 6d
-    Fulfillment routing and production exports   :fulfillment, after reports, 6d
+    Fulfillment routing and batch work queues     :fulfillment, after database, 6d
 
     section Three-service expansion
     Retail path homepage presentation            :retail, after deploy, 3d
@@ -74,13 +74,13 @@ gantt
 | Refund and payout reconciliation       | Complete and tested | Refunds, fulfillment gating, deductions, fixed proceeds, idempotent drafts, and settlement protection passed             |
 | Payout approval and paid-record lock   | Complete and tested | Approval eligibility, payment confirmation, paid timestamp, and immutable settled records passed                         |
 | Campaign lifecycle and relaunch        | Complete and tested | Close, archive, safe new-ID relaunch, preserved configuration, and paid-campaign reopening protection passed              |
-| Report downloads                       | Not started         | Add downloadable campaign sales, production, and payout reports                                          |
-| Fulfillment routing and exports        | Not started         | Add batch-production and bulk-to-organizer work queues/exports                                           |
+| Report downloads                       | Complete and tested | Sales, production, and payout CSV files download in place and reconcile to Tot Time orders and statements |
+| Fulfillment routing and exports        | In progress         | Production CSV export passed; add batch-production and bulk-to-organizer routing/work queues              |
 | Bulk/custom quote workflow             | Not started         | Add guided intake, estimates, artwork review, and Shopify draft-order conversion                         |
 | Stable hosting and database            | Not started         | Replace temporary tunnels and SQLite before any external pilot                                           |
 | Automated payouts                      | Deferred            | Continue manual review and payment through initial external pilots                                       |
 
-## September 15–16 test checkpoint
+## September 15–17 test checkpoint
 
 - Tot Time Preschool completed the organization, campaign, storefront, customer
   portal, proof, checkout, attribution, refund, and payout-statement cycle.
@@ -101,6 +101,12 @@ gantt
   settings from the archived campaign.
 - Reopening the original archived campaign was blocked because its statement is
   paid. The original campaign and its historical statement remained unchanged.
+- Authenticated sales, production, and payout CSV downloads passed. Tot Time's
+  three orders reconcile to $1,540.85 gross, $785.95 refunded, one eligible
+  unit, and $5.00 organization proceeds.
+- The production export preserved Proof Version 2 for orders `#1002` and `#1003`,
+  retained the legacy no-proof state for order `#1001`, and correctly separated
+  fulfilled, unfulfilled, and cancelled/refunded quantities.
 
 ## Required launch gates
 
