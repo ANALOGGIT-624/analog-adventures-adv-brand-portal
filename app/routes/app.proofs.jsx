@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFetcher, useLoaderData } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -91,13 +91,26 @@ function tone(status) {
   return "info";
 }
 
+function selectedFile(event) {
+  const target = event.currentTarget;
+  const files = target?.files || event.target?.files || event.detail?.files;
+  return files?.[0] || null;
+}
+
 export default function Proofs() {
   const { organizations, campaigns, proofs } = useLoaderData();
   const fetcher = useFetcher();
   const shopify = useAppBridge();
+  const [proofFile, setProofFile] = useState(null);
+  const [proofFileError, setProofFileError] = useState("");
+  const [proofInputKey, setProofInputKey] = useState(0);
   useEffect(() => {
-    if (fetcher.data?.ok)
+    if (fetcher.data?.ok) {
       shopify.toast.show("Proof uploaded for organizer review");
+      setProofFile(null);
+      setProofFileError("");
+      setProofInputKey((current) => current + 1);
+    }
   }, [fetcher.data, shopify]);
   return (
     <s-page
@@ -135,11 +148,31 @@ export default function Proofs() {
               </s-select>
             </s-grid>
             <s-drop-zone
+              key={proofInputKey}
               name="proof_file"
               label="Proof file"
               accept=".pdf,.svg,.png,.jpg,.jpeg"
+              error={proofFileError || undefined}
+              onChange={(event) => {
+                const file = selectedFile(event);
+                setProofFile(file);
+                setProofFileError(
+                  file ? "" : "Choose a PDF, SVG, PNG, or JPEG proof.",
+                );
+              }}
+              onDropRejected={() => {
+                setProofFile(null);
+                setProofFileError(
+                  "Choose a PDF, SVG, PNG, or JPEG proof up to 20 MB.",
+                );
+              }}
               required
             />
+            {proofFile && (
+              <s-text color="subdued">
+                Selected proof: {proofFile.name}
+              </s-text>
+            )}
             <s-text-area
               label="Notes for the organizer"
               name="staff_notes"
@@ -165,6 +198,7 @@ export default function Proofs() {
               <s-table-header listSlot="primary">Proof</s-table-header>
               <s-table-header>Campaign</s-table-header>
               <s-table-header>Status</s-table-header>
+              <s-table-header>Organizer feedback</s-table-header>
               <s-table-header>File</s-table-header>
               <s-table-header>Submitted</s-table-header>
             </s-table-header-row>
@@ -187,6 +221,9 @@ export default function Proofs() {
                         <s-badge tone={tone(proof.status)}>
                           {proof.status}
                         </s-badge>
+                      </s-table-cell>
+                      <s-table-cell>
+                        {proof.organizer_notes || "—"}
                       </s-table-cell>
                       <s-table-cell>
                         {proof.asset_file_url ? (
