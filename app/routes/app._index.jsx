@@ -64,7 +64,7 @@ export default function Dashboard() {
       )}
 
       <s-section heading="Portal overview">
-        <s-grid gridTemplateColumns="repeat(4, minmax(0, 1fr))" gap="base">
+        <s-grid gridTemplateColumns="repeat(5, minmax(0, 1fr))" gap="base">
           <Metric
             label="Organization stores"
             value={data.organizations.length}
@@ -87,6 +87,17 @@ export default function Dashboard() {
               currency: "USD",
             }).format(outstandingProceeds)}
             detail={unpaidStatements.length + " statement(s) requiring payment"}
+          />
+          <Metric
+            label="Open requests"
+            value={
+              data.organizationRequests.filter(({ status }) =>
+                ["submitted", "in_review", "approved"].includes(
+                  String(status).toLowerCase(),
+                ),
+              ).length
+            }
+            detail="Organizer proposals awaiting staff action"
           />
         </s-grid>
       </s-section>

@@ -43,7 +43,7 @@ gantt
     Production deployment and smoke test         :crit, deploy, after reliability, 3d
 
     section Portal completion
-    Organization self-service requests           :selfservice, after reports, 6d
+    Organization self-service requests           :active, selfservice, 2026-09-17, 3d
     Fulfillment routing and batch work queues     :done, fulfillment, 2026-09-17, 1d
 
     section Three-service expansion
@@ -76,6 +76,7 @@ gantt
 | Campaign lifecycle and relaunch        | Complete and tested | Close, archive, safe new-ID relaunch, preserved configuration, and paid-campaign reopening protection passed                                                  |
 | Report downloads                       | Complete and tested | Sales, production, and payout CSV files download in place and reconcile to Tot Time orders and statements                                                     |
 | Fulfillment routing and exports        | Complete and tested | Production exports, duplicate-batch prevention, bulk-to-organizer routing, guarded status transitions, Shopify fulfillment, and terminal batch locking passed |
+| Organization self-service requests     | Built; test pending | Company-authorized contacts can submit store, campaign, product, branding, and relaunch proposals for controlled staff review                                 |
 | Bulk/custom quote workflow             | Not started         | Add guided intake, estimates, artwork review, and Shopify draft-order conversion                                                                              |
 | Stable hosting and database            | Not started         | Replace temporary tunnels and SQLite before any external pilot                                                                                                |
 | Automated payouts                      | Deferred            | Continue manual review and payment through initial external pilots                                                                                            |
