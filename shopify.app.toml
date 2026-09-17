@@ -262,6 +262,27 @@ name = "Requested details"
 type = "json"
 required = true
 
+[metaobjects.app.organization_request.fields.artwork_file]
+name = "Submitted artwork"
+description = "Immutable source artwork or logo supplied by the organization with this request."
+type = "file_reference"
+
+[metaobjects.app.organization_request.fields.artwork_filename]
+name = "Submitted artwork filename"
+type = "single_line_text_field"
+
+[metaobjects.app.organization_request.fields.artwork_mime_type]
+name = "Submitted artwork MIME type"
+type = "single_line_text_field"
+
+[metaobjects.app.organization_request.fields.artwork_content_hash]
+name = "Submitted artwork SHA-256 hash"
+type = "single_line_text_field"
+
+[metaobjects.app.organization_request.fields.artwork_uploaded_at]
+name = "Submitted artwork uploaded at"
+type = "date_time"
+
 [metaobjects.app.organization_request.fields.staff_notes]
 name = "Staff notes"
 type = "multi_line_text_field"

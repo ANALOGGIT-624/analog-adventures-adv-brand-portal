@@ -24,6 +24,12 @@ function fieldValue(event) {
   return target && "value" in target ? String(target.value || "") : "";
 }
 
+function selectedFile(event) {
+  const target = event.currentTarget;
+  const files = target?.files || event.target?.files || event.detail?.files;
+  return files?.[0] || null;
+}
+
 function OrganizationRequests({
   apiUrl,
   organizations,
@@ -39,6 +45,9 @@ function OrganizationRequests({
     details: "",
     requestedStartDate: "",
     requestedCloseDate: "",
+    artworkFile: null,
+    artworkInputKey: 0,
+    artworkError: "",
     busy: false,
     error: "",
     success: "",
@@ -52,13 +61,24 @@ function OrganizationRequests({
     setForm((current) => ({ ...current, busy: true, error: "", success: "" }));
     try {
       const token = await shopify.sessionToken.get();
+      const payload = new FormData();
+      payload.append("intent", "create-request");
+      payload.append("requestType", form.requestType);
+      payload.append("organizationId", form.organizationId);
+      payload.append("campaignId", form.campaignId);
+      payload.append("title", form.title);
+      payload.append("details", form.details);
+      payload.append("requestedStartDate", form.requestedStartDate);
+      payload.append("requestedCloseDate", form.requestedCloseDate);
+      if (form.artworkFile) {
+        payload.append("artwork_file", form.artworkFile, form.artworkFile.name);
+      }
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           Authorization: "Bearer " + token,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ intent: "create-request", ...form }),
+        body: payload,
       });
       const result = await response.json();
       if (!response.ok)
@@ -70,6 +90,9 @@ function OrganizationRequests({
         details: "",
         requestedStartDate: "",
         requestedCloseDate: "",
+        artworkFile: null,
+        artworkInputKey: current.artworkInputKey + 1,
+        artworkError: "",
         busy: false,
         error: "",
         success: "Your request was submitted for staff review.",
@@ -207,6 +230,36 @@ function OrganizationRequests({
                 }
               />
             </s-grid>
+            <s-drop-zone
+              key={form.artworkInputKey}
+              label="Logo or source artwork (optional)"
+              name="artwork_file"
+              accept=".pdf,.svg,.png,.jpg,.jpeg"
+              disabled={form.busy}
+              error={form.artworkError || undefined}
+              onChange={(event) => {
+                const file = selectedFile(event);
+                setForm((current) => ({
+                  ...current,
+                  artworkFile: file,
+                  artworkError: file
+                    ? ""
+                    : "Choose a PDF, SVG, PNG, or JPEG file.",
+                }));
+              }}
+              onDropRejected={() =>
+                setForm((current) => ({
+                  ...current,
+                  artworkFile: null,
+                  artworkError: "Choose a PDF, SVG, PNG, or JPEG file.",
+                }))
+              }
+            />
+            {form.artworkFile && (
+              <s-text color="subdued">
+                Selected artwork: {form.artworkFile.name}
+              </s-text>
+            )}
             <s-button type="submit" variant="primary" loading={form.busy}>
               Submit request
             </s-button>
@@ -234,6 +287,14 @@ function OrganizationRequests({
                   <s-text color="subdued">
                     {requestLabel(request.type)} · {request.requestId}
                   </s-text>
+                  {request.artworkUrl && (
+                    <s-link href={request.artworkUrl} target="_blank">
+                      Open submitted artwork
+                      {request.artworkFilename
+                        ? ` (${request.artworkFilename})`
+                        : ""}
+                    </s-link>
+                  )}
                   {request.staffNotes && (
                     <s-text>Staff note: {request.staffNotes}</s-text>
                   )}

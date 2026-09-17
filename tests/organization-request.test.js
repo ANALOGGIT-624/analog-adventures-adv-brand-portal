@@ -18,6 +18,13 @@ test("organizer request snapshots identity, assignment, dates, and details", () 
       customerId: "gid://shopify/Customer/1",
       companyId: "gid://shopify/Company/2",
       organizationId: "gid://shopify/Metaobject/3",
+      artwork: {
+        fileId: "gid://shopify/GenericFile/4",
+        filename: "tot-time-logo.svg",
+        mimeType: "image/svg+xml",
+        hash: "abc123",
+        uploadedAt: "2026-09-17T15:59:59.000Z",
+      },
     },
     "2026-09-17T16:00:00.123Z",
   );
@@ -26,6 +33,8 @@ test("organizer request snapshots identity, assignment, dates, and details", () 
   assert.equal(values.status, "submitted");
   assert.equal(values.organization_store_id, "gid://shopify/Metaobject/3");
   assert.equal(values.requested_details.requestedStartDate, "2027-03-01");
+  assert.equal(values.artwork_file, "gid://shopify/GenericFile/4");
+  assert.equal(values.artwork_filename, "tot-time-logo.svg");
 });
 
 test("request creation requires an assigned company and meaningful content", () => {
@@ -105,6 +114,37 @@ test("staff status transitions preserve the organizer snapshot", () => {
   assert.equal(reviewed.status, "in_review");
   assert.equal(reviewed.requested_details.details, "Use version four.");
   assert.equal(reviewed.reviewed_at, "2026-09-17T17:00:00.000Z");
+});
+
+test("staff review preserves immutable submitted artwork", () => {
+  const request = createOrganizationRequestValues(
+    {
+      requestType: "branding_change",
+      title: "Updated logo",
+      details: "Please review the attached source artwork.",
+    },
+    {
+      customerId: "1",
+      companyId: "2",
+      organizationId: "3",
+      artwork: {
+        fileId: "gid://shopify/GenericFile/4",
+        filename: "logo.pdf",
+        mimeType: "application/pdf",
+        hash: "deadbeef",
+        uploadedAt: "2026-09-17T16:00:00.000Z",
+      },
+    },
+    "2026-09-17T16:00:00.000Z",
+  );
+  const reviewed = updateOrganizationRequestValues(
+    request,
+    "approved",
+    "Source artwork accepted.",
+    "2026-09-17T17:00:00.000Z",
+  );
+  assert.equal(reviewed.artwork_file, "gid://shopify/GenericFile/4");
+  assert.equal(reviewed.artwork_content_hash, "deadbeef");
 });
 
 test("completed requests are locked and invalid transitions are rejected", () => {

@@ -89,6 +89,11 @@ export function createOrganizationRequestValues(
       requestedStartDate,
       requestedCloseDate,
     },
+    artwork_file: context.artwork?.fileId,
+    artwork_filename: context.artwork?.filename,
+    artwork_mime_type: context.artwork?.mimeType,
+    artwork_content_hash: context.artwork?.hash,
+    artwork_uploaded_at: context.artwork?.uploadedAt,
   };
 }
 
@@ -122,6 +127,11 @@ export function updateOrganizationRequestValues(
     "requested_by_customer_id",
     "requested_at",
     "requested_details",
+    "artwork_file",
+    "artwork_filename",
+    "artwork_mime_type",
+    "artwork_content_hash",
+    "artwork_uploaded_at",
   ];
   return {
     ...Object.fromEntries(

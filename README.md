@@ -16,6 +16,8 @@ with client ID `8158f984f0ec6fed1e5f85b44a588777`.
 - Idempotent campaign statements with settlement and paid-status safeguards
 - Full-page New Customer Accounts extension for approved organization contacts
 - Authenticated `/public/portal` endpoint for customer-specific portal data
+- Organization requests with immutable customer-submitted source artwork and
+  controlled staff review before the existing production-proof workflow
 
 See [the implementation roadmap](docs/brand-portal-roadmap.md) for the Gantt
 chart, launch gates, pilot sequence, and remaining Neighborhood-style features.
