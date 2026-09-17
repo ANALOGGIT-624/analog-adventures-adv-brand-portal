@@ -145,7 +145,7 @@ export default function Fulfillment() {
               <s-table-header listSlot="primary">Campaign</s-table-header>
               <s-table-header>Status</s-table-header>
               <s-table-header>Fulfillment</s-table-header>
-              <s-table-header>Orders</s-table-header>
+              <s-table-header>Unbatched orders</s-table-header>
               <s-table-header>Unbatched units</s-table-header>
               <s-table-header>Readiness</s-table-header>
             </s-table-header-row>
@@ -265,7 +265,12 @@ export default function Fulfillment() {
                           value={batch.id}
                         />
                         <s-grid gridTemplateColumns="1fr 2fr auto" gap="base">
-                          <s-select label="Next status" name="status" required>
+                          <s-select
+                            key={`${batch.id}-${batch.status}`}
+                            label="Next status"
+                            name="status"
+                            required
+                          >
                             <s-option value="">Choose status</s-option>
                             {transitions.map((status) => (
                               <s-option key={status} value={status}>
