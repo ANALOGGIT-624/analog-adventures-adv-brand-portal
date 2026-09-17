@@ -8,7 +8,7 @@ import {
   upsertMetaobject,
 } from "../app/lib/brand-portal.server.js";
 
-test("app-owned proof definition is recognized through its direct lookup", () => {
+test("app-owned definitions are recognized through direct lookups", () => {
   const merchantDefinitions = [
     "aa_brand_kit",
     "aa_organization_store",
@@ -17,9 +17,15 @@ test("app-owned proof definition is recognized through its direct lookup", () =>
     "aa_payout_statement",
   ].map((type) => ({ type }));
   assert.deepEqual(
-    missingPortalDefinitions(merchantDefinitions, {
-      type: "app--123456--artwork_proof",
-    }),
+    missingPortalDefinitions(
+      merchantDefinitions,
+      {
+        type: "app--123456--artwork_proof",
+      },
+      {
+        type: "app--123456--production_batch",
+      },
+    ),
     [],
   );
 });

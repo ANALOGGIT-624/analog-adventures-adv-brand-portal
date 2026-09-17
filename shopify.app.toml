@@ -135,6 +135,79 @@ type = "single_line_text_field"
 name = "Previous version ID"
 type = "single_line_text_field"
 
+[metaobjects.app.production_batch]
+name = "Production batch"
+description = "Auditable snapshot of attributed order lines grouped for production and fulfillment."
+display_name_field = "batch_name"
+access.admin = "merchant_read"
+
+[metaobjects.app.production_batch.fields.batch_name]
+name = "Batch name"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.production_batch.fields.batch_id]
+name = "Batch ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.production_batch.fields.campaign_id]
+name = "Campaign ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.production_batch.fields.campaign_name]
+name = "Campaign name"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.production_batch.fields.fulfillment_mode]
+name = "Fulfillment mode"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.production_batch.fields.status]
+name = "Status"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.production_batch.fields.order_count]
+name = "Order count"
+type = "number_integer"
+required = true
+
+[metaobjects.app.production_batch.fields.unit_count]
+name = "Unit count"
+type = "number_integer"
+required = true
+
+[metaobjects.app.production_batch.fields.outstanding_units]
+name = "Outstanding units at creation"
+type = "number_integer"
+required = true
+
+[metaobjects.app.production_batch.fields.line_items]
+name = "Production line snapshot"
+type = "json"
+required = true
+
+[metaobjects.app.production_batch.fields.created_at]
+name = "Created at"
+type = "date_time"
+required = true
+
+[metaobjects.app.production_batch.fields.started_at]
+name = "Started at"
+type = "date_time"
+
+[metaobjects.app.production_batch.fields.completed_at]
+name = "Completed at"
+type = "date_time"
+
+[metaobjects.app.production_batch.fields.internal_notes]
+name = "Internal notes"
+type = "multi_line_text_field"
+
 [build]
 include_config_on_deploy = true
 automatically_update_urls_on_dev = true
