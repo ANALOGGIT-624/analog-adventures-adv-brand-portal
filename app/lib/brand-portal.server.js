@@ -6,6 +6,7 @@ export const PORTAL_TYPES = {
   payoutStatement: "aa_payout_statement",
   artworkProof: "$app:artwork_proof",
   productionBatch: "$app:production_batch",
+  organizationRequest: "$app:organization_request",
 };
 
 export const REQUIRED_PORTAL_DEFINITIONS = Object.values(PORTAL_TYPES);
@@ -71,6 +72,7 @@ export async function getPortalSnapshot(admin) {
         $payoutStatementType: String!
         $proofType: String!
         $productionBatchType: String!
+        $organizationRequestType: String!
       ) {
         definitions: metaobjectDefinitions(first: 100) {
           nodes { type name metaobjectsCount }
@@ -79,6 +81,9 @@ export async function getPortalSnapshot(admin) {
           type name metaobjectsCount
         }
         productionBatchDefinition: metaobjectDefinitionByType(type: $productionBatchType) {
+          type name metaobjectsCount
+        }
+        organizationRequestDefinition: metaobjectDefinitionByType(type: $organizationRequestType) {
           type name metaobjectsCount
         }
         organizations: metaobjects(type: $organizationType, first: 50) {
@@ -108,6 +113,9 @@ export async function getPortalSnapshot(admin) {
         productionBatches: metaobjects(type: $productionBatchType, first: 100) {
           nodes { id handle displayName updatedAt fields { key value } }
         }
+        organizationRequests: metaobjects(type: $organizationRequestType, first: 100) {
+          nodes { id handle displayName updatedAt fields { key value } }
+        }
       }
     `,
     {
@@ -118,6 +126,7 @@ export async function getPortalSnapshot(admin) {
         payoutStatementType: PORTAL_TYPES.payoutStatement,
         proofType: PORTAL_TYPES.artworkProof,
         productionBatchType: PORTAL_TYPES.productionBatch,
+        organizationRequestType: PORTAL_TYPES.organizationRequest,
       },
     },
   );
@@ -134,6 +143,7 @@ export async function getPortalSnapshot(admin) {
       payload.data.definitions.nodes,
       payload.data.proofDefinition,
       payload.data.productionBatchDefinition,
+      payload.data.organizationRequestDefinition,
     ),
     organizations: normalizeConnection(payload.data.organizations),
     campaigns: normalizeConnection(payload.data.campaigns),
@@ -141,6 +151,9 @@ export async function getPortalSnapshot(admin) {
     payoutStatements: normalizeConnection(payload.data.payoutStatements),
     proofs: normalizeConnection(payload.data.proofs),
     productionBatches: normalizeConnection(payload.data.productionBatches),
+    organizationRequests: normalizeConnection(
+      payload.data.organizationRequests,
+    ),
   };
 }
 

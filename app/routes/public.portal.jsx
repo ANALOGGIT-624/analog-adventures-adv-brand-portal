@@ -2,9 +2,11 @@ import { authenticate, unauthenticated } from "../shopify.server";
 import {
   PORTAL_TYPES,
   normalizeMetaobject,
+  slugify,
   upsertMetaobject,
 } from "../lib/brand-portal.server";
 import { proofValues } from "../lib/proof-workflow.server";
+import { createOrganizationRequestValues } from "../lib/organization-request.server";
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -35,6 +37,7 @@ function publicCampaign(campaign) {
     pricingMode: campaign.pricing_mode,
     fulfillmentMode: campaign.fulfillment_mode,
     fundraisingGoal: Number(campaign.fundraising_goal || 0),
+    organizationStoreId: campaign.organization_store,
     producesAfterClose: campaign.production_after_close === "true",
   };
 }
@@ -57,6 +60,29 @@ function publicProof(proof) {
   };
 }
 
+function publicRequest(request) {
+  let details = request.requested_details || {};
+  if (typeof details === "string") {
+    try {
+      details = JSON.parse(details || "{}");
+    } catch {
+      details = {};
+    }
+  }
+  return {
+    id: request.id,
+    requestId: request.request_id,
+    type: request.request_type,
+    status: request.status,
+    title: request.request_name,
+    organizationId: request.organization_store_id,
+    campaignId: request.campaign_id,
+    requestedAt: request.requested_at,
+    staffNotes: request.staff_notes,
+    details,
+  };
+}
+
 export const loader = async ({ request }) => {
   const { sessionToken, cors } =
     await authenticate.public.customerAccount(request);
@@ -76,6 +102,7 @@ export const loader = async ({ request }) => {
         $campaignType: String!
         $payoutStatementType: String!
         $proofType: String!
+        $requestType: String!
       ) {
         customer(id: $customerId) {
           id
@@ -107,6 +134,9 @@ export const loader = async ({ request }) => {
             }
           }
         }
+        requests: metaobjects(type: $requestType, first: 100) {
+          nodes { id handle displayName fields { key value } }
+        }
       }
     `,
     {
@@ -116,6 +146,7 @@ export const loader = async ({ request }) => {
         campaignType: PORTAL_TYPES.campaign,
         payoutStatementType: PORTAL_TYPES.payoutStatement,
         proofType: PORTAL_TYPES.artworkProof,
+        requestType: PORTAL_TYPES.organizationRequest,
       },
     },
   );
@@ -172,6 +203,14 @@ export const loader = async ({ request }) => {
         campaignIds.has(campaign_id),
     )
     .map(publicProof);
+  const requests = payload.data.requests.nodes
+    .map(normalizeMetaobject)
+    .filter(
+      ({ company_id, organization_store_id }) =>
+        companyIds.has(company_id) ||
+        organizationIds.has(organization_store_id),
+    )
+    .map(publicRequest);
 
   return cors(
     jsonResponse({
@@ -181,6 +220,7 @@ export const loader = async ({ request }) => {
       campaigns: campaigns.map(publicCampaign),
       statements,
       proofs,
+      requests,
     }),
   );
 };
@@ -189,14 +229,125 @@ export const action = async ({ request }) => {
   const { sessionToken, cors } =
     await authenticate.public.customerAccount(request);
   if (!sessionToken.sub)
-    return cors(jsonResponse({ error: "Sign in to review proofs." }, 401));
+    return cors(
+      jsonResponse({ error: "Sign in to use the Brand Portal." }, 401),
+    );
   let input;
   try {
     input = await request.json();
   } catch {
-    return cors(jsonResponse({ error: "Invalid proof review request." }, 400));
+    return cors(jsonResponse({ error: "Invalid portal request." }, 400));
   }
   const intent = String(input.intent || "");
+  const { admin } = await unauthenticated.admin(sessionToken.dest);
+
+  if (intent === "create-request") {
+    const response = await admin.graphql(
+      `#graphql
+        query AuthorizeOrganizationRequest(
+          $customerId: ID!
+          $organizationType: String!
+          $campaignType: String!
+        ) {
+          customer(id: $customerId) {
+            companyContactProfiles { company { id } }
+          }
+          organizations: metaobjects(type: $organizationType, first: 100) {
+            nodes { id handle displayName fields { key value } }
+          }
+          campaigns: metaobjects(type: $campaignType, first: 100) {
+            nodes { id handle displayName fields { key value } }
+          }
+        }
+      `,
+      {
+        variables: {
+          customerId: sessionToken.sub,
+          organizationType: PORTAL_TYPES.organizationStore,
+          campaignType: PORTAL_TYPES.campaign,
+        },
+      },
+    );
+    const payload = await response.json();
+    if (payload.errors?.length) {
+      return cors(
+        jsonResponse(
+          { error: payload.errors.map(({ message }) => message).join("; ") },
+          500,
+        ),
+      );
+    }
+    const companyIds = new Set(
+      (payload.data.customer?.companyContactProfiles || []).map(
+        ({ company }) => company.id,
+      ),
+    );
+    if (!companyIds.size) {
+      return cors(
+        jsonResponse(
+          { error: "Your account is not connected to an approved company." },
+          403,
+        ),
+      );
+    }
+    const organizations = payload.data.organizations.nodes
+      .map(normalizeMetaobject)
+      .filter(({ company }) => companyIds.has(company));
+    const organizationId = String(input.organizationId || "");
+    const organization = organizations.find(({ id }) => id === organizationId);
+    const requestType = String(input.requestType || "");
+    if (requestType !== "new_store" && !organization) {
+      return cors(
+        jsonResponse(
+          { error: "Choose an organization assigned to your account." },
+          403,
+        ),
+      );
+    }
+    const campaigns = payload.data.campaigns.nodes
+      .map(normalizeMetaobject)
+      .filter(({ organization_store }) =>
+        organizations.some(({ id }) => id === organization_store),
+      );
+    const campaignId = String(input.campaignId || "");
+    const campaign = campaigns.find(({ id }) => id === campaignId);
+    if (campaignId && !campaign) {
+      return cors(jsonResponse({ error: "Choose an assigned campaign." }, 403));
+    }
+    if (requestType === "campaign_relaunch" && !campaign) {
+      return cors(
+        jsonResponse({ error: "Choose the campaign to relaunch." }, 400),
+      );
+    }
+
+    try {
+      const values = createOrganizationRequestValues(input, {
+        customerId: sessionToken.sub,
+        companyId: organization?.company || [...companyIds][0],
+        organizationId: organization?.id,
+        campaignId: campaign?.id,
+      });
+      const saved = await upsertMetaobject(admin, {
+        type: PORTAL_TYPES.organizationRequest,
+        handle: slugify(values.request_id),
+        values,
+      });
+      return cors(
+        jsonResponse({
+          ok: true,
+          request: publicRequest({ id: saved.id, ...values }),
+        }),
+      );
+    } catch (error) {
+      return cors(
+        jsonResponse(
+          { error: error instanceof Error ? error.message : String(error) },
+          400,
+        ),
+      );
+    }
+  }
+
   if (!["approve-proof", "request-changes"].includes(intent)) {
     return cors(
       jsonResponse({ error: "Choose approve or request changes." }, 400),
@@ -212,7 +363,6 @@ export const action = async ({ request }) => {
     );
   }
 
-  const { admin } = await unauthenticated.admin(sessionToken.dest);
   const response = await admin.graphql(
     `#graphql
       query AuthorizeProofReview($customerId: ID!, $organizationType: String!, $proofType: String!) {

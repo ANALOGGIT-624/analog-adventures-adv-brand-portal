@@ -25,6 +25,9 @@ test("app-owned definitions are recognized through direct lookups", () => {
       {
         type: "app--123456--production_batch",
       },
+      {
+        type: "app--123456--organization_request",
+      },
     ),
     [],
   );

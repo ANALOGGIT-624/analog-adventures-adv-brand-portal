@@ -208,6 +208,68 @@ type = "date_time"
 name = "Internal notes"
 type = "multi_line_text_field"
 
+[metaobjects.app.organization_request]
+name = "Organization request"
+description = "Organizer-submitted request for a store, campaign, product, branding update, or relaunch."
+display_name_field = "request_name"
+access.admin = "merchant_read"
+
+[metaobjects.app.organization_request.fields.request_name]
+name = "Request name"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.organization_request.fields.request_id]
+name = "Request ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.organization_request.fields.request_type]
+name = "Request type"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.organization_request.fields.status]
+name = "Status"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.organization_request.fields.company_id]
+name = "Shopify company ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.organization_request.fields.organization_store_id]
+name = "Organization store ID"
+type = "single_line_text_field"
+
+[metaobjects.app.organization_request.fields.campaign_id]
+name = "Campaign ID"
+type = "single_line_text_field"
+
+[metaobjects.app.organization_request.fields.requested_by_customer_id]
+name = "Requested by customer ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.organization_request.fields.requested_at]
+name = "Requested at"
+type = "date_time"
+required = true
+
+[metaobjects.app.organization_request.fields.requested_details]
+name = "Requested details"
+type = "json"
+required = true
+
+[metaobjects.app.organization_request.fields.staff_notes]
+name = "Staff notes"
+type = "multi_line_text_field"
+
+[metaobjects.app.organization_request.fields.reviewed_at]
+name = "Reviewed at"
+type = "date_time"
+
 [build]
 include_config_on_deploy = true
 automatically_update_urls_on_dev = true

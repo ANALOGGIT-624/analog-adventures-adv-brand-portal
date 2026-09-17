@@ -2,6 +2,8 @@ import "@shopify/ui-extensions/preact";
 import { render } from "preact";
 import { useEffect, useState } from "preact/hooks";
 
+/* eslint-disable react/prop-types */
+
 export default async () => {
   render(<PortalPage />, document.body);
 };
@@ -11,6 +13,238 @@ function money(value, currency = "USD") {
     style: "currency",
     currency,
   }).format(Number(value || 0));
+}
+
+function requestLabel(value) {
+  return String(value || "").replace(/_/g, " ");
+}
+
+function fieldValue(event) {
+  const target = event.currentTarget;
+  return target && "value" in target ? String(target.value || "") : "";
+}
+
+function OrganizationRequests({
+  apiUrl,
+  organizations,
+  campaigns,
+  initialRequests = [],
+}) {
+  const [requests, setRequests] = useState(initialRequests);
+  const [form, setForm] = useState({
+    requestType: organizations.length ? "new_campaign" : "new_store",
+    organizationId: organizations[0]?.id || "",
+    campaignId: "",
+    title: "",
+    details: "",
+    requestedStartDate: "",
+    requestedCloseDate: "",
+    busy: false,
+    error: "",
+    success: "",
+  });
+  const availableCampaigns = campaigns.filter(
+    ({ organizationStoreId }) => organizationStoreId === form.organizationId,
+  );
+
+  async function submitRequest(event) {
+    event.preventDefault();
+    setForm((current) => ({ ...current, busy: true, error: "", success: "" }));
+    try {
+      const token = await shopify.sessionToken.get();
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ intent: "create-request", ...form }),
+      });
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error || "Request was not submitted.");
+      setRequests((current) => [result.request, ...current]);
+      setForm((current) => ({
+        ...current,
+        title: "",
+        details: "",
+        requestedStartDate: "",
+        requestedCloseDate: "",
+        busy: false,
+        error: "",
+        success: "Your request was submitted for staff review.",
+      }));
+    } catch (error) {
+      setForm((current) => ({
+        ...current,
+        busy: false,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+    }
+  }
+
+  return (
+    <s-section heading="Request a change or new campaign">
+      <s-stack direction="block" gap="base">
+        <s-paragraph>
+          Submit a proposal for Analog Adventures staff to review. Requests do
+          not change a live store or campaign automatically.
+        </s-paragraph>
+        {form.error && (
+          <s-banner heading="Request was not submitted" tone="critical">
+            {form.error}
+          </s-banner>
+        )}
+        {form.success && (
+          <s-banner heading="Request received" tone="success">
+            {form.success}
+          </s-banner>
+        )}
+        <s-form onSubmit={submitRequest}>
+          <s-stack direction="block" gap="base">
+            <s-select
+              label="Request type"
+              value={form.requestType}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  requestType: fieldValue(event),
+                  campaignId: "",
+                }))
+              }
+            >
+              <s-option value="new_store">New organization store</s-option>
+              <s-option value="new_campaign">New campaign</s-option>
+              <s-option value="product_change">
+                Product selection change
+              </s-option>
+              <s-option value="branding_change">Branding change</s-option>
+              <s-option value="campaign_relaunch">Campaign relaunch</s-option>
+            </s-select>
+            {form.requestType !== "new_store" && (
+              <s-select
+                label="Organization"
+                value={form.organizationId}
+                required
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    organizationId: fieldValue(event),
+                    campaignId: "",
+                  }))
+                }
+              >
+                <s-option value="">Choose an organization</s-option>
+                {organizations.map((organization) => (
+                  <s-option key={organization.id} value={organization.id}>
+                    {organization.name}
+                  </s-option>
+                ))}
+              </s-select>
+            )}
+            {form.requestType === "campaign_relaunch" && (
+              <s-select
+                label="Campaign to relaunch"
+                value={form.campaignId}
+                required
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    campaignId: fieldValue(event),
+                  }))
+                }
+              >
+                <s-option value="">Choose a campaign</s-option>
+                {availableCampaigns.map((campaign) => (
+                  <s-option key={campaign.id} value={campaign.id}>
+                    {campaign.name}
+                  </s-option>
+                ))}
+              </s-select>
+            )}
+            <s-text-field
+              label="Request title"
+              value={form.title}
+              required
+              onInput={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  title: fieldValue(event),
+                }))
+              }
+            />
+            <s-text-area
+              label="Products, branding, timing, and other details"
+              value={form.details}
+              rows={4}
+              required
+              onInput={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  details: fieldValue(event),
+                }))
+              }
+            />
+            <s-grid gridTemplateColumns="1fr 1fr" gap="base">
+              <s-date-field
+                label="Requested start date"
+                value={form.requestedStartDate}
+                onInput={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    requestedStartDate: fieldValue(event),
+                  }))
+                }
+              />
+              <s-date-field
+                label="Requested close date"
+                value={form.requestedCloseDate}
+                onInput={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    requestedCloseDate: fieldValue(event),
+                  }))
+                }
+              />
+            </s-grid>
+            <s-button type="submit" variant="primary" loading={form.busy}>
+              Submit request
+            </s-button>
+          </s-stack>
+        </s-form>
+        <s-heading>Request history</s-heading>
+        {requests.length === 0 ? (
+          <s-text>No requests submitted yet.</s-text>
+        ) : (
+          <s-stack direction="block" gap="base">
+            {requests.map((request) => (
+              <s-box
+                key={request.id}
+                padding="base"
+                border="base"
+                borderRadius="base"
+              >
+                <s-stack direction="block" gap="small-200">
+                  <s-stack direction="inline" gap="base" alignItems="center">
+                    <s-text type="strong">{request.title}</s-text>
+                    <s-badge tone="neutral">
+                      {requestLabel(request.status)}
+                    </s-badge>
+                  </s-stack>
+                  <s-text color="subdued">
+                    {requestLabel(request.type)} · {request.requestId}
+                  </s-text>
+                  {request.staffNotes && (
+                    <s-text>Staff note: {request.staffNotes}</s-text>
+                  )}
+                </s-stack>
+              </s-box>
+            ))}
+          </s-stack>
+        )}
+      </s-stack>
+    </s-section>
+  );
 }
 
 function PortalPage() {
@@ -112,6 +346,7 @@ function PortalPage() {
     campaigns,
     statements,
     proofs = [],
+    requests = [],
   } = state.data;
   const liveCampaigns = campaigns.filter(
     ({ status }) => String(status).toLowerCase() === "live",
@@ -179,10 +414,18 @@ function PortalPage() {
       subheading={"Welcome, " + (customer.name || "organization partner")}
     >
       {organizations.length === 0 ? (
-        <s-banner heading="No organization is assigned" tone="info">
-          Contact Analog Adventures to connect your customer account to an
-          approved organization.
-        </s-banner>
+        <>
+          <s-banner heading="No organization is assigned" tone="info">
+            Submit a new-store request or contact Analog Adventures to connect
+            your customer account to an approved organization.
+          </s-banner>
+          <OrganizationRequests
+            apiUrl={apiUrl}
+            organizations={organizations}
+            campaigns={campaigns}
+            initialRequests={requests}
+          />
+        </>
       ) : (
         <>
           <s-section heading="Overview">
@@ -300,11 +543,9 @@ function PortalPage() {
                           <s-heading>{proof.name}</s-heading>
                           <s-badge
                             tone={
-                              proof.status === "approved"
-                                ? "success"
-                                : proof.status === "changes_requested"
-                                  ? "warning"
-                                  : "info"
+                              proof.status === "changes_requested"
+                                ? "critical"
+                                : "neutral"
                             }
                           >
                             {proof.status}
@@ -334,7 +575,7 @@ function PortalPage() {
                               onInput={(event) =>
                                 setReview({
                                   handle: proof.handle,
-                                  notes: event.currentTarget.value,
+                                  notes: fieldValue(event),
                                   busy: false,
                                   error: "",
                                 })
@@ -377,6 +618,13 @@ function PortalPage() {
               </s-stack>
             )}
           </s-section>
+
+          <OrganizationRequests
+            apiUrl={apiUrl}
+            organizations={organizations}
+            campaigns={campaigns}
+            initialRequests={requests}
+          />
 
           <s-section heading="Payout statements">
             {statements.length === 0 ? (
