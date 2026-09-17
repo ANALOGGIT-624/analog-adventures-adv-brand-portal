@@ -5,7 +5,7 @@ import {
   slugify,
   upsertMetaobject,
 } from "../lib/brand-portal.server";
-import { proofValues } from "../lib/proof-workflow.server";
+import { proofValues, uploadProofFile } from "../lib/proof-workflow.server";
 import { createOrganizationRequestValues } from "../lib/organization-request.server";
 
 function jsonResponse(data, status = 200) {
@@ -79,6 +79,9 @@ function publicRequest(request) {
     campaignId: request.campaign_id,
     requestedAt: request.requested_at,
     staffNotes: request.staff_notes,
+    artworkFilename: request.artwork_filename,
+    artworkUrl: request.artwork_file_url,
+    artworkUploadedAt: request.artwork_uploaded_at,
     details,
   };
 }
@@ -135,7 +138,15 @@ export const loader = async ({ request }) => {
           }
         }
         requests: metaobjects(type: $requestType, first: 100) {
-          nodes { id handle displayName fields { key value } }
+          nodes {
+            id handle displayName fields {
+              key value
+              reference {
+                ... on MediaImage { image { url } }
+                ... on GenericFile { url }
+              }
+            }
+          }
         }
       }
     `,
@@ -233,8 +244,21 @@ export const action = async ({ request }) => {
       jsonResponse({ error: "Sign in to use the Brand Portal." }, 401),
     );
   let input;
+  let artworkFile;
   try {
-    input = await request.json();
+    const contentType = request.headers.get("content-type") || "";
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      input = Object.fromEntries(
+        [...formData.entries()].flatMap(([key, value]) =>
+          typeof value === "string" ? [[key, value]] : [],
+        ),
+      );
+      const uploaded = formData.get("artwork_file");
+      if (uploaded instanceof File && uploaded.size > 0) artworkFile = uploaded;
+    } else {
+      input = await request.json();
+    }
   } catch {
     return cors(jsonResponse({ error: "Invalid portal request." }, 400));
   }
@@ -321,12 +345,25 @@ export const action = async ({ request }) => {
     }
 
     try {
-      const values = createOrganizationRequestValues(input, {
+      const requestContext = {
         customerId: sessionToken.sub,
         companyId: organization?.company || [...companyIds][0],
         organizationId: organization?.id,
         campaignId: campaign?.id,
-      });
+      };
+      const values = createOrganizationRequestValues(input, requestContext);
+      const uploaded = artworkFile
+        ? await uploadProofFile(admin, artworkFile)
+        : null;
+      if (uploaded) {
+        Object.assign(values, {
+          artwork_file: uploaded.fileId,
+          artwork_filename: artworkFile.name,
+          artwork_mime_type: artworkFile.type,
+          artwork_content_hash: uploaded.hash,
+          artwork_uploaded_at: new Date().toISOString(),
+        });
+      }
       const saved = await upsertMetaobject(admin, {
         type: PORTAL_TYPES.organizationRequest,
         handle: slugify(values.request_id),

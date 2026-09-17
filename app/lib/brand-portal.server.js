@@ -114,7 +114,16 @@ export async function getPortalSnapshot(admin) {
           nodes { id handle displayName updatedAt fields { key value } }
         }
         organizationRequests: metaobjects(type: $organizationRequestType, first: 100) {
-          nodes { id handle displayName updatedAt fields { key value } }
+          nodes {
+            id handle displayName updatedAt
+            fields {
+              key value
+              reference {
+                ... on MediaImage { image { url } }
+                ... on GenericFile { url }
+              }
+            }
+          }
         }
       }
     `,

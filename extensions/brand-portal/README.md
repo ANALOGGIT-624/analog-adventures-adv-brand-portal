@@ -2,7 +2,10 @@
 
 This full-page New Customer Accounts extension gives approved organization
 contacts access to their organization stores, active campaigns, and payout
-statements.
+statements. Organization contacts can also submit controlled requests with an
+optional PDF, SVG, PNG, or JPEG source-artwork attachment. Analog Adventures
+staff review that immutable source file before preparing the separate
+production proof that returns to the customer for approval.
 
 ## Configuration
 

@@ -140,6 +140,23 @@ export default function Requests() {
                           {details.requestedCloseDate || "open"}
                         </s-text>
                       )}
+                      {record.artwork_file_url && (
+                        <s-stack
+                          direction="inline"
+                          gap="base"
+                          alignItems="center"
+                        >
+                          <s-link
+                            href={record.artwork_file_url}
+                            target="_blank"
+                          >
+                            Open submitted artwork
+                          </s-link>
+                          <s-text color="subdued">
+                            {record.artwork_filename || "Organization artwork"}
+                          </s-text>
+                        </s-stack>
+                      )}
                       {record.staff_notes && (
                         <s-text color="subdued">
                           Staff note: {record.staff_notes}
