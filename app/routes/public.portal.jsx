@@ -7,6 +7,7 @@ import {
 } from "../lib/brand-portal.server";
 import { proofValues, uploadProofFile } from "../lib/proof-workflow.server";
 import { createOrganizationRequestValues } from "../lib/organization-request.server";
+import { publicPayoutStatement } from "../lib/portal-payout";
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -104,6 +105,7 @@ export const loader = async ({ request }) => {
         $organizationType: String!
         $campaignType: String!
         $payoutStatementType: String!
+        $payoutRuleType: String!
         $proofType: String!
         $requestType: String!
       ) {
@@ -124,6 +126,9 @@ export const loader = async ({ request }) => {
           type: $payoutStatementType
           first: 100
         ) {
+          nodes { id handle displayName fields { key value } }
+        }
+        payoutRules: metaobjects(type: $payoutRuleType, first: 100) {
           nodes { id handle displayName fields { key value } }
         }
         proofs: metaobjects(type: $proofType, first: 100) {
@@ -156,6 +161,7 @@ export const loader = async ({ request }) => {
         organizationType: PORTAL_TYPES.organizationStore,
         campaignType: PORTAL_TYPES.campaign,
         payoutStatementType: PORTAL_TYPES.payoutStatement,
+        payoutRuleType: PORTAL_TYPES.payoutRule,
         proofType: PORTAL_TYPES.artworkProof,
         requestType: PORTAL_TYPES.organizationRequest,
       },
@@ -190,22 +196,22 @@ export const loader = async ({ request }) => {
       organizationIds.has(organization_store),
     );
   const campaignIds = new Set(campaigns.map(({ id }) => id));
+  const campaignById = new Map(
+    campaigns.map((campaign) => [campaign.id, campaign]),
+  );
+  const payoutRuleById = new Map(
+    payload.data.payoutRules.nodes
+      .map(normalizeMetaobject)
+      .map((rule) => [rule.id, rule]),
+  );
   const statements = payload.data.payoutStatements.nodes
     .map(normalizeMetaobject)
     .filter(({ campaign }) => campaignIds.has(campaign))
-    .map((statement) => ({
-      id: statement.id,
-      statementId: statement.statement_id,
-      status: statement.status,
-      periodStart: statement.period_start,
-      periodEnd: statement.period_end,
-      grossRevenue: Number(statement.gross_revenue || 0),
-      refunds: Number(statement.refunds || 0),
-      deductions: Number(statement.deductions || 0),
-      organizationProceeds: Number(statement.organization_proceeds || 0),
-      currency: statement.currency || "USD",
-      paidAt: statement.paid_at,
-    }));
+    .map((statement) => {
+      const campaign = campaignById.get(statement.campaign);
+      const payoutRule = payoutRuleById.get(campaign?.payout_rule);
+      return publicPayoutStatement(statement, campaign, payoutRule);
+    });
   const proofs = payload.data.proofs.nodes
     .map(normalizeMetaobject)
     .filter(

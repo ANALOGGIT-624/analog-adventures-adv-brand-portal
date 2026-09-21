@@ -35,6 +35,18 @@ export function parseBatchLines(batch) {
   }
 }
 
+export function productionBatchLineDetails(batch, proofs = []) {
+  const proofById = new Map(proofs.map((proof) => [proof.id, proof]));
+  return parseBatchLines(batch).map((line) => {
+    const proof = proofById.get(line.proofId);
+    return {
+      ...line,
+      proofName: proof?.proof_name || line.proofId || "",
+      proofUrl: proof?.asset_file_url || "",
+    };
+  });
+}
+
 function lineKey(orderId, lineItemId) {
   return `${orderId || ""}::${lineItemId || ""}`;
 }

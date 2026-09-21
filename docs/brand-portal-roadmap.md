@@ -5,7 +5,7 @@ retail shopping, bulk/custom quotes, and branded organization micro-stores.
 Analog Adventures remains the merchant of record and each organization receives
 a controlled portal rather than a separate Shopify installation.
 
-## Delivery Gantt — updated September 17, 2026
+## Delivery Gantt — updated September 21, 2026
 
 Completed work reflects the Analog Adventures Test store. Remaining durations
 are planning estimates and begin after development resumes.
@@ -43,8 +43,11 @@ gantt
     Production deployment and smoke test         :crit, deploy, after reliability, 3d
 
     section Portal completion
-    Organization self-service requests           :active, selfservice, 2026-09-17, 3d
+    Organization self-service requests           :done, selfservice, 2026-09-17, 1d
     Fulfillment routing and batch work queues     :done, fulfillment, 2026-09-17, 1d
+    Same-day close and pre-launch settings        :done, settings, 2026-09-21, 1d
+    Production line and proof detail              :done, batchdetail, 2026-09-21, 1d
+    Organizer payout transparency                 :done, payoutdetail, 2026-09-21, 1d
 
     section Three-service expansion
     Retail path homepage presentation            :retail, after deploy, 3d
@@ -76,7 +79,10 @@ gantt
 | Campaign lifecycle and relaunch        | Complete and tested | Close, archive, safe new-ID relaunch, preserved configuration, and paid-campaign reopening protection passed                                                  |
 | Report downloads                       | Complete and tested | Sales, production, and payout CSV files download in place and reconcile to Tot Time orders and statements                                                     |
 | Fulfillment routing and exports        | Complete and tested | Production exports, duplicate-batch prevention, bulk-to-organizer routing, guarded status transitions, Shopify fulfillment, and terminal batch locking passed |
-| Organization self-service requests     | Built; test pending | Company-authorized contacts can submit store, campaign, product, branding, and relaunch proposals with immutable source artwork for controlled staff review   |
+| Organization self-service requests     | Complete and tested | Company-authorized contacts can submit store, campaign, product, branding, and relaunch proposals with immutable source artwork for controlled staff review   |
+| Pre-launch production settings         | Complete            | Staff can change fulfillment and production timing while a campaign is draft, proofing, or scheduled; settings lock when it goes live                         |
+| Production batch detail                | Complete            | Batch cards display order, item, SKU, customization, quantity, immutable proof version, proof link, and content hash                                          |
+| Organizer payout transparency          | Complete            | Customer portal statements show campaign, period, gross sales, refunds, deductions, proceeds, and settlement or payment date                                  |
 | Bulk/custom quote workflow             | Not started         | Add guided intake, estimates, artwork review, and Shopify draft-order conversion                                                                              |
 | Stable hosting and database            | Not started         | Replace temporary tunnels and SQLite before any external pilot                                                                                                |
 | Automated payouts                      | Deferred            | Continue manual review and payment through initial external pilots                                                                                            |
@@ -103,8 +109,8 @@ gantt
 - Reopening the original archived campaign was blocked because its statement is
   paid. The original campaign and its historical statement remained unchanged.
 - Authenticated sales, production, and payout CSV downloads passed. Tot Time's
-  three orders reconcile to $1,540.85 gross, $785.95 refunded, one eligible
-  unit, and $5.00 organization proceeds.
+  four orders reconcile to $2,270.80 gross, $785.95 refunded, three eligible
+  units, and $15.00 organization proceeds.
 - The production export preserved Proof Version 2 for orders `#1002` and `#1003`,
   retained the legacy no-proof state for order `#1001`, and correctly separated
   fulfilled, unfulfilled, and cancelled/refunded quantities.
@@ -112,6 +118,12 @@ gantt
   order: one unfulfilled unit was snapshotted, excluded from duplicate batching,
   advanced through queued, in-production, and ready-to-ship states, fulfilled in
   Shopify, completed in the portal, and locked with its audit record intact.
+- Same-day campaign closing now records the actual close timestamp instead of
+  requiring staff to select the previous day.
+- Production batches now expose the snapshotted order-line instructions and
+  approved proof directly in the staff workflow.
+- Organizer payout statements now expose the complete reconciliation summary
+  and settlement timing in the customer portal.
 
 ## Required launch gates
 

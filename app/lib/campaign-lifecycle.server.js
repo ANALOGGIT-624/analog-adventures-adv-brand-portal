@@ -49,7 +49,7 @@ export function buildCampaignLifecycleValues(
     ),
   );
   const nextStartsAt = campaignDateTime(startsAt) || campaign.starts_at || null;
-  const nextClosesAt =
+  let nextClosesAt =
     campaignDateTime(closesAt, true) || campaign.closes_at || null;
 
   if (nextStartsAt && nextClosesAt) {
@@ -59,16 +59,66 @@ export function buildCampaignLifecycleValues(
   }
   if (["closed", "archived"].includes(status)) {
     if (!nextClosesAt) {
-      throw new Error("Set a close date before closing or archiving a campaign.");
+      throw new Error(
+        "Set a close date before closing or archiving a campaign.",
+      );
     }
     if (new Date(nextClosesAt).getTime() > now.getTime()) {
-      throw new Error("A closed or archived campaign cannot close in the future.");
+      const requestedDate = String(nextClosesAt).slice(0, 10);
+      const currentDate = now.toISOString().slice(0, 10);
+      if (requestedDate === currentDate) {
+        nextClosesAt = now.toISOString();
+      } else {
+        throw new Error(
+          "A closed or archived campaign cannot close in the future.",
+        );
+      }
     }
   }
 
   values.status = status;
   if (nextStartsAt) values.starts_at = nextStartsAt;
   if (nextClosesAt) values.closes_at = nextClosesAt;
+  return values;
+}
+
+export function buildCampaignSettingsValues(
+  campaign,
+  { fulfillmentMode, productionAfterClose },
+) {
+  if (!campaign?.id || !campaign?.handle) {
+    throw new Error("Choose an existing campaign to update.");
+  }
+  if (
+    !["draft", "proofing", "scheduled"].includes(
+      String(campaign.status || "").toLowerCase(),
+    )
+  ) {
+    throw new Error(
+      "Fulfillment and production timing can only be changed before a campaign goes live.",
+    );
+  }
+  if (
+    !["individual_shipping", "bulk_to_organizer", "local_pickup"].includes(
+      fulfillmentMode,
+    )
+  ) {
+    throw new Error("Choose a valid fulfillment method.");
+  }
+  if (![true, false, "true", "false"].includes(productionAfterClose)) {
+    throw new Error("Choose when production should begin.");
+  }
+
+  const values = Object.fromEntries(
+    CAMPAIGN_VALUE_KEYS.flatMap((key) =>
+      campaign[key] === undefined || campaign[key] === null
+        ? []
+        : [[key, campaign[key]]],
+    ),
+  );
+  values.fulfillment_mode = fulfillmentMode;
+  values.production_after_close =
+    productionAfterClose === true || productionAfterClose === "true";
   return values;
 }
 

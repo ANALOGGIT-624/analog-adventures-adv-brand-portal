@@ -11,13 +11,17 @@ import { getCampaignReportData } from "../lib/campaign-report.server";
 import {
   buildProductionQueues,
   createProductionBatchValues,
+  productionBatchLineDetails,
   updateProductionBatchValues,
 } from "../lib/production-batches.server";
 
 async function fulfillmentData(admin) {
   const { snapshot, reconciliations } = await getCampaignReportData(admin);
   return {
-    batches: snapshot.productionBatches,
+    batches: snapshot.productionBatches.map((batch) => ({
+      ...batch,
+      productionLines: productionBatchLineDetails(batch, snapshot.proofs),
+    })),
     queues: buildProductionQueues(reconciliations, snapshot.productionBatches),
   };
 }
@@ -226,7 +230,7 @@ export default function Fulfillment() {
           <s-stack direction="block" gap="base">
             {batches.map((batch) => {
               const transitions = nextStatuses(batch.status);
-              const lines = displayBatchLines(batch);
+              const lines = batch.productionLines || displayBatchLines(batch);
               return (
                 <s-box
                   key={batch.id}
@@ -251,6 +255,71 @@ export default function Fulfillment() {
                     </s-text>
                     {batch.internal_notes && (
                       <s-paragraph>{batch.internal_notes}</s-paragraph>
+                    )}
+                    {lines.length > 0 && (
+                      <s-table variant="auto">
+                        <s-table-header-row>
+                          <s-table-header listSlot="primary">
+                            Order
+                          </s-table-header>
+                          <s-table-header>Item / SKU</s-table-header>
+                          <s-table-header>Customization</s-table-header>
+                          <s-table-header>Quantity</s-table-header>
+                          <s-table-header>Production proof</s-table-header>
+                        </s-table-header-row>
+                        <s-table-body>
+                          {lines.map((line, index) => (
+                            <s-table-row
+                              key={`${line.orderId}-${line.lineItemId}-${index}`}
+                            >
+                              <s-table-cell>
+                                {line.orderName || line.orderId}
+                              </s-table-cell>
+                              <s-table-cell>
+                                <s-stack direction="block" gap="small-200">
+                                  <s-text>
+                                    {line.itemName || "Unnamed item"}
+                                  </s-text>
+                                  <s-text color="subdued">
+                                    {line.sku || "No SKU"}
+                                    {line.variantTitle
+                                      ? ` · ${line.variantTitle}`
+                                      : ""}
+                                  </s-text>
+                                </s-stack>
+                              </s-table-cell>
+                              <s-table-cell>
+                                {line.customization || "—"}
+                              </s-table-cell>
+                              <s-table-cell>{line.quantity}</s-table-cell>
+                              <s-table-cell>
+                                {line.proofUrl ? (
+                                  <s-stack direction="block" gap="small-200">
+                                    <s-link
+                                      href={line.proofUrl}
+                                      target="_blank"
+                                    >
+                                      Open proof version {line.proofVersion}
+                                    </s-link>
+                                    {line.proofContentHash && (
+                                      <s-text color="subdued">
+                                        Hash: {line.proofContentHash}
+                                      </s-text>
+                                    )}
+                                  </s-stack>
+                                ) : line.proofId ? (
+                                  <s-text>
+                                    Proof version {line.proofVersion || "—"} ·
+                                    file unavailable
+                                  </s-text>
+                                ) : (
+                                  "—"
+                                )}
+                              </s-table-cell>
+                            </s-table-row>
+                          ))}
+                        </s-table-body>
+                      </s-table>
                     )}
                     {transitions.length > 0 ? (
                       <fetcher.Form method="post">

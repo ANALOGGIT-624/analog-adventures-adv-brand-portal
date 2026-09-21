@@ -12,6 +12,7 @@ import {
 import {
   buildCampaignRelaunch,
   buildCampaignLifecycleValues,
+  buildCampaignSettingsValues,
   campaignDateTime,
 } from "../lib/campaign-lifecycle.server";
 import {
@@ -70,9 +71,7 @@ export const action = async ({ request }) => {
 
   if (intent === "lifecycle") {
     try {
-      const campaignRecordId = String(
-        formData.get("campaign_record_id") || "",
-      );
+      const campaignRecordId = String(formData.get("campaign_record_id") || "");
       const snapshot = await getPortalSnapshot(admin);
       const campaign = snapshot.campaigns.find(
         ({ id }) => id === campaignRecordId,
@@ -101,9 +100,7 @@ export const action = async ({ request }) => {
 
   if (intent === "relaunch") {
     try {
-      const sourceCampaignId = String(
-        formData.get("source_campaign_id") || "",
-      );
+      const sourceCampaignId = String(formData.get("source_campaign_id") || "");
       const snapshot = await getPortalSnapshot(admin);
       const sourceCampaign = snapshot.campaigns.find(
         ({ id }) => id === sourceCampaignId,
@@ -127,6 +124,30 @@ export const action = async ({ request }) => {
     }
   }
 
+  if (intent === "settings") {
+    try {
+      const campaignRecordId = String(formData.get("campaign_record_id") || "");
+      const snapshot = await getPortalSnapshot(admin);
+      const campaign = snapshot.campaigns.find(
+        ({ id }) => id === campaignRecordId,
+      );
+      const values = buildCampaignSettingsValues(campaign, {
+        fulfillmentMode: String(formData.get("fulfillment_mode") || ""),
+        productionAfterClose: String(
+          formData.get("production_after_close") || "",
+        ),
+      });
+      const updatedCampaign = await upsertMetaobject(admin, {
+        type: PORTAL_TYPES.campaign,
+        handle: campaign.handle,
+        values,
+      });
+      return { ok: true, campaign: updatedCampaign, intent };
+    } catch (error) {
+      return { ok: false, error: error.message, intent };
+    }
+  }
+
   const campaignName = String(formData.get("campaign_name") || "").trim();
   const organizationStore = String(
     formData.get("organization_store") || "",
@@ -134,7 +155,12 @@ export const action = async ({ request }) => {
   const payoutRule = String(formData.get("payout_rule") || "").trim();
   const products = formData.getAll("products").map(String);
 
-  if (!campaignName || !organizationStore || !payoutRule || products.length === 0) {
+  if (
+    !campaignName ||
+    !organizationStore ||
+    !payoutRule ||
+    products.length === 0
+  ) {
     return {
       ok: false,
       error:
@@ -162,13 +188,10 @@ export const action = async ({ request }) => {
     fulfillment_mode: String(
       formData.get("fulfillment_mode") || "individual_shipping",
     ),
-    production_after_close:
-      formData.get("production_after_close") === "true",
+    production_after_close: formData.get("production_after_close") === "true",
     internal_notes: String(formData.get("internal_notes") || "").trim(),
   };
-  const fundraisingGoal = String(
-    formData.get("fundraising_goal") || "",
-  ).trim();
+  const fundraisingGoal = String(formData.get("fundraising_goal") || "").trim();
   if (startsAt) values.starts_at = startsAt;
   if (closesAt) values.closes_at = closesAt;
   if (fundraisingGoal) values.fundraising_goal = fundraisingGoal;
@@ -206,9 +229,11 @@ export default function Campaigns() {
       shopify.toast.show(
         fetcher.data.intent === "lifecycle"
           ? "Campaign lifecycle updated"
-          : fetcher.data.intent === "relaunch"
-            ? "Campaign relaunched"
-            : "Campaign saved",
+          : fetcher.data.intent === "settings"
+            ? "Campaign production settings updated"
+            : fetcher.data.intent === "relaunch"
+              ? "Campaign relaunched"
+              : "Campaign saved",
       );
     }
   }, [fetcher.data, shopify]);
@@ -220,11 +245,13 @@ export default function Campaigns() {
     >
       <s-section heading="Create campaign">
         {fetcher.data?.error &&
-          !["lifecycle", "relaunch"].includes(fetcher.data?.intent) && (
-          <s-banner heading="Campaign was not saved" tone="critical">
-            {fetcher.data.error}
-          </s-banner>
-        )}
+          !["lifecycle", "relaunch", "settings"].includes(
+            fetcher.data?.intent,
+          ) && (
+            <s-banner heading="Campaign was not saved" tone="critical">
+              {fetcher.data.error}
+            </s-banner>
+          )}
         {!canCreate ? (
           <s-banner heading="Campaign prerequisites are missing" tone="warning">
             Add an organization store, an active payout rule, and at least one
@@ -298,10 +325,7 @@ export default function Campaigns() {
                 </s-option>
                 <s-option value="local_pickup">Organization pickup</s-option>
               </s-select>
-              <s-select
-                label="Production timing"
-                name="production_after_close"
-              >
+              <s-select label="Production timing" name="production_after_close">
                 <s-option value="true">Batch after campaign closes</s-option>
                 <s-option value="false">Produce as orders arrive</s-option>
               </s-select>
@@ -333,6 +357,64 @@ export default function Campaigns() {
             </s-stack>
           </fetcher.Form>
         )}
+      </s-section>
+
+      <s-section heading="Edit pre-launch production settings">
+        {fetcher.data?.error && fetcher.data?.intent === "settings" && (
+          <s-banner
+            heading="Campaign settings were not updated"
+            tone="critical"
+          >
+            {fetcher.data.error}
+          </s-banner>
+        )}
+        <s-paragraph>
+          Fulfillment and production timing lock when a campaign goes live so
+          attributed orders retain their original operating terms.
+        </s-paragraph>
+        <fetcher.Form method="post">
+          <input type="hidden" name="intent" value="settings" />
+          <s-stack direction="block" gap="base">
+            <s-select label="Campaign" name="campaign_record_id" required>
+              <s-option value="">Select a pre-launch campaign</s-option>
+              {campaigns
+                .filter(({ status }) =>
+                  ["draft", "proofing", "scheduled"].includes(
+                    String(status).toLowerCase(),
+                  ),
+                )
+                .map((campaign) => (
+                  <s-option key={campaign.id} value={campaign.id}>
+                    {campaign.campaign_name} — {campaign.status}
+                  </s-option>
+                ))}
+            </s-select>
+            <s-grid gridTemplateColumns="1fr 1fr" gap="base">
+              <s-select label="Fulfillment" name="fulfillment_mode" required>
+                <s-option value="">Choose fulfillment</s-option>
+                <s-option value="individual_shipping">
+                  Ship each customer order
+                </s-option>
+                <s-option value="bulk_to_organizer">
+                  Bulk ship to organizer
+                </s-option>
+                <s-option value="local_pickup">Organization pickup</s-option>
+              </s-select>
+              <s-select
+                label="Production timing"
+                name="production_after_close"
+                required
+              >
+                <s-option value="">Choose production timing</s-option>
+                <s-option value="true">Batch after campaign closes</s-option>
+                <s-option value="false">Produce as orders arrive</s-option>
+              </s-select>
+            </s-grid>
+            <s-button type="submit" variant="primary" loading={busy}>
+              Update production settings
+            </s-button>
+          </s-stack>
+        </fetcher.Form>
       </s-section>
 
       <s-section heading="Relaunch campaign">
@@ -409,11 +491,7 @@ export default function Campaigns() {
         <fetcher.Form method="post">
           <input type="hidden" name="intent" value="lifecycle" />
           <s-stack direction="block" gap="base">
-            <s-select
-              label="Campaign"
-              name="campaign_record_id"
-              required
-            >
+            <s-select label="Campaign" name="campaign_record_id" required>
               <s-option value="">Select a campaign</s-option>
               {campaigns.map((campaign) => (
                 <s-option key={campaign.id} value={campaign.id}>
@@ -435,10 +513,7 @@ export default function Campaigns() {
                 name="closes_at"
               />
             </s-grid>
-            <s-date-field
-              label="New start date (optional)"
-              name="starts_at"
-            />
+            <s-date-field label="New start date (optional)" name="starts_at" />
             <s-button type="submit" variant="primary" loading={busy}>
               Update campaign lifecycle
             </s-button>

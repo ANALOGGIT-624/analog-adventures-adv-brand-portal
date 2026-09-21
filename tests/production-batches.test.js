@@ -4,6 +4,7 @@ import {
   buildProductionQueues,
   createProductionBatchValues,
   parseBatchLines,
+  productionBatchLineDetails,
   updateProductionBatchValues,
 } from "../app/lib/production-batches.server.js";
 
@@ -113,6 +114,31 @@ test("batch creation snapshots production and approved proof details", () => {
   assert.equal(values.line_items[0].customization, "Name: Ada");
   assert.equal(values.line_items[0].proofVersion, 2);
   assert.equal(values.internal_notes, "Use blue blanks");
+});
+
+test("batch line details resolve the immutable proof file", () => {
+  const details = productionBatchLineDetails(
+    {
+      line_items: JSON.stringify([
+        {
+          orderId: "gid://shopify/Order/100",
+          itemName: "Preschool tag",
+          proofId: "gid://shopify/Metaobject/9",
+          proofVersion: 2,
+        },
+      ]),
+    },
+    [
+      {
+        id: "gid://shopify/Metaobject/9",
+        proof_name: "Tot Time proof — Version 2",
+        asset_file_url: "https://cdn.shopify.com/proof-v2.pdf",
+      },
+    ],
+  );
+
+  assert.equal(details[0].proofName, "Tot Time proof — Version 2");
+  assert.equal(details[0].proofUrl, "https://cdn.shopify.com/proof-v2.pdf");
 });
 
 test("status transitions set timestamps and preserve the snapshot", () => {
