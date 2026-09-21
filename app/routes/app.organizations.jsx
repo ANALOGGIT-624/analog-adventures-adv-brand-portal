@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useFetcher, useLoaderData } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
+import { updateOrganizationStatus } from "../lib/organization-status.server";
 import {
   PORTAL_TYPES,
   normalizeMetaobject,
@@ -38,6 +39,18 @@ export const loader = async ({ request }) => {
 export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
+  if (formData.get("intent") === "update-status") {
+    try {
+      const organization = await updateOrganizationStatus(
+        admin,
+        String(formData.get("organization_handle") || "").trim(),
+        String(formData.get("status") || ""),
+      );
+      return { ok: true, organization };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  }
   const storeName = String(formData.get("store_name") || "").trim();
   const company = String(formData.get("company") || "").trim();
   const requestedSlug = String(formData.get("slug") || "").trim();
@@ -169,6 +182,38 @@ export default function OrganizationStores() {
               <s-button type="submit" variant="primary" loading={busy}>
                 Save organization store
               </s-button>
+            </s-stack>
+          </fetcher.Form>
+        )}
+      </s-section>
+
+      <s-section heading="Update organization status">
+        <s-paragraph>
+          Change an existing store’s status without changing its identity, company,
+          campaign availability, branding, or linked campaigns and proofs.
+        </s-paragraph>
+        {fetcher.data?.error && (
+          <s-banner heading="Store was not saved" tone="critical">{fetcher.data.error}</s-banner>
+        )}
+        {organizations.length > 0 && (
+          <fetcher.Form method="post">
+            <input type="hidden" name="intent" value="update-status" />
+            <s-stack direction="block" gap="base">
+              <s-select label="Existing organization store" name="organization_handle" required>
+                <s-option value="">Select a store</s-option>
+                {organizations.map((organization) => (
+                  <s-option key={organization.id} value={organization.handle}>
+                    {organization.store_name} — {organization.status}
+                  </s-option>
+                ))}
+              </s-select>
+              <s-select label="New status" name="status" required>
+                <s-option value="">Select a status</s-option>
+                {["draft", "proofing", "scheduled", "live", "closed", "archived"].map((status) => (
+                  <s-option key={status} value={status}>{status}</s-option>
+                ))}
+              </s-select>
+              <s-button type="submit" variant="primary" loading={busy}>Update organization status</s-button>
             </s-stack>
           </fetcher.Form>
         )}
