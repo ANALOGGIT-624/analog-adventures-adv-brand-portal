@@ -7,7 +7,7 @@ application_url = "https://shopify.dev/apps/default-app-home"
 embedded = true
 
 [access_scopes]
-scopes = "read_companies,read_customers,read_orders,write_orders,read_products,write_products,read_metaobjects,write_metaobjects,read_metaobject_definitions,write_metaobject_definitions,read_files,write_files,read_draft_orders,write_draft_orders,write_app_proxy"
+scopes = "read_companies,read_customers,read_orders,write_orders,read_inventory,read_products,write_products,read_metaobjects,write_metaobjects,read_metaobject_definitions,write_metaobject_definitions,read_files,write_files,read_draft_orders,write_draft_orders,write_app_proxy"
 
 [app_proxy]
 url = "/community/stores"
@@ -294,3 +294,18 @@ type = "date_time"
 [build]
 include_config_on_deploy = true
 automatically_update_urls_on_dev = true
+
+[metaobjects.app.organizer_delivery]
+name = "Organizer delivery address"
+display_name_field = "organization_id"
+access.admin = "merchant_read"
+
+[metaobjects.app.organizer_delivery.fields.organization_id]
+name = "Organization store ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.organizer_delivery.fields.address]
+name = "Delivery address"
+type = "json"
+required = true

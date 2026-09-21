@@ -1,3 +1,6 @@
+import prisma from "../db.server";
+import { checkoutToken, createBulkCheckout } from "../lib/bulk-checkout.server";
+import { loadDelivery } from "../lib/bulk-delivery.server";
 import process from "node:process";
 import { authenticate } from "../shopify.server";
 import { PORTAL_TYPES, normalizeMetaobject } from "../lib/brand-portal.server";
@@ -20,7 +23,16 @@ function money(value) {
   }).format(Number(value || 0));
 }
 
-function renderStore({ organization, campaign, products, secret }) {
+function renderStore({
+  organization,
+  campaign,
+  products,
+  secret,
+  deliveryReady = false,
+}) {
+  const bulk = campaign.fulfillment_mode === "bulk_to_organizer";
+  const bulkToken =
+    bulk && deliveryReady ? checkoutToken(organization, campaign, secret) : "";
   const primary = safeColor(organization.primary_color, "#111827");
   const secondary = safeColor(organization.secondary_color, "#f3f4f6");
   const productCards = products.length
@@ -69,17 +81,18 @@ function renderStore({ organization, campaign, products, secret }) {
               <div class="aa-product-card__content">
                 <h3>${escapeHtml(product.title)}</h3>
                 ${
-                  firstVariant
-                    ? `<form action="/cart/add" method="post" class="aa-product-form">
+                  firstVariant && (!bulk || deliveryReady)
+                    ? `${bulk ? '<div class="aa-product-form">' : '<form action="/cart/add" method="post" class="aa-product-form">'}
                         <label for="aa-variant-${product.legacyResourceId}">Choose an option</label>
-                        <select id="aa-variant-${product.legacyResourceId}" name="id" data-aa-variant-select>${variantOptions}</select>
+                        <select id="aa-variant-${product.legacyResourceId}" name="${bulk ? `variant.${product.legacyResourceId}` : "id"}" data-aa-variant-select>${variantOptions}</select>
                         <input type="hidden" name="properties[${ATTRIBUTION_PROPERTY}]" value="${escapeHtml(firstToken)}" data-aa-attribution-token>
                         <input type="hidden" name="properties[_aa_campaign_name]" value="${escapeHtml(campaign.campaign_name)}">
                         <input type="hidden" name="properties[_aa_organization_name]" value="${escapeHtml(organization.store_name)}">
                         <input type="hidden" name="return_to" value="/cart">
-                        <button type="submit">Add to cart</button>
-                      </form>`
-                    : "<p>Sold out</p>"
+                        ${bulk ? `<label for="aa-qty-${product.legacyResourceId}">Quantity (0 to skip)</label><input id="aa-qty-${product.legacyResourceId}" type="number" name="quantity.${product.legacyResourceId}" min="0" max="100" step="1" value="0"></div>` : '<button type="submit">Add to cart</button></form>'}`
+                    : bulk && !deliveryReady
+                      ? "<p>Bulk checkout is not available yet. Please contact the organizer.</p>"
+                      : "<p>Sold out</p>"
                 }
               </div>
             </article>`;
@@ -103,7 +116,7 @@ function renderStore({ organization, campaign, products, secret }) {
       .aa-product-form { display: grid; gap: 10px; }
       .aa-product-form label { font-size: .9rem; }
       .aa-product-form select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
-      .aa-product-form button { border: 0; background: var(--aa-primary); color: #fff; border-radius: 999px; padding: 11px 18px; cursor: pointer; }
+      .aa-product-form button, [data-aa-bulk-form] > p > button { border: 0; background: var(--aa-primary); color: #fff; border-radius: 999px; padding: 11px 18px; cursor: pointer; }
     </style>
     <main class="aa-store">
       <section class="aa-store__hero">
@@ -124,12 +137,28 @@ function renderStore({ organization, campaign, products, secret }) {
             : ""
         }
       </section>
+      ${bulk ? "<p>Delivery is to your organization. You pay no shipping. Select quantities below and continue to a separate checkout.</p>" : ""}
+      ${bulk && deliveryReady ? `<form method="post" data-aa-bulk-form><input type="hidden" name="checkout_token" value="${escapeHtml(bulkToken)}">` : ""}
       <section class="aa-product-grid">${productCards}</section>
+      ${bulk && deliveryReady ? '<p><button type="submit">Continue to checkout — $0 shipping</button></p></form>' : ""}
     </main>
     <script>
+      window.addEventListener('pageshow', function () {
+        document.querySelectorAll('[data-aa-bulk-form] button[type="submit"]').forEach(function (button) {
+          button.disabled = false;
+          button.textContent = 'Continue to checkout — $0 shipping';
+        });
+      });
+      document.querySelectorAll('[data-aa-bulk-form]').forEach(function(form) {
+        form.addEventListener('submit', function() {
+          var button = form.querySelector('button[type="submit"]');
+          button.disabled = true;
+          button.textContent = 'Preparing checkout…';
+        });
+      });
       document.querySelectorAll('[data-aa-variant-select]').forEach(function (select) {
         select.addEventListener('change', function () {
-          var tokenInput = select.closest('form').querySelector('[data-aa-attribution-token]');
+          var tokenInput = select.closest('.aa-product-form').querySelector('[data-aa-attribution-token]');
           tokenInput.value = select.options[select.selectedIndex].dataset.aaToken || '';
         });
       });
@@ -246,9 +275,40 @@ export const loader = async ({ request, params }) => {
       campaign,
       products,
       secret: process.env.SHOPIFY_API_SECRET,
+      deliveryReady:
+        campaign.fulfillment_mode === "bulk_to_organizer"
+          ? Boolean(await loadDelivery(admin, organization.id))
+          : false,
     }),
     {
       layout: true,
+      headers: { "Cache-Control": "private, no-store" },
     },
   );
+};
+
+export const action = async ({ request, params }) => {
+  const { admin, liquid, session } =
+    await authenticate.public.appProxy(request);
+  if (!admin || !session?.shop)
+    return new Response("Store connection is unavailable.", { status: 401 });
+  try {
+    const invoiceUrl = await createBulkCheckout({
+      admin,
+      attempts: prisma.bulkCheckoutAttempt,
+      shop: session.shop,
+      slug: params.slug,
+      form: await request.formData(),
+      secret: process.env.SHOPIFY_API_SECRET,
+    });
+    return new Response(null, {
+      status: 303,
+      headers: { Location: invoiceUrl, "Cache-Control": "no-store" },
+    });
+  } catch (error) {
+    return liquid(
+      `<main><h1>Checkout could not be opened</h1><p>${escapeHtml(error.message)}</p><p>Use your browser’s Back button to review your selection.</p></main>`,
+      { layout: true, status: 400 },
+    );
+  }
 };

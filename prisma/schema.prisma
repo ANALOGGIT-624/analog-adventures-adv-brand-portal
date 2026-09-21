@@ -32,3 +32,14 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 }
+
+// One server-issued checkout attempt, shared across retries and webhook delivery.
+model BulkCheckoutAttempt {
+  id          String   @id
+  shop        String
+  fingerprint String
+  draftId     String?
+  invoiceUrl  String?
+  snapshot    String
+  createdAt   DateTime @default(now())
+}

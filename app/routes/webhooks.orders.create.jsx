@@ -1,3 +1,5 @@
+import prisma from "../db.server";
+import { bulkOrderManifest } from "../lib/bulk-checkout.server";
 import process from "node:process";
 import { authenticate } from "../shopify.server";
 import { PORTAL_TYPES, normalizeMetaobject } from "../lib/brand-portal.server";
@@ -16,15 +18,23 @@ export const action = async ({ request }) => {
 
   if (!admin) return new Response();
 
-  const signedLines = signedLineAttributions(
-    payload.line_items,
-    process.env.SHOPIFY_API_SECRET,
-    payload.created_at,
-  );
-  if (!signedLines.length) return new Response();
+  const bulkManifest = await bulkOrderManifest({
+    admin,
+    attempts: prisma.bulkCheckoutAttempt,
+    payload,
+    shop,
+  });
+  let manifest = bulkManifest;
+  if (!manifest) {
+    const signedLines = signedLineAttributions(
+      payload.line_items,
+      process.env.SHOPIFY_API_SECRET,
+      payload.created_at,
+    );
+    if (!signedLines.length) return new Response();
 
-  const response = await admin.graphql(
-    `#graphql
+    const response = await admin.graphql(
+      `#graphql
       query AttributionReferenceData(
         $campaignType: String!
         $payoutRuleType: String!
@@ -41,75 +51,76 @@ export const action = async ({ request }) => {
         }
       }
     `,
-    {
-      variables: {
-        campaignType: PORTAL_TYPES.campaign,
-        payoutRuleType: PORTAL_TYPES.payoutRule,
-        proofType: PORTAL_TYPES.artworkProof,
+      {
+        variables: {
+          campaignType: PORTAL_TYPES.campaign,
+          payoutRuleType: PORTAL_TYPES.payoutRule,
+          proofType: PORTAL_TYPES.artworkProof,
+        },
       },
-    },
-  );
-  const referencePayload = await response.json();
-  if (referencePayload.errors?.length) {
-    throw new Error(
-      referencePayload.errors.map(({ message }) => message).join("; "),
     );
-  }
-
-  const campaigns =
-    referencePayload.data.campaigns.nodes.map(normalizeMetaobject);
-  const payoutRules =
-    referencePayload.data.payoutRules.nodes.map(normalizeMetaobject);
-  const proofs = referencePayload.data.proofs.nodes.map(normalizeMetaobject);
-  const orderCreatedAt = new Date(payload.created_at);
-  const manifest = signedLines.flatMap(({ line, token }) => {
-    const campaign = campaigns.find(({ handle }) => handle === token.c);
-    const productGid = `gid://shopify/Product/${token.p}`;
-    if (
-      !campaign ||
-      String(campaign.status).toLowerCase() !== "live" ||
-      (campaign.starts_at && new Date(campaign.starts_at) > orderCreatedAt) ||
-      (campaign.closes_at && new Date(campaign.closes_at) < orderCreatedAt) ||
-      !referenceIds(campaign.products).includes(productGid)
-    ) {
-      return [];
+    const referencePayload = await response.json();
+    if (referencePayload.errors?.length) {
+      throw new Error(
+        referencePayload.errors.map(({ message }) => message).join("; "),
+      );
     }
 
-    const payoutRule = payoutRules.find(
-      ({ id }) => id === campaign.payout_rule,
-    );
-    if (!payoutRule) return [];
-    const approvedProof = approvedProofForCampaign(proofs, campaign.id);
+    const campaigns =
+      referencePayload.data.campaigns.nodes.map(normalizeMetaobject);
+    const payoutRules =
+      referencePayload.data.payoutRules.nodes.map(normalizeMetaobject);
+    const proofs = referencePayload.data.proofs.nodes.map(normalizeMetaobject);
+    const orderCreatedAt = new Date(payload.created_at);
+    manifest = signedLines.flatMap(({ line, token }) => {
+      const campaign = campaigns.find(({ handle }) => handle === token.c);
+      const productGid = `gid://shopify/Product/${token.p}`;
+      if (
+        !campaign ||
+        String(campaign.status).toLowerCase() !== "live" ||
+        (campaign.starts_at && new Date(campaign.starts_at) > orderCreatedAt) ||
+        (campaign.closes_at && new Date(campaign.closes_at) < orderCreatedAt) ||
+        !referenceIds(campaign.products).includes(productGid)
+      ) {
+        return [];
+      }
 
-    return [
-      {
-        lineItemId: String(line.id),
-        productId: productGid,
-        variantId: `gid://shopify/ProductVariant/${token.i}`,
-        quantity: Number(line.quantity || 0),
-        linePrice: String(line.price || "0"),
-        organizationStoreId: campaign.organization_store,
-        campaignId: campaign.id,
-        campaignHandle: campaign.handle,
-        payoutRuleId: payoutRule.id,
-        payoutRuleSnapshot: {
-          name: payoutRule.rule_name,
-          method: payoutRule.method,
-          rate: payoutRule.rate,
-          basis: payoutRule.basis,
-          settlementDelayDays: payoutRule.settlement_delay_days || "0",
+      const payoutRule = payoutRules.find(
+        ({ id }) => id === campaign.payout_rule,
+      );
+      if (!payoutRule) return [];
+      const approvedProof = approvedProofForCampaign(proofs, campaign.id);
+
+      return [
+        {
+          lineItemId: String(line.id),
+          productId: productGid,
+          variantId: `gid://shopify/ProductVariant/${token.i}`,
+          quantity: Number(line.quantity || 0),
+          linePrice: String(line.price || "0"),
+          organizationStoreId: campaign.organization_store,
+          campaignId: campaign.id,
+          campaignHandle: campaign.handle,
+          payoutRuleId: payoutRule.id,
+          payoutRuleSnapshot: {
+            name: payoutRule.rule_name,
+            method: payoutRule.method,
+            rate: payoutRule.rate,
+            basis: payoutRule.basis,
+            settlementDelayDays: payoutRule.settlement_delay_days || "0",
+          },
+          artworkProofSnapshot: approvedProof
+            ? {
+                id: approvedProof.id,
+                version: Number(approvedProof.version_number || 0),
+                fileId: approvedProof.asset_file,
+                contentHash: approvedProof.content_hash,
+              }
+            : null,
         },
-        artworkProofSnapshot: approvedProof
-          ? {
-              id: approvedProof.id,
-              version: Number(approvedProof.version_number || 0),
-              fileId: approvedProof.asset_file,
-              contentHash: approvedProof.content_hash,
-            }
-          : null,
-      },
-    ];
-  });
+      ];
+    });
+  }
 
   if (!manifest.length) return new Response();
 
