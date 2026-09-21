@@ -217,16 +217,25 @@ export const loader = async ({ request }) => {
     .filter(
       ({ organization_store_id, campaign_id }) =>
         organizationIds.has(organization_store_id) &&
-        campaignIds.has(campaign_id),
+        campaignById.get(campaign_id)?.organization_store ===
+          organization_store_id,
     )
     .map(publicProof);
   const requests = payload.data.requests.nodes
     .map(normalizeMetaobject)
-    .filter(
-      ({ company_id, organization_store_id }) =>
-        companyIds.has(company_id) ||
-        organizationIds.has(organization_store_id),
-    )
+    .filter(({ company_id, organization_store_id, campaign_id }) => {
+      if (!companyIds.has(company_id)) return false;
+      const organization = organizations.find(
+        ({ id }) => id === organization_store_id,
+      );
+      if (organization_store_id && organization?.company !== company_id)
+        return false;
+      return (
+        !campaign_id ||
+        (Boolean(organization) &&
+          campaignById.get(campaign_id)?.organization_store === organization.id)
+      );
+    })
     .map(publicRequest);
 
   return cors(
@@ -266,6 +275,9 @@ export const action = async ({ request }) => {
       input = await request.json();
     }
   } catch {
+    return cors(jsonResponse({ error: "Invalid portal request." }, 400));
+  }
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
     return cors(jsonResponse({ error: "Invalid portal request." }, 400));
   }
   const intent = String(input.intent || "");
@@ -326,7 +338,7 @@ export const action = async ({ request }) => {
     const organizationId = String(input.organizationId || "");
     const organization = organizations.find(({ id }) => id === organizationId);
     const requestType = String(input.requestType || "");
-    if (requestType !== "new_store" && !organization) {
+    if ((organizationId || requestType !== "new_store") && !organization) {
       return cors(
         jsonResponse(
           { error: "Choose an organization assigned to your account." },
@@ -343,6 +355,19 @@ export const action = async ({ request }) => {
     const campaign = campaigns.find(({ id }) => id === campaignId);
     if (campaignId && !campaign) {
       return cors(jsonResponse({ error: "Choose an assigned campaign." }, 403));
+    }
+    if (
+      campaign &&
+      (!organization || campaign.organization_store !== organization.id)
+    ) {
+      return cors(
+        jsonResponse(
+          {
+            error: "Choose a campaign belonging to the selected organization.",
+          },
+          403,
+        ),
+      );
     }
     if (requestType === "campaign_relaunch" && !campaign) {
       return cors(
@@ -408,7 +433,7 @@ export const action = async ({ request }) => {
 
   const response = await admin.graphql(
     `#graphql
-      query AuthorizeProofReview($customerId: ID!, $organizationType: String!, $proofType: String!) {
+      query AuthorizeProofReview($customerId: ID!, $organizationType: String!, $proofType: String!, $campaignType: String!) {
         customer(id: $customerId) {
           companyContactProfiles { company { id } }
         }
@@ -418,6 +443,9 @@ export const action = async ({ request }) => {
         proofs: metaobjects(type: $proofType, first: 100) {
           nodes { id handle displayName fields { key value } }
         }
+        campaigns: metaobjects(type: $campaignType, first: 100) {
+          nodes { id handle displayName fields { key value } }
+        }
       }
     `,
     {
@@ -425,6 +453,7 @@ export const action = async ({ request }) => {
         customerId: sessionToken.sub,
         organizationType: PORTAL_TYPES.organizationStore,
         proofType: PORTAL_TYPES.artworkProof,
+        campaignType: PORTAL_TYPES.campaign,
       },
     },
   );
@@ -450,7 +479,15 @@ export const action = async ({ request }) => {
   const proof = payload.data.proofs.nodes
     .map(normalizeMetaobject)
     .find((item) => item.handle === handle);
-  if (!proof || !organizationIds.has(proof.organization_store_id)) {
+  const campaign = payload.data.campaigns.nodes
+    .map(normalizeMetaobject)
+    .find((item) => item.id === proof?.campaign_id);
+  if (
+    !proof ||
+    !organizationIds.has(proof.organization_store_id) ||
+    !campaign ||
+    campaign.organization_store !== proof.organization_store_id
+  ) {
     return cors(
       jsonResponse(
         { error: "That proof is not assigned to your organization." },
