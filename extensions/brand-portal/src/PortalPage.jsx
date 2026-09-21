@@ -1,6 +1,7 @@
 import "@shopify/ui-extensions/preact";
 import { render } from "preact";
 import { useEffect, useState } from "preact/hooks";
+import { displayDate } from "./display-date.js";
 
 /* eslint-disable react/prop-types */
 
@@ -17,14 +18,6 @@ function money(value, currency = "USD") {
 
 function requestLabel(value) {
   return String(value || "").replace(/_/g, " ");
-}
-
-function displayDate(value, fallback = "Not available") {
-  if (!value) return fallback;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? String(value)
-    : date.toLocaleDateString();
 }
 
 function fieldValue(event) {
