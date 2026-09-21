@@ -1,3 +1,5 @@
+import { ADDRESS_FIELDS } from "../lib/delivery-address";
+import { loadDelivery, saveDelivery } from "../lib/bulk-delivery.server";
 import { useEffect } from "react";
 import { useFetcher, useLoaderData } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
@@ -32,13 +34,41 @@ export const loader = async ({ request }) => {
 
   return {
     companies: payload.data.companies.nodes,
-    organizations: payload.data.metaobjects.nodes.map(normalizeMetaobject),
+    organizations: await Promise.all(
+      payload.data.metaobjects.nodes.map(async (node) => {
+        const organization = normalizeMetaobject(node);
+        return {
+          ...organization,
+          deliveryAddress: await loadDelivery(admin, organization.id),
+        };
+      }),
+    ),
   };
 };
 
 export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
+  if (formData.get("intent") === "save-delivery") {
+    try {
+      await saveDelivery(
+        admin,
+        String(formData.get("organization_id") || ""),
+        Object.fromEntries(
+          ADDRESS_FIELDS.map(([key]) => [key, formData.get(key)]),
+        ),
+      );
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to save organization.",
+      };
+    }
+  }
   if (formData.get("intent") === "update-status") {
     try {
       const organization = await updateOrganizationStatus(
@@ -48,7 +78,13 @@ export const action = async ({ request }) => {
       );
       return { ok: true, organization };
     } catch (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to save organization.",
+      };
     }
   }
   const storeName = String(formData.get("store_name") || "").trim();
@@ -71,8 +107,7 @@ export const action = async ({ request }) => {
       values: {
         store_name: storeName,
         store_id:
-          String(formData.get("store_id") || "").trim() ||
-          "ORG-" + Date.now(),
+          String(formData.get("store_id") || "").trim() || "ORG-" + Date.now(),
         slug,
         company,
         status: String(formData.get("status") || "draft"),
@@ -86,7 +121,11 @@ export const action = async ({ request }) => {
     });
     return { ok: true, organization };
   } catch (error) {
-    return { ok: false, error: error.message };
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Unable to save organization.",
+    };
   }
 };
 
@@ -109,10 +148,7 @@ export default function OrganizationStores() {
   }, [fetcher.data, shopify]);
 
   return (
-    <s-page
-      heading="Organization stores"
-      subheading="Create branded micro-store records without creating separate Shopify stores."
-    >
+    <s-page heading="Organization stores">
       <s-section heading="Add organization store">
         {fetcher.data?.error && (
           <s-banner heading="Store was not saved" tone="critical">
@@ -189,17 +225,24 @@ export default function OrganizationStores() {
 
       <s-section heading="Update organization status">
         <s-paragraph>
-          Change an existing store’s status without changing its identity, company,
-          campaign availability, branding, or linked campaigns and proofs.
+          Change an existing store’s status without changing its identity,
+          company, campaign availability, branding, or linked campaigns and
+          proofs.
         </s-paragraph>
         {fetcher.data?.error && (
-          <s-banner heading="Store was not saved" tone="critical">{fetcher.data.error}</s-banner>
+          <s-banner heading="Store was not saved" tone="critical">
+            {fetcher.data.error}
+          </s-banner>
         )}
         {organizations.length > 0 && (
           <fetcher.Form method="post">
             <input type="hidden" name="intent" value="update-status" />
             <s-stack direction="block" gap="base">
-              <s-select label="Existing organization store" name="organization_handle" required>
+              <s-select
+                label="Existing organization store"
+                name="organization_handle"
+                required
+              >
                 <s-option value="">Select a store</s-option>
                 {organizations.map((organization) => (
                   <s-option key={organization.id} value={organization.handle}>
@@ -209,14 +252,70 @@ export default function OrganizationStores() {
               </s-select>
               <s-select label="New status" name="status" required>
                 <s-option value="">Select a status</s-option>
-                {["draft", "proofing", "scheduled", "live", "closed", "archived"].map((status) => (
-                  <s-option key={status} value={status}>{status}</s-option>
+                {[
+                  "draft",
+                  "proofing",
+                  "scheduled",
+                  "live",
+                  "closed",
+                  "archived",
+                ].map((status) => (
+                  <s-option key={status} value={status}>
+                    {status}
+                  </s-option>
                 ))}
               </s-select>
-              <s-button type="submit" variant="primary" loading={busy}>Update organization status</s-button>
+              <s-button type="submit" variant="primary" loading={busy}>
+                Update organization status
+              </s-button>
             </s-stack>
           </fetcher.Form>
         )}
+      </s-section>
+
+      <s-section heading="Bulk delivery addresses">
+        <s-paragraph>
+          Save the organizer’s delivery address before accepting bulk campaign
+          purchases. Customers pay $0 shipping; organizer shipping is handled
+          separately. Address changes apply to new checkouts only.
+        </s-paragraph>
+        {organizations.map((organization) => (
+          <details key={organization.id}>
+            <summary>
+              {organization.store_name} —{" "}
+              {organization.deliveryAddress
+                ? "Address saved"
+                : "Address required for bulk checkout"}
+            </summary>
+            <fetcher.Form
+              method="post"
+              key={
+                organization.id + JSON.stringify(organization.deliveryAddress)
+              }
+            >
+              <input type="hidden" name="intent" value="save-delivery" />
+              <input
+                type="hidden"
+                name="organization_id"
+                value={organization.id}
+              />
+              <s-stack direction="block" gap="base">
+                {ADDRESS_FIELDS.map(([key, label, required]) => (
+                  <s-text-field
+                    key={key}
+                    label={label}
+                    name={key}
+                    required={required}
+                    defaultValue={organization.deliveryAddress?.[key] || ""}
+                  />
+                ))}
+                <s-button type="submit" variant="primary" loading={busy}>
+                  Save delivery address
+                </s-button>
+              </s-stack>
+            </fetcher.Form>
+          </details>
+        ))}
       </s-section>
 
       <s-section heading="Existing stores">
