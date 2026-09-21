@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   buildCampaignRelaunch,
   buildCampaignLifecycleValues,
+  buildCampaignSettingsValues,
   campaignDateTime,
 } from "../app/lib/campaign-lifecycle.server.js";
 
@@ -48,6 +49,18 @@ test("closed campaigns cannot retain a future close date", () => {
       }),
     /cannot close in the future/,
   );
+});
+
+test("closing a campaign today records the actual close time", () => {
+  const now = new Date("2026-09-16T12:00:00.000Z");
+  const values = buildCampaignLifecycleValues(campaign, {
+    status: "closed",
+    startsAt: "",
+    closesAt: "2026-09-16",
+    now,
+  });
+
+  assert.equal(values.closes_at, now.toISOString());
 });
 
 test("campaigns with paid statements cannot be reopened", () => {
@@ -129,8 +142,45 @@ test("close date must follow start date", () => {
 
 test("campaign date values use consistent UTC boundaries", () => {
   assert.equal(campaignDateTime("2026-09-16"), "2026-09-16T00:00:00Z");
-  assert.equal(
-    campaignDateTime("2026-09-16", true),
-    "2026-09-16T23:59:59Z",
+  assert.equal(campaignDateTime("2026-09-16", true), "2026-09-16T23:59:59Z");
+});
+
+test("pre-launch fulfillment and production settings can be updated", () => {
+  const values = buildCampaignSettingsValues(
+    { ...campaign, status: "scheduled" },
+    {
+      fulfillmentMode: "local_pickup",
+      productionAfterClose: "false",
+    },
+  );
+
+  assert.equal(values.fulfillment_mode, "local_pickup");
+  assert.equal(values.production_after_close, false);
+  assert.equal(values.products, campaign.products);
+  assert.equal(values.payout_rule, campaign.payout_rule);
+});
+
+test("fulfillment settings lock when a campaign is live", () => {
+  assert.throws(
+    () =>
+      buildCampaignSettingsValues(campaign, {
+        fulfillmentMode: "bulk_to_organizer",
+        productionAfterClose: true,
+      }),
+    /before a campaign goes live/i,
+  );
+});
+
+test("pre-launch settings require an explicit production choice", () => {
+  assert.throws(
+    () =>
+      buildCampaignSettingsValues(
+        { ...campaign, status: "draft" },
+        {
+          fulfillmentMode: "bulk_to_organizer",
+          productionAfterClose: "",
+        },
+      ),
+    /when production should begin/i,
   );
 });

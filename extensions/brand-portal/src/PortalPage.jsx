@@ -19,6 +19,14 @@ function requestLabel(value) {
   return String(value || "").replace(/_/g, " ");
 }
 
+function displayDate(value, fallback = "Not available") {
+  if (!value) return fallback;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? String(value)
+    : date.toLocaleDateString();
+}
+
 function fieldValue(event) {
   const target = event.currentTarget;
   return target && "value" in target ? String(target.value || "") : "";
@@ -702,15 +710,78 @@ function PortalPage() {
                     border="base"
                     borderRadius="base"
                   >
-                    <s-stack direction="inline" gap="base" alignItems="center">
-                      <s-text type="strong">{statement.statementId}</s-text>
-                      <s-badge tone="neutral">{statement.status}</s-badge>
-                      <s-text>
-                        {money(
-                          statement.organizationProceeds,
-                          statement.currency,
-                        )}
-                      </s-text>
+                    <s-stack direction="block" gap="base">
+                      <s-stack
+                        direction="inline"
+                        gap="base"
+                        alignItems="center"
+                      >
+                        <s-text type="strong">{statement.statementId}</s-text>
+                        <s-badge
+                          tone={
+                            statement.status === "paid" ? "success" : "neutral"
+                          }
+                        >
+                          {statement.status}
+                        </s-badge>
+                      </s-stack>
+                      <s-text>{statement.campaignName}</s-text>
+                      <s-grid
+                        gridTemplateColumns="repeat(2, minmax(0, 1fr))"
+                        gap="base"
+                      >
+                        <s-stack direction="block" gap="small-200">
+                          <s-text color="subdued">Statement period</s-text>
+                          <s-text>
+                            {displayDate(statement.periodStart)} –{" "}
+                            {displayDate(statement.periodEnd)}
+                          </s-text>
+                        </s-stack>
+                        <s-stack direction="block" gap="small-200">
+                          <s-text color="subdued">
+                            {statement.paidAt ? "Paid" : "Settlement eligible"}
+                          </s-text>
+                          <s-text>
+                            {displayDate(
+                              statement.paidAt ||
+                                statement.settlementEligibleAt,
+                              "Pending campaign close",
+                            )}
+                          </s-text>
+                        </s-stack>
+                      </s-grid>
+                      <s-grid
+                        gridTemplateColumns="repeat(2, minmax(0, 1fr))"
+                        gap="base"
+                      >
+                        <s-stack direction="block" gap="small-200">
+                          <s-text color="subdued">Gross sales</s-text>
+                          <s-text>
+                            {money(statement.grossRevenue, statement.currency)}
+                          </s-text>
+                        </s-stack>
+                        <s-stack direction="block" gap="small-200">
+                          <s-text color="subdued">Refunds</s-text>
+                          <s-text>
+                            {money(statement.refunds, statement.currency)}
+                          </s-text>
+                        </s-stack>
+                        <s-stack direction="block" gap="small-200">
+                          <s-text color="subdued">Deductions</s-text>
+                          <s-text>
+                            {money(statement.deductions, statement.currency)}
+                          </s-text>
+                        </s-stack>
+                        <s-stack direction="block" gap="small-200">
+                          <s-text color="subdued">Organization proceeds</s-text>
+                          <s-text type="strong">
+                            {money(
+                              statement.organizationProceeds,
+                              statement.currency,
+                            )}
+                          </s-text>
+                        </s-stack>
+                      </s-grid>
                     </s-stack>
                   </s-box>
                 ))}
