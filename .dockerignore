@@ -1,3 +1,18 @@
+# Build output and dependencies
 .cache
 build
 node_modules
+# Local credentials, Shopify CLI sessions and version control
+.git
+.shopify
+.env
+.env.*
+**/.env
+**/.env.*
+# Local databases, exports and recovery keys
+**/*.sqlite
+**/*.sqlite-*
+**/*.db
+**/*.db-*
+**/*.key
+recovery-private
