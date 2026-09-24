@@ -53,6 +53,11 @@ node scripts/recovery/restore.mjs \
   --destination /absolute/private/path/new-isolated-restore
 ```
 
+Capture exit codes: 0 means captured without reported gaps, 2 means the archive
+was created but has known gaps, and 1 means capture failed. Preserve and inspect
+the report in all cases; do not replace a known-good offsite backup based only
+on the presence of an archive.
+
 Capture destinations and restore destinations must be new. Optional repeated
 `--evidence /absolute/path/file` includes known historical exports. Raw capture
 and restored files contain private data and credentials; keep their directories
