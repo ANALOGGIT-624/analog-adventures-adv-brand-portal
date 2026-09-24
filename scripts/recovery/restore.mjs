@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import process from "node:process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,7 +10,12 @@ import { normalizeMetaobject } from "../../app/lib/brand-portal.server.js";
 import { reconcileCampaignOrders } from "../../app/lib/payout-reconciliation.server.js";
 
 const exec = promisify(execFile);
-export async function restoreDrill({ source, destination, keyFile }) {
+export async function restoreDrill({
+  source,
+  destination,
+  keyFile,
+  quiet = false,
+}) {
   process.umask(0o077);
   const started = Date.now();
   const manifest = await restoreDirectory(source, destination, keyFile);
@@ -42,11 +48,11 @@ con.close()`;
   const database = JSON.parse(
     (await exec("python3", ["-c", code, destination])).stdout,
   );
-  if (
-    JSON.stringify(database.sourceDatabaseCounts) !==
-    JSON.stringify(capture.database)
-  )
-    throw new Error("Restored database row counts differ");
+  assert.deepEqual(
+    database.sourceDatabaseCounts,
+    capture.database,
+    "Restored database row counts differ",
+  );
   const proofSnapshots = orders.flatMap((order) =>
     (order.attributionManifest?.jsonValue?.lines || [])
       .map((line) => line.artworkProofSnapshot)
@@ -108,7 +114,25 @@ con.close()`;
     JSON.stringify(report, null, 2),
     { flag: "wx", mode: 0o600 },
   );
-  console.log(JSON.stringify(report, null, 2));
+  if (!quiet)
+    console.log(
+      JSON.stringify(
+        {
+          archiveIntegrity: report.archiveIntegrity,
+          restoredFiles: report.restoredFiles,
+          database: report.database,
+          checkpoint: report.checkpoint,
+          proofSnapshots: proofChecks.length,
+          proofSnapshotsWithMatchingBytes: proofChecks.filter(
+            (p) => p.matchingAssets.length,
+          ).length,
+          unresolvedGapCount: capture.gaps.length,
+          pilotGate: report.pilotGate,
+        },
+        null,
+        2,
+      ),
+    );
   return report;
 }
 if (

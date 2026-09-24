@@ -299,7 +299,11 @@ export async function capture({
       const parsed = new URL(url);
       if (
         parsed.protocol !== "https:" ||
-        !["cdn.shopify.com", "shopifycdn.net"].some(
+        ![
+          "cdn.shopify.com",
+          "shopifycdn.net",
+          "shopify-shop-assets.storage.googleapis.com",
+        ].some(
           (host) =>
             parsed.hostname === host || parsed.hostname.endsWith(`.${host}`),
         )
@@ -517,4 +521,5 @@ if (
     evidence: values.evidence,
   });
   if (report.status === "capture_failed") process.exitCode = 1;
+  else if (report.status === "captured_with_gaps") process.exitCode = 2;
 }

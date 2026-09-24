@@ -56,6 +56,7 @@ export const queries = {
       nodes { id alt createdAt updatedAt fileStatus
         ... on GenericFile { url mimeType originalFileSize }
         ... on MediaImage { image { url } originalSource { url fileSize } }
+        ... on ExternalVideo { embeddedUrl host }
       }
     }
   }`,

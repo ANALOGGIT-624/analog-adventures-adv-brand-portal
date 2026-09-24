@@ -21,6 +21,8 @@ import {
   loadKey,
 } from "../scripts/recovery/archive.mjs";
 import { collectPages } from "../scripts/recovery/capture.mjs";
+import { restoreDrill } from "../scripts/recovery/restore.mjs";
+import { execFileSync } from "node:child_process";
 
 async function fixture(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), "portal-recovery-test-"));
@@ -143,4 +145,38 @@ test("pagination captures every page and rejects a stalled cursor", async () => 
     collectPages(async () => ({ nodes: [] })),
     /Invalid/,
   );
+});
+
+test("offline drill restores database and preserves an incomplete-data status", async (t) => {
+  const f = await fixture(t);
+  for (const dir of ["database", "shopify", "artwork"])
+    await mkdir(path.join(f.source, dir));
+  execFileSync("python3", [
+    "-c",
+    "import sqlite3,sys; c=sqlite3.connect(sys.argv[1]); c.execute('CREATE TABLE Session (id TEXT)'); c.execute('CREATE TABLE BulkCheckoutAttempt (id TEXT)'); c.execute('CREATE TABLE _prisma_migrations (id TEXT)'); c.execute(\"INSERT INTO Session VALUES ('synthetic')\"); c.commit(); c.close()",
+    path.join(f.source, "database/app.sqlite"),
+  ]);
+  await writeFile(
+    path.join(f.source, "capture-report.json"),
+    JSON.stringify({
+      database: { _prisma_migrations: 0, BulkCheckoutAttempt: 0, Session: 1 },
+      status: "captured_with_gaps",
+      gaps: [{ kind: "missing_historical_record" }],
+    }),
+  );
+  await writeFile(path.join(f.source, "shopify/metaobjects.json"), "[]");
+  await writeFile(path.join(f.source, "shopify/orders.json"), "[]");
+  await writeFile(path.join(f.source, "artwork/inventory.json"), "[]");
+  await sealDirectory(f.source, f.backup, f.key);
+  const report = await restoreDrill({
+    source: f.backup,
+    destination: f.restored,
+    keyFile: f.key,
+    quiet: true,
+  });
+  assert.equal(report.database.sourceDatabaseCounts.Session, 1);
+  assert.equal(report.archiveIntegrity, "passed");
+  assert.equal(report.captureStatus, "captured_with_gaps");
+  assert.match(report.pilotGate, /^not_met/);
+  await access(path.join(f.restored, "DRILL-REPORT.json"));
 });
