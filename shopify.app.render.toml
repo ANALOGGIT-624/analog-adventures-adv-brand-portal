@@ -1,0 +1,317 @@
+# Analog Adventures Test / Tin Roof Holdings, LLC
+# Hosted pilot configuration; preserve all existing app-owned definitions.
+
+client_id = "8158f984f0ec6fed1e5f85b44a588777"
+name = "analog-adv-brand-portal"
+application_url = "https://analog-portal-pilot.onrender.com"
+embedded = true
+
+[access_scopes]
+scopes = "read_companies,read_customers,read_orders,write_orders,read_inventory,read_products,write_products,read_metaobjects,write_metaobjects,read_metaobject_definitions,write_metaobject_definitions,read_files,write_files,read_draft_orders,write_draft_orders,write_app_proxy"
+
+[app_proxy]
+url = "/community/stores"
+prefix = "community"
+subpath = "stores"
+
+[auth]
+redirect_urls = [ "https://analog-portal-pilot.onrender.com/auth/callback" ]
+
+[webhooks]
+api_version = "2026-07"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/uninstalled"
+  topics = [ "app/uninstalled" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/scopes_update"
+  topics = [ "app/scopes_update" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/orders/create"
+  topics = [ "orders/create" ]
+
+[order.metafields.app.attribution_manifest]
+name = "Organization attribution manifest"
+description = "Server-verified organization campaign attribution for this order."
+type = "json"
+access.admin = "merchant_read"
+
+[order.metafields.app.attribution_status]
+name = "Organization attribution status"
+type = "single_line_text_field"
+access.admin = "merchant_read"
+
+[order.metafields.app.organization_store_id]
+name = "Organization store ID"
+type = "single_line_text_field"
+access.admin = "merchant_read"
+
+[order.metafields.app.campaign_id]
+name = "Organization campaign ID"
+type = "single_line_text_field"
+access.admin = "merchant_read"
+
+[order.metafields.app.payout_rule_id]
+name = "Organization payout rule ID"
+type = "single_line_text_field"
+access.admin = "merchant_read"
+
+[metaobjects.app.artwork_proof]
+name = "Artwork proof"
+description = "Immutable, versioned campaign artwork submitted for organizer approval."
+display_name_field = "proof_name"
+access.admin = "merchant_read"
+
+[metaobjects.app.artwork_proof.fields.proof_name]
+name = "Proof name"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.artwork_proof.fields.proof_id]
+name = "Proof ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.artwork_proof.fields.organization_store_id]
+name = "Organization store ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.artwork_proof.fields.campaign_id]
+name = "Campaign ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.artwork_proof.fields.version_number]
+name = "Version"
+type = "number_integer"
+required = true
+
+[metaobjects.app.artwork_proof.fields.status]
+name = "Status"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.artwork_proof.fields.asset_file]
+name = "Proof file"
+type = "file_reference"
+
+[metaobjects.app.artwork_proof.fields.private_asset_id]
+name = "Private artwork identity"
+type = "single_line_text_field"
+
+[metaobjects.app.artwork_proof.fields.original_filename]
+name = "Original filename"
+type = "single_line_text_field"
+
+[metaobjects.app.artwork_proof.fields.mime_type]
+name = "MIME type"
+type = "single_line_text_field"
+
+[metaobjects.app.artwork_proof.fields.content_hash]
+name = "SHA-256 hash"
+type = "single_line_text_field"
+
+[metaobjects.app.artwork_proof.fields.staff_notes]
+name = "Staff notes"
+type = "multi_line_text_field"
+
+[metaobjects.app.artwork_proof.fields.organizer_notes]
+name = "Organizer notes"
+type = "multi_line_text_field"
+
+[metaobjects.app.artwork_proof.fields.submitted_at]
+name = "Submitted at"
+type = "date_time"
+
+[metaobjects.app.artwork_proof.fields.reviewed_at]
+name = "Reviewed at"
+type = "date_time"
+
+[metaobjects.app.artwork_proof.fields.reviewed_by_customer_id]
+name = "Reviewed by customer ID"
+type = "single_line_text_field"
+
+[metaobjects.app.artwork_proof.fields.previous_version_id]
+name = "Previous version ID"
+type = "single_line_text_field"
+
+[metaobjects.app.production_batch]
+name = "Production batch"
+description = "Auditable snapshot of attributed order lines grouped for production and fulfillment."
+display_name_field = "batch_name"
+access.admin = "merchant_read"
+
+[metaobjects.app.production_batch.fields.batch_name]
+name = "Batch name"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.production_batch.fields.batch_id]
+name = "Batch ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.production_batch.fields.campaign_id]
+name = "Campaign ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.production_batch.fields.campaign_name]
+name = "Campaign name"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.production_batch.fields.fulfillment_mode]
+name = "Fulfillment mode"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.production_batch.fields.status]
+name = "Status"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.production_batch.fields.order_count]
+name = "Order count"
+type = "number_integer"
+required = true
+
+[metaobjects.app.production_batch.fields.unit_count]
+name = "Unit count"
+type = "number_integer"
+required = true
+
+[metaobjects.app.production_batch.fields.outstanding_units]
+name = "Outstanding units at creation"
+type = "number_integer"
+required = true
+
+[metaobjects.app.production_batch.fields.line_items]
+name = "Production line snapshot"
+type = "json"
+required = true
+
+[metaobjects.app.production_batch.fields.created_at]
+name = "Created at"
+type = "date_time"
+required = true
+
+[metaobjects.app.production_batch.fields.started_at]
+name = "Started at"
+type = "date_time"
+
+[metaobjects.app.production_batch.fields.completed_at]
+name = "Completed at"
+type = "date_time"
+
+[metaobjects.app.production_batch.fields.internal_notes]
+name = "Internal notes"
+type = "multi_line_text_field"
+
+[metaobjects.app.organization_request]
+name = "Organization request"
+description = "Organizer-submitted request for a store, campaign, product, branding update, or relaunch."
+display_name_field = "request_name"
+access.admin = "merchant_read"
+
+[metaobjects.app.organization_request.fields.request_name]
+name = "Request name"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.organization_request.fields.request_id]
+name = "Request ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.organization_request.fields.request_type]
+name = "Request type"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.organization_request.fields.status]
+name = "Status"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.organization_request.fields.company_id]
+name = "Shopify company ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.organization_request.fields.organization_store_id]
+name = "Organization store ID"
+type = "single_line_text_field"
+
+[metaobjects.app.organization_request.fields.campaign_id]
+name = "Campaign ID"
+type = "single_line_text_field"
+
+[metaobjects.app.organization_request.fields.requested_by_customer_id]
+name = "Requested by customer ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.organization_request.fields.requested_at]
+name = "Requested at"
+type = "date_time"
+required = true
+
+[metaobjects.app.organization_request.fields.requested_details]
+name = "Requested details"
+type = "json"
+required = true
+
+[metaobjects.app.organization_request.fields.artwork_file]
+name = "Submitted artwork"
+description = "Immutable source artwork or logo supplied by the organization with this request."
+type = "file_reference"
+
+[metaobjects.app.organization_request.fields.private_asset_id]
+name = "Private artwork identity"
+type = "single_line_text_field"
+
+[metaobjects.app.organization_request.fields.artwork_filename]
+name = "Submitted artwork filename"
+type = "single_line_text_field"
+
+[metaobjects.app.organization_request.fields.artwork_mime_type]
+name = "Submitted artwork MIME type"
+type = "single_line_text_field"
+
+[metaobjects.app.organization_request.fields.artwork_content_hash]
+name = "Submitted artwork SHA-256 hash"
+type = "single_line_text_field"
+
+[metaobjects.app.organization_request.fields.artwork_uploaded_at]
+name = "Submitted artwork uploaded at"
+type = "date_time"
+
+[metaobjects.app.organization_request.fields.staff_notes]
+name = "Staff notes"
+type = "multi_line_text_field"
+
+[metaobjects.app.organization_request.fields.reviewed_at]
+name = "Reviewed at"
+type = "date_time"
+
+[build]
+automatically_update_urls_on_dev = false
+
+[metaobjects.app.organizer_delivery]
+name = "Organizer delivery address"
+display_name_field = "organization_id"
+access.admin = "merchant_read"
+
+[metaobjects.app.organizer_delivery.fields.organization_id]
+name = "Organization store ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.organizer_delivery.fields.address]
+name = "Delivery address"
+type = "json"
+required = true
