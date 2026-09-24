@@ -45,6 +45,7 @@ export function proofValues(proof, overrides = {}) {
     "version_number",
     "status",
     "asset_file",
+    "private_asset_id",
     "original_filename",
     "mime_type",
     "content_hash",

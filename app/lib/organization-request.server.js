@@ -128,6 +128,7 @@ export function updateOrganizationRequestValues(
     "requested_at",
     "requested_details",
     "artwork_file",
+    "private_asset_id",
     "artwork_filename",
     "artwork_mime_type",
     "artwork_content_hash",

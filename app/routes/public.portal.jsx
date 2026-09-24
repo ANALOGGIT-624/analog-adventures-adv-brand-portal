@@ -5,14 +5,19 @@ import {
   slugify,
   upsertMetaobject,
 } from "../lib/brand-portal.server";
-import { proofValues, uploadProofFile } from "../lib/proof-workflow.server";
+import { proofValues } from "../lib/proof-workflow.server";
+import { createPrivateArtworkStorage } from "../lib/private-artwork-storage.server";
+import { artworkShop } from "../lib/private-artwork-access.server";
 import { createOrganizationRequestValues } from "../lib/organization-request.server";
 import { publicPayoutStatement } from "../lib/portal-payout";
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "private, no-store",
+    },
   });
 }
 
@@ -52,7 +57,8 @@ function publicProof(proof) {
     campaignId: proof.campaign_id,
     version: Number(proof.version_number || 0),
     status: proof.status,
-    assetUrl: proof.asset_file_url,
+    assetUrl: proof.private_asset_id ? undefined : proof.asset_file_url,
+    downloadRecordId: proof.private_asset_id ? proof.id : undefined,
     filename: proof.original_filename,
     staffNotes: proof.staff_notes,
     organizerNotes: proof.organizer_notes,
@@ -81,7 +87,8 @@ function publicRequest(request) {
     requestedAt: request.requested_at,
     staffNotes: request.staff_notes,
     artworkFilename: request.artwork_filename,
-    artworkUrl: request.artwork_file_url,
+    artworkUrl: request.private_asset_id ? undefined : request.artwork_file_url,
+    downloadRecordId: request.private_asset_id ? request.id : undefined,
     artworkUploadedAt: request.artwork_uploaded_at,
     details,
   };
@@ -384,14 +391,17 @@ export const action = async ({ request }) => {
       };
       const values = createOrganizationRequestValues(input, requestContext);
       const uploaded = artworkFile
-        ? await uploadProofFile(admin, artworkFile)
+        ? await createPrivateArtworkStorage().upload({
+            shop: artworkShop(sessionToken.dest),
+            file: artworkFile,
+          })
         : null;
       if (uploaded) {
         Object.assign(values, {
-          artwork_file: uploaded.fileId,
+          private_asset_id: uploaded.assetId,
           artwork_filename: artworkFile.name,
           artwork_mime_type: artworkFile.type,
-          artwork_content_hash: uploaded.hash,
+          artwork_content_hash: uploaded.contentHash,
           artwork_uploaded_at: new Date().toISOString(),
         });
       }

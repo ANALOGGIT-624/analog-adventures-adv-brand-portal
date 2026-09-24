@@ -47,12 +47,19 @@ export function fieldsToObject(fields = []) {
 }
 
 export function normalizeMetaobject(node) {
+  const fields = fieldsToObject(node.fields);
+  if (fields.private_asset_id && (fields.proof_id || fields.request_id)) {
+    const kind = fields.proof_id ? "proof" : "request";
+    const url = `/app/artwork?kind=${kind}&id=${encodeURIComponent(node.id)}`;
+    if (kind === "proof") fields.asset_file_url = url;
+    else fields.artwork_file_url = url;
+  }
   return {
     id: node.id,
     handle: node.handle,
     displayName: node.displayName,
     updatedAt: node.updatedAt,
-    ...fieldsToObject(node.fields),
+    ...fields,
   };
 }
 

@@ -164,6 +164,7 @@ export async function createBulkCheckout({
           id: proof.id,
           version: Number(proof.version_number || 0),
           fileId: proof.asset_file,
+          privateAssetId: proof.private_asset_id,
           contentHash: proof.content_hash,
         }
       : null,

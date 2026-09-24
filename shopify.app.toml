@@ -97,7 +97,10 @@ required = true
 [metaobjects.app.artwork_proof.fields.asset_file]
 name = "Proof file"
 type = "file_reference"
-required = true
+
+[metaobjects.app.artwork_proof.fields.private_asset_id]
+name = "Private artwork identity"
+type = "single_line_text_field"
 
 [metaobjects.app.artwork_proof.fields.original_filename]
 name = "Original filename"
@@ -266,6 +269,10 @@ required = true
 name = "Submitted artwork"
 description = "Immutable source artwork or logo supplied by the organization with this request."
 type = "file_reference"
+
+[metaobjects.app.organization_request.fields.private_asset_id]
+name = "Private artwork identity"
+type = "single_line_text_field"
 
 [metaobjects.app.organization_request.fields.artwork_filename]
 name = "Submitted artwork filename"

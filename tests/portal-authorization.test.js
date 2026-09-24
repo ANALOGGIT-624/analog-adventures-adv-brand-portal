@@ -155,10 +155,13 @@ function harness({
       writes.push(value);
       return { id: "saved" };
     },
-    uploadProofFile: async (_admin, file) => {
-      uploads.push(file);
-      return { fileId: "file", hash: "hash" };
-    },
+    artworkShop: () => "test.myshopify.com",
+    createPrivateArtworkStorage: () => ({
+      upload: async ({ file }) => {
+        uploads.push(file);
+        return { assetId: "private-asset", contentHash: "hash" };
+      },
+    }),
   });
   const post = (input) =>
     handlers.action({
@@ -387,4 +390,27 @@ test("orphaned proof and previously approved proof cannot be reviewed", async ()
     409,
   );
   assert.equal(h.writes.length, 0);
+});
+
+test("authorized artwork upload stores private identity without returning a public URL", async () => {
+  const h = harness();
+  const body = new FormData();
+  for (const [key, value] of Object.entries(validRequest)) body.set(key, value);
+  body.set(
+    "artwork_file",
+    new File(["synthetic artwork"], "design.pdf", { type: "application/pdf" }),
+  );
+  const response = await h.action({
+    request: new Request("https://example.test/public/portal", {
+      method: "POST",
+      body,
+    }),
+  });
+  assert.equal(response.status, 200);
+  assert.equal(h.uploads.length, 1);
+  assert.equal(h.writes[0].values.private_asset_id, "private-asset");
+  assert.equal(h.writes[0].values.artwork_file, undefined);
+  const result = await response.json();
+  assert.equal(result.request.downloadRecordId, "saved");
+  assert.equal(result.request.artworkUrl, undefined);
 });
