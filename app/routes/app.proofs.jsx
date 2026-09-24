@@ -11,8 +11,8 @@ import {
   newProofHandle,
   nextProofVersion,
   updateProof,
-  uploadProofFile,
 } from "../lib/proof-workflow.server";
+import { createPrivateArtworkStorage } from "../lib/private-artwork-storage.server";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
@@ -25,7 +25,7 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const form = await request.formData();
   const organizationId = String(form.get("organization_store_id") || "");
   const campaignId = String(form.get("campaign_id") || "");
@@ -46,7 +46,10 @@ export const action = async ({ request }) => {
       );
     }
     const version = nextProofVersion(snapshot.proofs, campaign.id);
-    const uploaded = await uploadProofFile(admin, file);
+    const uploaded = await createPrivateArtworkStorage().upload({
+      shop: session.shop,
+      file,
+    });
     const previous = snapshot.proofs
       .filter((proof) => proof.campaign_id === campaign.id)
       .sort(
@@ -66,10 +69,10 @@ export const action = async ({ request }) => {
         campaign_id: campaign.id,
         version_number: version,
         status: "submitted",
-        asset_file: uploaded.fileId,
+        private_asset_id: uploaded.assetId,
         original_filename: file.name,
         mime_type: file.type,
-        content_hash: uploaded.hash,
+        content_hash: uploaded.contentHash,
         staff_notes: String(form.get("staff_notes") || "").trim(),
         submitted_at: new Date().toISOString(),
         previous_version_id: previous?.id,
@@ -169,9 +172,7 @@ export default function Proofs() {
               required
             />
             {proofFile && (
-              <s-text color="subdued">
-                Selected proof: {proofFile.name}
-              </s-text>
+              <s-text color="subdued">Selected proof: {proofFile.name}</s-text>
             )}
             <s-text-area
               label="Notes for the organizer"

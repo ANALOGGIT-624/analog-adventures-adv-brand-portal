@@ -2,6 +2,7 @@ import "@shopify/ui-extensions/preact";
 import { render } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { displayDate } from "./display-date.js";
+import { ArtworkDownload } from "./ArtworkDownload.jsx";
 
 /* eslint-disable react/prop-types */
 
@@ -35,7 +36,7 @@ function OrganizationRequests({
   apiUrl,
   organizations,
   campaigns,
-  initialRequests = [],
+  initialRequests,
 }) {
   const [requests, setRequests] = useState(initialRequests);
   const [form, setForm] = useState({
@@ -57,8 +58,8 @@ function OrganizationRequests({
     ({ organizationStoreId }) => organizationStoreId === form.organizationId,
   );
 
-  async function submitRequest(event) {
-    event.preventDefault();
+  async function submitRequest(event = null) {
+    event?.preventDefault();
     setForm((current) => ({ ...current, busy: true, error: "", success: "" }));
     try {
       const token = await shopify.sessionToken.get();
@@ -288,13 +289,23 @@ function OrganizationRequests({
                   <s-text color="subdued">
                     {requestLabel(request.type)} · {request.requestId}
                   </s-text>
-                  {request.artworkUrl && (
-                    <s-link href={request.artworkUrl} target="_blank">
-                      Open submitted artwork
-                      {request.artworkFilename
-                        ? ` (${request.artworkFilename})`
-                        : ""}
-                    </s-link>
+                  {request.downloadRecordId ? (
+                    <ArtworkDownload
+                      getSessionToken={() => shopify.sessionToken.get()}
+                      apiUrl={apiUrl}
+                      recordId={request.downloadRecordId}
+                      kind="request"
+                      label="Open submitted artwork"
+                    />
+                  ) : (
+                    request.artworkUrl && (
+                      <s-link href={request.artworkUrl} target="_blank">
+                        Open submitted artwork
+                        {request.artworkFilename
+                          ? ` (${request.artworkFilename})`
+                          : ""}
+                      </s-link>
+                    )
                   )}
                   {request.staffNotes && (
                     <s-text>Staff note: {request.staffNotes}</s-text>
@@ -616,7 +627,15 @@ function PortalPage() {
                         {proof.staffNotes && (
                           <s-text>{proof.staffNotes}</s-text>
                         )}
-                        {proof.assetUrl ? (
+                        {proof.downloadRecordId ? (
+                          <ArtworkDownload
+                            getSessionToken={() => shopify.sessionToken.get()}
+                            apiUrl={apiUrl}
+                            recordId={proof.downloadRecordId}
+                            kind="proof"
+                            label="Open proof file"
+                          />
+                        ) : proof.assetUrl ? (
                           <s-link href={proof.assetUrl} target="_blank">
                             Open proof file
                           </s-link>
@@ -712,7 +731,7 @@ function PortalPage() {
                         <s-text type="strong">{statement.statementId}</s-text>
                         <s-badge
                           tone={
-                            statement.status === "paid" ? "success" : "neutral"
+                            statement.status === "paid" ? "auto" : "neutral"
                           }
                         >
                           {statement.status}

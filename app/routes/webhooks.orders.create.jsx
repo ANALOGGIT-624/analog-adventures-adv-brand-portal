@@ -114,6 +114,7 @@ export const action = async ({ request }) => {
                 id: approvedProof.id,
                 version: Number(approvedProof.version_number || 0),
                 fileId: approvedProof.asset_file,
+                privateAssetId: approvedProof.private_asset_id,
                 contentHash: approvedProof.content_hash,
               }
             : null,
