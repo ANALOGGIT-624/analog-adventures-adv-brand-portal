@@ -87,3 +87,23 @@ automatic backups and operational recovery remain outstanding.
 - https://render.com/docs/postgresql-backups
 - https://render.com/docs/deploy-shopify-app
 - https://render.com/pricing
+
+## September 24 import verification
+
+The new Ohio Render database passed migration application and live schema diff.
+A fresh SQLite backup snapshot passed integrity checking. The import tool in
+`scripts/migration/import-sqlite.mjs` rehearsed 1 Session and 4
+BulkCheckoutAttempt rows in a serializable transaction, verified all fields,
+and rolled back. The committed run then verified all fields again outside the
+transaction. A repeated import refused the populated target before writing.
+Original SQLite remains intact. This is a test-store database copy, not a live
+traffic cutover or recovery of missing Shopify history.
+
+The tool takes independently generated SQLite/PostgreSQL client paths, an
+immutable SQLite source snapshot, expected target hostname and expected shop.
+It requires TLS, locks both target tables before checking emptiness, and defaults
+to rollback. `--commit` enables the verified transactional import. Credentials
+are supplied through DATABASE_URL from an ignored owner-only environment file.
+Generated clients must be separate from the app's existing generated client.
+Keep app writes paused during snapshot/import and until traffic cutover; if
+writes resume, reconcile a fresh snapshot rather than silently reusing this copy.
