@@ -119,7 +119,7 @@ con.close()`;
     operationalRestore:
       "Not performed: this is an isolated offline restore, never an import into Shopify or a running app.",
     pilotGate:
-      "not_met: offsite copy, independent key custody, complete historical records, stable hosting and live restore validation are still required",
+      "not_met: this offline drill does not establish complete historical recovery or validate a live operational restore; deployment and key-custody evidence are tracked separately",
   };
   await writeFile(
     path.join(destination, "DRILL-REPORT.json"),

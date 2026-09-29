@@ -20,6 +20,12 @@ To independently verify recovery, download a completed archive, use `restoreReci
 
 ## Validation and rollout
 
-Local API capture and offline catalog recovery passed for the approved baseline. Nineteen focused tests cover encrypted restoration, tampering, pagination, public-key recovery, monitored transfer, reader restrictions, R2 byte integrity/concurrent changes, and coverage regressions. Hosted build, first combined run, and independent offsite portal restoration are pending at this checkpoint.
+Local API capture and offline catalog recovery passed for the approved baseline. Nineteen focused tests cover encrypted restoration, tampering, pagination, public-key recovery, monitored transfer, reader restrictions, R2 byte integrity/concurrent changes, and coverage regressions.
+
+Render built worker commit `c3c604d` successfully. The first combined manual run finished September 29 at 17:20 UTC. PostgreSQL independently verified its five-object archive. The portal capture uploaded and read back 127 encrypted objects at `recovery/postgresql/scheduled/portal/2026-09-29T17-19-09.064Z-3f38a16e-b3ea-409e-ba0e-28d9783835ba/`. Its separate Healthchecks monitor is up, daily 08:00 UTC with one-hour grace and email enabled.
+
+An independent download on the Mac checked every encrypted object's hash, then decrypted 124 files using the private key recovered from offsite escrow. The restored catalog contains 29 records, 9 orders, and 31 assets. The TTW-MULTI payout checkpoint matches September 21. All twelve accepted gaps remain visible. Evidence is stored privately in `recovery-private/portal-scheduled-first-restored/OFFSITE-RESTORE-VERIFIED.json` alongside the transfer verification record in the download directory.
+
+The first automatic run is due September 30 at 08:00 UTC and has not yet been observed. Because the private R2 bucket is empty, this run verifies read/list access and empty inventory; nonempty R2 recovery is covered only by synthetic byte-integrity tests. The separate `analog-adventure-uploads` bucket is outside this portal backup's scope.
 
 Existing application R2 upload key expires October 24, 2026; the new backup credential does not renew that separate key. The scheduled Backblaze credential expires December 28, 2026. No immutable retention policy has been enabled.

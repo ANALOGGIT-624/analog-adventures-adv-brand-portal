@@ -103,9 +103,10 @@ not establish a deployed Docker job, real scheduled execution or email delivery.
 
 ## Scope limits
 
-This backs up PostgreSQL sessions and checkout attempts only. Shopify proof,
-request, production and payout metadata and R2 object bytes still need their
-own unattended capture and durable-history design. Daily independent copies
+The PostgreSQL archive backs up sessions and checkout attempts only. The same
+job now also runs a separate [Shopify and R2 capture](scheduled-portal-backups.md),
+verified against an explicitly accepted limited baseline. Complete historical
+recovery and durable-history design remain unresolved. Daily independent copies
 provide up to a day of exposure if the entire primary provider becomes
 unavailable; this does not satisfy the proposed 15-minute recovery-point target.
 Keep Render's managed PITR and the already verified manual captures.
