@@ -8,7 +8,7 @@ FROM postgres:18-bookworm
 COPY --from=dependencies /usr/local/bin/node /usr/local/bin/node
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
-COPY scripts/recovery/archive.mjs scripts/recovery/scheduled-postgres.mjs ./scripts/recovery/
+COPY scripts/recovery/archive.mjs scripts/recovery/recipient.mjs scripts/recovery/scheduled-postgres.mjs ./scripts/recovery/
 USER postgres
 ENTRYPOINT ["node"]
 CMD ["scripts/recovery/scheduled-postgres.mjs"]

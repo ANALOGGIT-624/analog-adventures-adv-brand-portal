@@ -11,18 +11,20 @@ Create one Render Docker cron job in Ohio in the existing pilot environment:
 - Schedule: `0 8 * * *` (08:00 UTC daily, 04:00 Eastern daylight / 03:00 standard)
 - Smallest suitable compute; auto-deploy Off; email failure notifications On.
 - Render publishes a $1/month minimum, with active runtime billed separately
-  above the minimum. Budget approval must specify a recurring limit before creation.
+  above the minimum. Owner approved a recurring budget of up to $2/month on September 29.
 
-Existing app/database base cost is $14.50/month. The temporary recovery test's
-one-time $1 approval does not authorize this recurring service.
+Existing app/database base cost is $14.50/month. This is separate from the completed temporary recovery test.
 
 ## Required secrets, isolated to this job
 
 - `DATABASE_URL`: existing private PostgreSQL endpoint, database
   `analog_portal_pilot`, TLS enabled. Use a dedicated read-only backup role when
   available; the existing owner credential is broader than necessary.
-- `BACKUP_KEY_BASE64`: existing 32-byte recovery key in Base64. Requires owner
-  approval to store it on Render; preserve independent Apple Passwords custody.
+- `BACKUP_PUBLIC_KEY_BASE64`: Base64-encoded RSA-3072 public PEM key only.
+  Never put the private recipient key or original Apple Passwords recovery key
+  on Render. Each run generates a temporary random AES-256 key and wraps it
+  with RSA-OAEP-SHA256 in `recipient.json`. The temporary key is removed after
+  verification; it is not a persistent Render secret.
 - `B2_ACCESS_KEY_ID` and `B2_SECRET_ACCESS_KEY`: new durable bucket/prefix-scoped
   identity for `analog-adventures-portal-backups`, prefix
   `recovery/postgresql/scheduled/`. Use custom capabilities to permit object
@@ -36,8 +38,10 @@ one-time $1 approval does not authorize this recurring service.
   failure and recovery before relying on alerts.
 
 Do not share this environment with the app. No credentials belong in Git,
-Docker build arguments or image layers. The worker can decrypt its backups;
-encryption does not protect against compromise of the worker itself.
+Docker build arguments or image layers. The worker can decrypt the current run while its temporary key exists. It
+cannot decrypt previous runs using its persisted public key. A compromised
+worker can still read the source database and future dumps; this is not
+protection against compromise of the live database credential.
 
 ## What each run does
 
@@ -45,7 +49,7 @@ The Node worker uses PostgreSQL 18 `pg_dump` to take a consistent custom-format
 dump. It checks `pg_restore --list`, encrypts using the existing authenticated
 archive format, and verifies local decryption. Every run has a unique timestamp
 and random ID under the scheduled prefix. It uploads encrypted objects and the
-manifest, downloads each to check its hash, and publishes COMPLETE last. It then
+manifest, downloads each to check its hash, and the wrapped-key envelope, and publishes COMPLETE last. It then
 authenticates/decrypts the downloaded archive and checks dump readability again.
 Only then does it send the monitor's success ping.
 
@@ -55,9 +59,13 @@ deadline bounds runtime. Temporary files are private and cleaned after normal
 completion/failure; forced process termination relies on the job container's
 ephemeral filesystem cleanup. There is no remote delete or retention pruning.
 
-Each scheduled archive contains `database.dump` and scope metadata. The existing
-offsite recovery toolkit includes `archive.mjs`; use `restoreDirectory` to
-decrypt, then PostgreSQL 18 `pg_restore` into an empty isolated database.
+Each scheduled archive contains `database.dump` and scope metadata. The matching recovery toolkit must include `archive.mjs`, `recipient.mjs` and
+`restore-recipient.mjs`. First recover private.pem from the separately encrypted
+recipient escrow with the original 32-byte recovery key held in Apple Passwords.
+Then run `node scripts/recovery/restore-recipient.mjs SEALED_DIR PRIVATE_PEM NEW_DEST`
+and PostgreSQL 18 `pg_restore` into an empty isolated database. The old symmetric
+backups keep their original recovery procedure. Do not enable scheduled backups
+until the encrypted private-key escrow is independently stored and recovered.
 Never launch an application with copied live session credentials during a drill.
 
 ## Acceptance gates

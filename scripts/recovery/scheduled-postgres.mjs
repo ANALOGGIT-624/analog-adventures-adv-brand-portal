@@ -1,6 +1,6 @@
-import { Buffer } from "node:buffer";
 import process from "node:process";
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomBytes } from "node:crypto";
+import { parseRecipient, wrapKey } from "./recipient.mjs";
 import { spawn } from "node:child_process";
 import { createReadStream, createWriteStream } from "node:fs";
 import { mkdtemp, mkdir, writeFile, readdir, rm, stat } from "node:fs/promises";
@@ -13,7 +13,7 @@ import { sealDirectory, restoreDirectory, hashFile } from "./archive.mjs";
 
 // Deliberately do not print database errors, child stderr, keys or ping URLs.
 export function configuration(env) {
-  for (const name of ["DATABASE_URL", "BACKUP_KEY_BASE64", "B2_ACCESS_KEY_ID", "B2_SECRET_ACCESS_KEY", "BACKUP_MONITOR_URL"])
+  for (const name of ["DATABASE_URL", "BACKUP_PUBLIC_KEY_BASE64", "B2_ACCESS_KEY_ID", "B2_SECRET_ACCESS_KEY", "BACKUP_MONITOR_URL"])
     if (!env[name]) throw new Error("Required backup configuration missing");
   const database = new URL(env.DATABASE_URL);
   if (database.hostname !== "dpg-daql1l1srm7s73dfn2rg-a" && database.hostname !== "dpg-daql1l1srm7s73dfn2rg-a.ohio-postgres.render.com")
@@ -22,13 +22,11 @@ export function configuration(env) {
     throw new Error("Unexpected database identity");
   if (!['require', 'verify-full'].includes(database.searchParams.get("sslmode")))
     throw new Error("Database TLS required");
-  const key = Buffer.from(env.BACKUP_KEY_BASE64, "base64");
-  if (key.length !== 32 || key.toString("base64") !== env.BACKUP_KEY_BASE64)
-    throw new Error("Invalid backup encryption key");
+  const recipient = parseRecipient(env.BACKUP_PUBLIC_KEY_BASE64);
   const monitor = new URL(env.BACKUP_MONITOR_URL);
   if (monitor.protocol !== "https:" || monitor.hostname !== "hc-ping.com" || monitor.username || monitor.password || monitor.search || monitor.hash || !/^\/[0-9a-f-]{36}$/.test(monitor.pathname))
     throw new Error("Unexpected monitoring endpoint");
-  return { database: database.href, key, monitor: monitor.href };
+  return { database: database.href, recipient, monitor: monitor.href };
 }
 
 async function command(program, args, env) {
@@ -50,7 +48,7 @@ export async function transferVerified({ client, bucket, prefix, sealed, downloa
   await mkdir(download, { mode: 0o700 });
   const objects = (await readdir(path.join(sealed, "objects"))).sort();
   if (objects.some(name => !/^[a-f0-9]{64}\.enc$/.test(name))) throw new Error("Unexpected archive object");
-  const files = [...objects.map(name => `objects/${name}`), "manifest.enc", "COMPLETE.json"];
+  const files = [...objects.map(name => `objects/${name}`), "recipient.json", "manifest.enc", "COMPLETE.json"];
   for (const relative of files) {
     const source = path.join(sealed, relative);
     const expected = await hashFile(source);
@@ -78,8 +76,10 @@ export async function runBackup(env = process.env) {
   try {
     await ping(config.monitor, "/start");
     const keyFile = path.join(root, "key"), source = path.join(root, "source");
-    await writeFile(keyFile, config.key, { mode: 0o600, flag: "wx" });
-    config.key.fill(0);
+    const runKey = randomBytes(32);
+    const envelope = wrapKey(runKey, config.recipient);
+    await writeFile(keyFile, runKey, { mode: 0o600, flag: "wx" });
+    runKey.fill(0);
     await mkdir(source, { mode: 0o700 });
     // Connection and encryption secrets are excluded from command arguments/logs.
     const childEnv = { PATH: env.PATH, PGDATABASE: config.database, PGCONNECT_TIMEOUT: "30" };
@@ -93,6 +93,7 @@ export async function runBackup(env = process.env) {
       verification: "Encrypted read-back and dump readability; scheduled runs do not restore a running database.",
     }), { mode: 0o600 });
     await sealDirectory(source, path.join(root, "sealed"), keyFile, { kind: "scheduled-postgresql", database: "analog_portal_pilot" });
+    await writeFile(path.join(root, "sealed", "recipient.json"), JSON.stringify(envelope), { mode: 0o600, flag: "wx" });
     await restoreDirectory(path.join(root, "sealed"), path.join(root, "local-verified"), keyFile);
     const objectCount = await transferVerified({ client, bucket, prefix, sealed: path.join(root, "sealed"), download: path.join(root, "download") });
     await restoreDirectory(path.join(root, "download"), path.join(root, "verified"), keyFile);
@@ -104,7 +105,6 @@ export async function runBackup(env = process.env) {
     await ping(config.monitor, "/fail").catch(() => {});
     throw new Error("Backup failed; details suppressed to protect credentials");
   } finally {
-    config.key.fill(0);
     client.destroy();
     await rm(root, { recursive: true, force: true });
   }
