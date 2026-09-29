@@ -31,10 +31,25 @@ export function configuration(env) {
 
 async function command(program, args, env) {
   await new Promise((resolve, reject) => {
-    const child = spawn(program, args, { env, stdio: "ignore" });
+    const child = spawn(program, args, { env, stdio: ["ignore", "ignore", "pipe"] });
+    let diagnostic = "";
+    child.stderr.on("data", chunk => { diagnostic = (diagnostic + chunk.toString()).slice(-8192); });
     const timer = setTimeout(() => child.kill("SIGKILL"), 10 * 60 * 1000);
     child.once("error", () => { clearTimeout(timer); reject(new Error("Backup command failed")); });
-    child.once("close", (code) => { clearTimeout(timer); code === 0 ? resolve() : reject(new Error("Backup command failed")); });
+    child.once("close", (code) => {
+      clearTimeout(timer);
+      if (code === 0) return resolve();
+      // Emit only fixed categories; database tools can include credentials in stderr.
+      const category = /does not support SSL/i.test(diagnostic) ? "tls-unavailable"
+        : /password authentication failed/i.test(diagnostic) ? "authentication"
+        : /could not translate host name/i.test(diagnostic) ? "dns"
+        : /server version mismatch/i.test(diagnostic) ? "version-mismatch"
+        : /permission denied/i.test(diagnostic) ? "permission"
+        : /could not connect|connection.*failed|Connection refused/i.test(diagnostic) ? "connection"
+        : "other";
+      console.error(JSON.stringify({ commandFailed: program, category }));
+      reject(new Error("Backup command failed"));
+    });
   });
 }
 
@@ -74,6 +89,7 @@ export async function runBackup(env = process.env) {
   const client = new S3Client({ region: "us-east-005", endpoint: "https://s3.us-east-005.backblazeb2.com",
     credentials: { accessKeyId: env.B2_ACCESS_KEY_ID, secretAccessKey: env.B2_SECRET_ACCESS_KEY }, maxAttempts: 3 });
   try {
+    console.log("Backup stage: monitor-start");
     await ping(config.monitor, "/start");
     const keyFile = path.join(root, "key"), source = path.join(root, "source");
     const runKey = randomBytes(32);
@@ -84,6 +100,7 @@ export async function runBackup(env = process.env) {
     // Connection and encryption secrets are excluded from command arguments/logs.
     const childEnv = { PATH: env.PATH, PGDATABASE: config.database, PGCONNECT_TIMEOUT: "30" };
     const dump = path.join(source, "database.dump");
+    console.log("Backup stage: database-export");
     await command("pg_dump", ["--format=custom", "--no-owner", "--no-privileges", "--lock-wait-timeout=60000", "--file", dump], childEnv);
     if ((await stat(dump)).size === 0) throw new Error("Empty database export");
     await command("pg_restore", ["--list", dump], childEnv);
@@ -95,6 +112,7 @@ export async function runBackup(env = process.env) {
     await sealDirectory(source, path.join(root, "sealed"), keyFile, { kind: "scheduled-postgresql", database: "analog_portal_pilot" });
     await writeFile(path.join(root, "sealed", "recipient.json"), JSON.stringify(envelope), { mode: 0o600, flag: "wx" });
     await restoreDirectory(path.join(root, "sealed"), path.join(root, "local-verified"), keyFile);
+    console.log("Backup stage: offsite-transfer");
     const objectCount = await transferVerified({ client, bucket, prefix, sealed: path.join(root, "sealed"), download: path.join(root, "download") });
     await restoreDirectory(path.join(root, "download"), path.join(root, "verified"), keyFile);
     await command("pg_restore", ["--list", path.join(root, "verified", "database.dump")], childEnv);

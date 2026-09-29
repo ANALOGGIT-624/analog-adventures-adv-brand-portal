@@ -27,10 +27,13 @@ Existing app/database base cost is $14.50/month. This is separate from the compl
   verification; it is not a persistent Render secret.
 - `B2_ACCESS_KEY_ID` and `B2_SECRET_ACCESS_KEY`: new durable bucket/prefix-scoped
   identity for `analog-adventures-portal-backups`, prefix
-  `recovery/postgresql/scheduled/`. Use custom capabilities to permit object
-  upload/list/read without `deleteFiles`, `writeBuckets`, lifecycle changes,
-  retention bypass or key administration. The dashboard's broad Read and Write
-  preset is not the intended unattended identity. All temporary keys are revoked.
+  `recovery/postgresql/scheduled/`. The owner explicitly approved the dashboard Read and Write preset on
+  September 29 after disclosure that it includes `deleteFiles`, `writeBuckets`
+  and bucket-setting changes. File operations are prefix-scoped; bucket-setting
+  permissions are broader. This is not a non-deleting identity. The key expires
+  December 28, 2026 at 11:20 Eastern and must be rotated before expiry.
+  All earlier temporary keys are revoked. A custom upload/read-only-capability
+  identity remains a future hardening improvement.
 - `BACKUP_MONITOR_URL`: unique `https://hc-ping.com/<uuid>` endpoint for the
   free Healthchecks.io account. Configure daily 08:00 UTC with a one-hour grace
   period and email alerts. Only empty status pings are transmitted, never
