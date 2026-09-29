@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { configuration, transferVerified, ping } from "../scripts/recovery/scheduled-postgres.mjs";
+import { configuration, databaseEnvironment, transferVerified, ping } from "../scripts/recovery/scheduled-postgres.mjs";
 import { createKey, sealDirectory, restoreDirectory } from "../scripts/recovery/archive.mjs";
 
 const pair = generateKeyPairSync("rsa", { modulusLength: 3072 });
@@ -18,6 +18,16 @@ const env = {
   B2_ACCESS_KEY_ID: "fixture", B2_SECRET_ACCESS_KEY: "fixture",
   BACKUP_MONITOR_URL: "https://hc-ping.com/00000000-0000-0000-0000-000000000000",
 };
+test("libpq receives remote connection fields and decoded credentials, not a URI database name", () => {
+  const child = databaseEnvironment("postgresql://backup:p%40ss%3Aword@database-host:5440/pilot?sslmode=require", "/bin");
+  assert.equal(child.PGHOST, "database-host");
+  assert.equal(child.PGPORT, "5440");
+  assert.equal(child.PGDATABASE, "pilot");
+  assert.equal(child.PGUSER, "backup");
+  assert.equal(child.PGPASSWORD, "p@ss:word");
+  assert.equal(child.PGSSLMODE, "require");
+  assert.equal(databaseEnvironment(env.DATABASE_URL, "/bin").PGPORT, "5432");
+});
 test("configuration refuses wrong database, missing TLS and untrusted monitor", () => {
   assert.equal(configuration(env).recipient.asymmetricKeyType, "rsa");
   for (const change of [

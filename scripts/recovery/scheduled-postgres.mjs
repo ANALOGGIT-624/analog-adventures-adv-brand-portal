@@ -29,6 +29,15 @@ export function configuration(env) {
   return { database: database.href, recipient, monitor: monitor.href };
 }
 
+export function databaseEnvironment(connection, executablePath) {
+  const url = new URL(connection);
+  // PGDATABASE is a database name, not a connection URI. Pass libpq fields
+  // separately so pg_dump does not silently fall back to a local socket.
+  return { PATH: executablePath, PGHOST: url.hostname, PGPORT: url.port || "5432",
+    PGDATABASE: decodeURIComponent(url.pathname.slice(1)), PGUSER: decodeURIComponent(url.username),
+    PGPASSWORD: decodeURIComponent(url.password), PGSSLMODE: url.searchParams.get("sslmode"), PGCONNECT_TIMEOUT: "30" };
+}
+
 async function command(program, args, env) {
   await new Promise((resolve, reject) => {
     const child = spawn(program, args, { env, stdio: ["ignore", "ignore", "pipe"] });
@@ -98,7 +107,7 @@ export async function runBackup(env = process.env) {
     runKey.fill(0);
     await mkdir(source, { mode: 0o700 });
     // Connection and encryption secrets are excluded from command arguments/logs.
-    const childEnv = { PATH: env.PATH, PGDATABASE: config.database, PGCONNECT_TIMEOUT: "30" };
+    const childEnv = databaseEnvironment(config.database, env.PATH);
     const dump = path.join(source, "database.dump");
     console.log("Backup stage: database-export");
     await command("pg_dump", ["--format=custom", "--no-owner", "--no-privileges", "--lock-wait-timeout=60000", "--file", dump], childEnv);
