@@ -1,8 +1,8 @@
-# Daily PostgreSQL backups — prepared, not enabled
+# Daily PostgreSQL backups — deployed September 29, 2026
 
-## Deployment proposal
+## Deployment configuration
 
-Create one Render Docker cron job in Ohio in the existing pilot environment:
+One Render Docker cron job is deployed in Ohio in the existing pilot environment:
 
 - Name: `analog-portal-postgresql-backup`
 - Repository: `ANALOGGIT-624/analog-adventures-adv-brand-portal`
@@ -71,10 +71,26 @@ backups keep their original recovery procedure. Do not enable scheduled backups
 until the encrypted private-key escrow is independently stored and recovered.
 Never launch an application with copied live session credentials during a drill.
 
-## Acceptance gates
+## Acceptance evidence and remaining checks
+
+- Render job `crn-datuduek1f9s739mlisg`, deployed worker commit `0895b80`.
+- First successful manual run: September 29, 16:38 UTC, five encrypted objects
+  under `recovery/postgresql/scheduled/2026-09-29T16-38-40.517Z-aa9331a6-4265-4da5-8491-50be8d268248/`.
+- Independently downloaded all five objects, verified SHA256 metadata, decrypted
+  with a private key recovered from the separately downloaded escrow bundle,
+  and restored into isolated PostgreSQL 18. All fields matched the live
+  read-only snapshot: Session 1, BulkCheckoutAttempt 4, migration 1; schema matched.
+- Render failure emails and Healthchecks failure/recovery emails reached the
+  owner’s Gmail inbox. A fresh heartbeat followed by a one-minute test cron
+  and one-minute grace period generated a missed-success email at 16:45 UTC.
+  The monitor was restored to daily 08:00 UTC with one-hour grace afterward.
+- First automatic 08:00 UTC run remains a future observation, not yet verified.
+- Recovery test database was stopped; no temporary Render database remains.
+
+### Deployment checklist
 
 1. Approve recurring service cost and exact credential destinations.
-2. Create limited durable credentials and configure the independent monitor.
+2. Create bucket/prefix-scoped durable credentials and configure the independent monitor.
 3. Build the Docker image on Render (Docker is unavailable on the current Mac).
 4. Trigger one job; verify B2 objects, hashes, decryption and monitor success.
 5. Download that run independently and restore into isolated PostgreSQL;
