@@ -1,4 +1,15 @@
 export const queries = {
+  definitionRecords: `query RecoveryDefinitionRecords($id: ID!, $after: String) {
+    metaobjectDefinition(id: $id) {
+      metaobjects(first: 100, after: $after) {
+        pageInfo { hasNextPage endCursor }
+        nodes { id type handle displayName updatedAt fields { key value
+          reference { ... on MediaImage { id image { url } }
+            ... on GenericFile { id url } }
+        } }
+      }
+    }
+  }`,
   identity: `query RecoveryIdentity {
     shop { id myshopifyDomain }
     currentAppInstallation { app { id apiKey } accessScopes { handle } }

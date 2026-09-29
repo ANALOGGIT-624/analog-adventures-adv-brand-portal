@@ -69,6 +69,11 @@ export async function capture({
   keyFile,
   database,
   evidence = [],
+  queryExecutor,
+  includeRepositoryHistory = true,
+  seal = true,
+  artworkConfig,
+  artworkClient,
 }) {
   if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(store))
     throw new Error("Supply a canonical myshopify store");
@@ -100,6 +105,11 @@ export async function capture({
       resultFile = path.join(dir, `${stem}.json`);
     await writeFile(queryFile, queries[kind], { flag: "wx", mode: 0o600 });
     try {
+      if (queryExecutor) {
+        const data = await queryExecutor(kind, variables);
+        await privateJson(resultFile, { data });
+        return data;
+      }
       await exec(
         "shopify",
         [
@@ -137,11 +147,13 @@ export async function capture({
     }
   }
   try {
-    report.database = await sqliteBackup(
-      database,
-      path.join(stage, "database/app.sqlite"),
-    );
-    console.log("Captured SQLite through its backup API; integrity passed.");
+    if (database) {
+      report.database = await sqliteBackup(database, path.join(stage, "database/app.sqlite"));
+      console.log("Captured SQLite through its backup API; integrity passed.");
+    } else {
+      if (!queryExecutor) throw new Error("Database required for local capture");
+      report.database = { scope: "Separate hosted PostgreSQL backup" };
+    }
     const identity = await query("identity");
     if (
       identity.shop?.myshopifyDomain !== store ||
@@ -355,8 +367,8 @@ export async function capture({
     console.log(
       `Captured Shopify file bytes: ${assets.length}/${files.length}.`,
     );
-    const r2Config = privateArtworkConfig(),
-      r2 = new S3Client(r2Config.client);
+    const r2Config = artworkConfig || privateArtworkConfig(),
+      r2 = artworkClient || new S3Client(r2Config.client);
     const listR2 = async () => {
       const objects = [];
       let token;
@@ -448,15 +460,14 @@ export async function capture({
       await chmod(target, 0o600);
     }
     await mkdir(path.join(stage, "code"), { mode: 0o700 });
-    const { stdout: commit } = await exec("git", ["rev-parse", "HEAD"], {
-      cwd: repo,
-    });
-    report.commit = commit.trim();
-    await exec(
-      "git",
-      ["bundle", "create", path.join(stage, "code/repository.bundle"), "HEAD"],
-      { cwd: repo },
-    );
+    if (includeRepositoryHistory) {
+      const { stdout: commit } = await exec("git", ["rev-parse", "HEAD"], { cwd: repo });
+      report.commit = commit.trim();
+      await exec("git", ["bundle", "create", path.join(stage, "code/repository.bundle"), "HEAD"], { cwd: repo });
+    } else {
+      report.commit = process.env.RENDER_GIT_COMMIT || "unavailable";
+      report.codeHistory = "Separate repository; configuration snapshots included";
+    }
     await copyFile(
       path.join(repo, "shopify.app.toml"),
       path.join(stage, "code/shopify.app.toml"),
@@ -472,6 +483,7 @@ export async function capture({
   }
   report.finishedAt = new Date().toISOString();
   await privateJson(path.join(stage, "capture-report.json"), report);
+  if (!seal) return report;
   const sealed = await sealDirectory(
     stage,
     path.join(base, "sealed"),

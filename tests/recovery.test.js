@@ -160,6 +160,7 @@ test("offline drill restores database and preserves an incomplete-data status", 
     path.join(f.source, "capture-report.json"),
     JSON.stringify({
       database: { _prisma_migrations: 0, BulkCheckoutAttempt: 0, Session: 1 },
+      counts: { metaobjects: 0, orders: 0, downloadedAssets: 0 },
       status: "captured_with_gaps",
       gaps: [{ kind: "missing_historical_record" }],
     }),

@@ -17,8 +17,13 @@ export async function restoreDrill({
   quiet = false,
 }) {
   process.umask(0o077);
-  const started = Date.now();
   const manifest = await restoreDirectory(source, destination, keyFile);
+  return verifyRestoredPortal({ destination, manifest, quiet });
+}
+
+export async function verifyRestoredPortal({ destination, manifest, quiet = false }) {
+  process.umask(0o077);
+  const started = Date.now();
   const readJson = async (file) =>
     JSON.parse(await readFile(path.join(destination, file), "utf8"));
   const capture = await readJson("capture-report.json");
@@ -26,12 +31,15 @@ export async function restoreDrill({
   const orders = await readJson("shopify/orders.json");
   const assets = await readJson("artwork/inventory.json");
   const normalized = records.map(normalizeMetaobject);
+  const separateDatabase = capture.database?.scope === "Separate hosted PostgreSQL backup";
   const code = `import sqlite3,sys,json,pathlib
 root=pathlib.Path(sys.argv[1]).resolve()
-db=sqlite3.connect((root/'database/app.sqlite').as_uri()+'?mode=ro',uri=True)
-assert db.execute('PRAGMA integrity_check').fetchone()[0]=='ok'
-counts={name:db.execute('SELECT COUNT(*) FROM "'+name+'"').fetchone()[0] for name in ('Session','BulkCheckoutAttempt','_prisma_migrations')}
-db.close()
+counts=None
+if sys.argv[2]!='separate':
+ db=sqlite3.connect((root/'database/app.sqlite').as_uri()+'?mode=ro',uri=True)
+ assert db.execute('PRAGMA integrity_check').fetchone()[0]=='ok'
+ counts={name:db.execute('SELECT COUNT(*) FROM "'+name+'"').fetchone()[0] for name in ('Session','BulkCheckoutAttempt','_prisma_migrations')}
+ db.close()
 catalog=root/'recovery-catalog.sqlite'
 if catalog.exists(): raise RuntimeError('Refusing existing catalog')
 con=sqlite3.connect(catalog)
@@ -46,13 +54,17 @@ assert con.execute('PRAGMA integrity_check').fetchone()[0]=='ok'
 print(json.dumps({'sourceDatabaseCounts':counts,'catalogRecords':con.execute('SELECT COUNT(*) FROM recovered_records').fetchone()[0],'catalogOrders':con.execute('SELECT COUNT(*) FROM recovered_orders').fetchone()[0],'catalogAssets':con.execute('SELECT COUNT(*) FROM recovered_assets').fetchone()[0]}))
 con.close()`;
   const database = JSON.parse(
-    (await exec("python3", ["-c", code, destination])).stdout,
+    (await exec("python3", ["-c", code, destination, separateDatabase ? "separate" : "sqlite"])).stdout,
   );
-  assert.deepEqual(
+  if (!separateDatabase) assert.deepEqual(
     database.sourceDatabaseCounts,
     capture.database,
     "Restored database row counts differ",
   );
+  assert.equal(database.catalogRecords, capture.counts.metaobjects, "Restored portal record count differs");
+  assert.equal(database.catalogOrders, capture.counts.orders, "Restored order count differs");
+  assert.equal(database.catalogAssets, capture.counts.downloadedAssets, "Restored asset count differs");
+  database.scope = separateDatabase ? "PostgreSQL recovery is a separate drill" : "SQLite database included";
   const proofSnapshots = orders.flatMap((order) =>
     (order.attributionManifest?.jsonValue?.lines || [])
       .map((line) => line.artworkProofSnapshot)
