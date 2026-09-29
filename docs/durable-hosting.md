@@ -1,18 +1,39 @@
 # Durable hosting preparation
 
-Status: prepared locally, not provisioned or deployed. Keep the existing SQLite
-checkout and verified Backblaze capture intact. The PostgreSQL profile covers
+Status: deployed and authenticated read access verified September 24, 2026.
+Keep the existing SQLite checkout and verified Backblaze capture intact. The PostgreSQL profile covers
 Session and BulkCheckoutAttempt only; it does not independently preserve
 Shopify proof, request, production or payout metadata yet.
 
-## Proposed pilot service
+## Current pilot service
+
+The Ohio Render web service `analog-portal-pilot` costs $7/month; PostgreSQL
+`analog-portal-pilot-db` costs $7.50/month including 5 GB storage. Base total:
+$14.50/month. Auto-deploy is Off. The app uses Dockerfile.postgresql, a separate
+Prisma predeploy migration and `/health`. Shopify application/callback URLs and
+the customer extension API URL point to https://analog-portal-pilot.onrender.com.
+The staff and signed-in customer dashboards passed read-only smoke tests with
+the local development process stopped. This does not remove the pilot gates below.
+
+The September 24 logical database export restored into an isolated PostgreSQL
+18 cluster and matched all imported session/checkout fields and migration
+checksum. September 24 and September 29 exports are now encrypted in Backblaze with
+read-back hash verification. The September 29 offsite copy restored into an
+isolated PostgreSQL 18 database with all fields matching. A separate Render
+PITR copy also passed record and column-schema comparison and was deleted
+after owner confirmation. Exact replay cutoff and a full operational app
+restore remain untested. The September 24 encrypted Shopify/SQLite capture
+was independently restored from Backblaze, and recovery-key custody in Apple
+Passwords was confirmed by the owner on another device.
+
+## Original sizing proposal (historical)
 
 Use one paid Render web service and one paid Render PostgreSQL database in the
 same region, initially on a Hobby workspace. The published small-app example is
 about $13/month before database storage and usage. Plan for roughly $15–$20/month
 at small pilot usage; confirm the actual dashboard estimate and user budget
 before creating paid services. Extra restore instances, scheduled workers,
-bandwidth and storage can add cost. No service has been purchased.
+bandwidth and storage can add cost. The two pilot services above are now active.
 
 Render documents three days of PITR on Hobby with paid PostgreSQL compute;
 Pro and higher offer seven days. Free database compute has no managed recovery.
