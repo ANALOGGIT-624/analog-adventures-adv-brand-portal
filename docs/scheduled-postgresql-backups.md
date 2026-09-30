@@ -84,7 +84,7 @@ Never launch an application with copied live session credentials during a drill.
   owner’s Gmail inbox. A fresh heartbeat followed by a one-minute test cron
   and one-minute grace period generated a missed-success email at 16:45 UTC.
   The monitor was restored to daily 08:00 UTC with one-hour grace afterward.
-- First automatic 08:00 UTC run remains a future observation, not yet verified.
+- First automatic 08:00 UTC run verified September 30: Render Scheduled trigger, successful PostgreSQL and portal archives, and both monitor check-ins.
 - Recovery test database was stopped; no temporary Render database remains.
 
 ### Deployment checklist

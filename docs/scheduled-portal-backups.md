@@ -26,6 +26,15 @@ Render built worker commit `c3c604d` successfully. The first combined manual run
 
 An independent download on the Mac checked every encrypted object's hash, then decrypted 124 files using the private key recovered from offsite escrow. The restored catalog contains 29 records, 9 orders, and 31 assets. The TTW-MULTI payout checkpoint matches September 21. All twelve accepted gaps remain visible. Evidence is stored privately in `recovery-private/portal-scheduled-first-restored/OFFSITE-RESTORE-VERIFIED.json` alongside the transfer verification record in the download directory.
 
-The first automatic run is due September 30 at 08:00 UTC and has not yet been observed. Because the private R2 bucket is empty, this run verifies read/list access and empty inventory; nonempty R2 recovery is covered only by synthetic byte-integrity tests. The separate `analog-adventure-uploads` bucket is outside this portal backup's scope.
+The first automatic run succeeded September 30: Render recorded a Scheduled trigger, starting 08:00:08 UTC and finishing 08:01:39 UTC. Both PostgreSQL and portal read-back checks passed, and both monitors received success. The separate `analog-adventure-uploads` bucket is outside this portal backup's scope.
 
 Existing application R2 upload key expires October 24, 2026; the new backup credential does not renew that separate key. The scheduled Backblaze credential expires December 28, 2026. No immutable retention policy has been enabled.
+
+
+## Controlled artwork recovery — September 30, 2026
+
+The owner uploaded `FSS.svg` to the dedicated Test Company campaign “Test Compay Artwork” and approved version 1 through the customer portal. A read-only source capture confirmed the file hash matched the approved proof. The monitoring baseline was tightened to 31 records, one R2 object, and 32 downloaded assets. The proof discrepancy changed from 0 captured of 9 reported to 1 captured of 10 reported: the same nine historical proofs remain missing. All other accepted gaps were unchanged. This baseline update accepted no additional historical loss.
+
+A hosted manual backup finished at 13:55:26 UTC and verified 128 encrypted Backblaze objects under `recovery/postgresql/scheduled/portal/2026-09-30T13-54-25.628Z-08ef79ab-d428-45a1-8f1b-16feea596f42/`. Independent download verified each hash; recovery with the offsite-recovered recipient key decrypted 125 files into a new local directory. The restored SVG's 548,648 bytes exactly matched the source capture, its SHA256 matched the approved proof and R2 metadata, and every proof/campaign/organization field matched. The approval status, review timestamp, version, and links were preserved. The payout checkpoint still matched. The monitor remained up.
+
+Private evidence: `recovery-private/artwork-test-restored-20260930/ARTWORK-RECOVERY-VERIFIED.json`. The restored file is `RESTORED-FSS.svg` in the same directory. The original artwork and Shopify records were not changed or deleted. This proves independent offsite recovery of a real uploaded artwork and its linked metadata into an offline catalog; it is not a re-import into Shopify or a full application disaster-recovery drill. The twelve historical/access gaps remain unresolved.
