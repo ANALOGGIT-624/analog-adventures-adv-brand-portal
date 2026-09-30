@@ -14,6 +14,11 @@ export const loader = async ({ request }) => {
       recordId: params.get("id"),
     });
     const url = await createPrivateArtworkStorage().downloadUrl(asset);
+    if (params.get("format") === "json") {
+      return Response.json({ url, expiresIn: 60 }, {
+        headers: { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer" },
+      });
+    }
     return new Response(null, {
       status: 302,
       headers: {

@@ -100,6 +100,48 @@ function selectedFile(event) {
   return files?.[0] || null;
 }
 
+/* eslint-disable react/prop-types -- Internal component receives the authenticated loader's proof. */
+function PrivateProofDownload({ proof }) {
+  const [download, setDownload] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  useEffect(() => {
+    if (!download) return;
+    const timer = setTimeout(() => setDownload(null), 50_000);
+    return () => clearTimeout(timer);
+  }, [download]);
+  async function prepare() {
+    setLoading(true);
+    setError(false);
+    setDownload(null);
+    try {
+      // App Bridge authenticates same-origin fetches inside the embedded app.
+      const response = await fetch(`/app/artwork?kind=proof&id=${encodeURIComponent(proof.id)}&format=json`, {
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) throw new Error("Download unavailable");
+      const result = await response.json();
+      if (!result.url || !result.url.startsWith("https://")) throw new Error("Invalid download");
+      setDownload(result.url);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+  return (
+    <s-stack direction="block">
+      {download ? (
+        <s-link href={download} target="_blank">Open proof</s-link>
+      ) : (
+        <s-button onClick={prepare} loading={loading} disabled={loading}>Prepare secure download</s-button>
+      )}
+      {error && <s-text>Download unavailable. Try again.</s-text>}
+    </s-stack>
+  );
+}
+/* eslint-enable react/prop-types */
+
 export default function Proofs() {
   const { organizations, campaigns, proofs } = useLoaderData();
   const fetcher = useFetcher();
@@ -227,7 +269,9 @@ export default function Proofs() {
                         {proof.organizer_notes || "—"}
                       </s-table-cell>
                       <s-table-cell>
-                        {proof.asset_file_url ? (
+                        {proof.private_asset_id ? (
+                          <PrivateProofDownload proof={proof} />
+                        ) : proof.asset_file_url ? (
                           <s-link href={proof.asset_file_url} target="_blank">
                             Open proof
                           </s-link>
