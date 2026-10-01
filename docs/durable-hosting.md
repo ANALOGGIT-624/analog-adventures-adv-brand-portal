@@ -1,5 +1,11 @@
 # Durable hosting preparation
 
+> Historical setup notes below. For the current storage design and pilot gates,
+> see the README and [October 1 app-recovery drill](app-recovery-drill-20261001.md).
+> PostgreSQL now also stores shop-scoped PortalRecord data, and automated backups
+> are deployed. The local recovery rebuild passed; live-authentication/cutover
+> testing is still outstanding.
+
 Status: deployed and authenticated read access verified September 24, 2026.
 Keep the existing SQLite checkout and verified Backblaze capture intact. The PostgreSQL profile covers
 Session and BulkCheckoutAttempt only; it does not independently preserve
