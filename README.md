@@ -22,6 +22,130 @@ with client ID `8158f984f0ec6fed1e5f85b44a588777`.
 See [the implementation roadmap](docs/brand-portal-roadmap.md) for the Gantt
 chart, launch gates, pilot sequence, and remaining Neighborhood-style features.
 
+## Current status — October 1, 2026
+
+This is a hosted development-store application for **Analog Adventures Test**
+(`analog-adventures-test.myshopify.com`). The separate live Shopify site has not
+been migrated or changed by this project. External pilots are not yet cleared.
+
+### Business features implemented
+
+- Staff dashboard, company-linked organization stores, campaign products/dates,
+  payout rules, production timing, and guarded close/archive/relaunch actions.
+- Branded public micro-stores at `/community/stores/<slug>`, with signed order
+  attribution and a customer-account portal restricted to current company contacts.
+- Versioned artwork uploads, organizer approval/revision requests, immutable
+  approved proofs, and order snapshots of the exact approved proof ID/version/hash.
+- Organization requests for stores, campaigns, products and branding, reviewed
+  by staff before they change an existing campaign.
+- Individual-shipping checkout and separate bulk-to-organizer draft-order
+  checkout with $0 buyer shipping, private organizer destinations, server-side
+  product/quantity checks, and duplicate-submission protection.
+- Production queues/batches, quantity reservation, guarded status transitions,
+  locked completed batches, proof references, and sales/production/payout CSVs.
+- Refund/fulfillment-aware payout reconciliation, deductions, settlement delay,
+  idempotent statements, payment confirmation and immutable paid statements.
+  Amount-only refunds are currently under repair; do not finalize affected payouts.
+
+### Hosting and storage
+
+The app runs at https://analog-portal-pilot.onrender.com on the existing Render
+web service. It uses managed PostgreSQL with the separate
+`prisma-postgresql/schema.prisma` profile, a reviewed predeploy migration and a
+DB-aware `/health` endpoint. Auto-deploy is off. The released Shopify app and
+customer extension use the hosted URL; the installed proxy was aligned with
+`/community/stores` after Shopify assigned a suffixed path.
+
+| Data | Active storage |
+| --- | --- |
+| Sessions and duplicate-checkout snapshots | PostgreSQL |
+| Artwork proofs, production batches, organization requests, delivery addresses | PostgreSQL `PortalRecord`, scoped by shop and type |
+| Organizations, campaigns, rules, payout statements, products and orders | Shopify |
+| Private artwork bytes | Cloudflare R2 |
+| Independent encrypted backups | Backblaze B2 |
+
+`PORTAL_DATA_BACKEND=postgresql` is enabled on the hosted app and backup worker.
+Local development retains its SQLite profile. Keep both Prisma model sets
+aligned; never run SQLite setup/reset commands against hosted PostgreSQL. Once
+new database records exist, disabling the backend flag is not a safe rollback.
+
+Private R2 uploads use immutable asset identities and content hashes. Downloads
+require staff authentication or current company membership, validate the
+organization/campaign relationship, and issue short-lived links. Embedded staff
+links are prepared through authenticated App Bridge requests. Backups use a
+separate read-only R2 credential.
+
+Approved Render base costs are $7/month for the app, $7.50/month for PostgreSQL
+including its allocated storage, and the approved $2/month backup worker: $16.50
+before provider usage, taxes and independent storage charges. This is the
+approved configuration, not a guarantee against future usage charges. No new
+paid service was added for the operational-record migration.
+
+### Backup and recovery work completed
+
+- Transactional SQLite-to-PostgreSQL migration, preserving sessions and checkout
+  snapshots, plus isolated logical restore and a temporary Render recovery test.
+- Daily combined backup worker at **08:00 UTC** (4am New York during daylight
+  saving time), with separate PostgreSQL and Shopify/R2 archives and monitors.
+- Encrypted Backblaze upload, read-back hashes, authenticated decryption and
+  dump checks. Only the recovery public key is stored on Render; the owner
+  confirmed the recovery key is available through Apple Passwords on another device.
+- Healthchecks success/failure/missed-run monitoring, with email alerts. Saved
+  baseline changes must be verified after saving and included in a rebuilt worker.
+- Real `FSS.svg` upload/approval recovery: independently downloaded bytes matched
+  the original 548,648-byte file and its SHA-256. A labeled operational recovery
+  copy was also verified through staff and customer access.
+- Following the Shopify app-definition/preview incident, four approved proofs
+  and one completed production batch were recovered into PostgreSQL from the
+  verified offsite archive. Original IDs, field values, approvals and timestamps
+  were preserved. A synthetic delivery address was then saved through the app.
+- October 1 independent PostgreSQL restore matched every field in six portal
+  records, four checkout attempts, one session and two migration records, plus
+  the complete schema. The rebuilt worker's portal archive independently restored
+  133 files from 136 encrypted objects with the intended monitoring baseline.
+
+The current verified backup baseline is 34 Shopify records, six PostgreSQL
+portal records, 10 orders, four companies, 15 drafts, four R2 objects, 32 Shopify
+file records and 35 downloaded assets. New testing will increase these counts.
+Historical gaps remain explicit: nine proofs, five batches, five requests, two
+older delivery records, four inaccessible historical references, limited older
+order access and one external video. Count discrepancies where Shopify reports
+fewer entries than were exported are also recorded. Green backups do not mean
+those historical gaps were recovered. Captures across services are not atomic.
+
+### Remaining pilot gates and current rehearsal
+
+The hosted individual-shipping rehearsal reached approved artwork, a test
+purchase (#1010), verified attribution, a completed production batch, Shopify
+fulfillment and a $10 amount-only refund. No real payment, manufacture or shipment
+was made. The refund reporting correction and bulk workflow are in progress;
+payout and archive must follow accurate reconciliation.
+
+Before an external pilot: complete both delivery workflows including duplicate
+checkout submissions, refund/adjustment, final statements and archive; resolve
+or explicitly accept the historical synthetic-data gaps; establish retention and
+credential-rotation ownership; finish reliability/security review and an
+operational app-rebuild drill. Immutable backup retention is not enabled and
+proposed recovery-time/data-loss targets are not yet proven. The existing app's
+R2 key expires October 24, 2026; backup R2 and Backblaze keys expire December 28.
+
+### Operating references
+
+- [Hosting and PostgreSQL deployment](docs/durable-hosting.md)
+- [Private artwork storage and authorization](docs/private-artwork-storage.md)
+- [Backup and recovery procedures](docs/backup-and-recovery.md)
+- [Scheduled PostgreSQL backups](docs/scheduled-postgresql-backups.md)
+- [Scheduled Shopify/R2 backups and recovery evidence](docs/scheduled-portal-backups.md)
+- [Bulk organizer checkout](docs/bulk-organizer-checkout.md)
+- [Product roadmap](docs/brand-portal-roadmap.md) — its September checkpoints are
+  historical; this README and the dated recovery logs describe the current state.
+
+Do not uninstall the app, remove definitions, run preview cleanup, reset a
+hosted database, prune backups, or replay orders/refunds as a troubleshooting
+shortcut. Preserve a verified recovery point and review the exact scope first.
+Secrets and private recovery evidence stay outside Git. The older template
+reference below is background, not the hosted deployment procedure.
+
 ## Local verification
 
 ```shell

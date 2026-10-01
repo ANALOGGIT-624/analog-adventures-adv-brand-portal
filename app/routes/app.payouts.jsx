@@ -78,6 +78,14 @@ export const action = async ({ request }) => {
       };
     }
 
+    if (reconciliation.refundReviewCount) {
+      return {
+        ok: false,
+        error:
+          "Refund reconciliation needs review: pending transactions, incomplete data, or an unsupported adjustment. Resolve these before creating a payout statement.",
+      };
+    }
+
     const campaign = reconciliation.campaign;
     const readyAt = settlementReadyAt(
       campaign,
@@ -176,6 +184,18 @@ export default function Payouts() {
       )}
 
       <s-section heading="Campaign reconciliation">
+        <s-paragraph>
+          Refunds include merchandise returned and amount-only adjustments.
+          Order-wide adjustments are allocated across merchandise by value;
+          shipping and tax refunds are excluded. Amount-only refunds do not
+          reduce units under a fixed-per-unit payout rule.
+        </s-paragraph>
+        {reconciliations.some((row) => row.refundReviewCount > 0) && (
+          <s-banner tone="warning">
+            Some orders have unresolved or incomplete refund data. Their payout
+            statements are blocked until those refunds are reviewed.
+          </s-banner>
+        )}
         {reconciliations.length === 0 ? (
           <s-paragraph>
             Create a campaign before reconciling payouts.

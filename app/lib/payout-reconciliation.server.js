@@ -66,19 +66,100 @@ function lineAmountCents(lineItem, manifestLine) {
   return toCents(manifestLine.linePrice) * Number(manifestLine.quantity || 0);
 }
 
-function refundsForLine(order, lineItemId) {
-  const id = resourceId(lineItemId);
-  return (order.refunds || []).reduce(
-    (totals, refund) => {
-      for (const refundLine of refund.refundLineItems?.nodes || []) {
-        if (resourceId(refundLine.lineItem?.id) !== id) continue;
-        totals.quantity += Number(refundLine.quantity || 0);
-        totals.cents += toCents(refundLine.subtotalSet?.shopMoney?.amount || 0);
-      }
-      return totals;
-    },
-    { quantity: 0, cents: 0 },
+// Discrepancies are signed: a negative adjustment means additional money
+// refunded without returning units. Allocate across all merchandise, including
+// lines belonging to other campaigns, using stable largest-remainder cents.
+function allocateCents(amount, weights) {
+  const total = weights.reduce((sum, row) => sum + row.weight, 0);
+  if (!total || !amount) return new Map();
+  const rows = weights.map(({ id, weight }) => {
+    const exact = (amount * weight) / total;
+    return { id, cents: Math.floor(exact), remainder: exact % 1 };
+  });
+  let remaining = amount - rows.reduce((sum, row) => sum + row.cents, 0);
+  rows.sort((a, b) => b.remainder - a.remainder || a.id.localeCompare(b.id));
+  for (const row of rows) if (remaining-- > 0) row.cents += 1;
+  return new Map(rows.map(({ id, cents }) => [id, cents]));
+}
+
+function refundsForOrder(order) {
+  const totals = new Map(
+    (order.lineItems?.nodes || []).map((line) => [
+      resourceId(line.id),
+      {
+        quantity: 0,
+        cents: 0,
+        gross: toCents(line.discountedTotalSet?.shopMoney?.amount),
+      },
+    ]),
   );
+  let needsReview = Boolean(
+    order.lineItems?.pageInfo?.hasNextPage ||
+    (order.refunds || []).length >= 100,
+  );
+  for (const refund of [...(order.refunds || [])].sort((a, b) =>
+    String(a.createdAt || a.id).localeCompare(String(b.createdAt || b.id)),
+  )) {
+    if (
+      [
+        refund.refundLineItems,
+        refund.orderAdjustments,
+        refund.transactions,
+      ].some((c) => c?.pageInfo?.hasNextPage)
+    )
+      needsReview = true;
+    const transactions = refund.transactions?.nodes || [];
+    if (
+      refund.transactions &&
+      (!transactions.length ||
+        transactions.some((t) => t.kind === "REFUND" && t.status !== "SUCCESS"))
+    )
+      needsReview = true;
+    const itemRefunds = new Map();
+    for (const line of refund.refundLineItems?.nodes || []) {
+      const id = resourceId(line.lineItem?.id);
+      const total = totals.get(id);
+      if (!total) {
+        needsReview = true;
+        continue;
+      }
+      const cents = toCents(line.subtotalSet?.shopMoney?.amount);
+      total.quantity += Number(line.quantity || 0);
+      total.cents += cents;
+      itemRefunds.set(id, (itemRefunds.get(id) || 0) + cents);
+    }
+    let adjustment = 0;
+    for (const entry of refund.orderAdjustments?.nodes || []) {
+      if (
+        entry.reason !== "REFUND_DISCREPANCY" ||
+        toCents(entry.taxAmountSet?.shopMoney?.amount) !== 0
+      ) {
+        needsReview = true;
+        continue;
+      }
+      adjustment -= toCents(entry.amountSet?.shopMoney?.amount);
+    }
+    const weights = [...totals].map(([id, total]) => ({
+      id,
+      weight:
+        adjustment >= 0
+          ? Math.max(0, total.gross - total.cents)
+          : Math.max(0, itemRefunds.get(id) || 0),
+    }));
+    const capacity = weights.reduce((sum, row) => sum + row.weight, 0);
+    if (Math.abs(adjustment) > capacity) needsReview = true;
+    for (const [id, cents] of allocateCents(
+      Math.min(Math.abs(adjustment), capacity),
+      weights,
+    )) {
+      totals.get(id).cents += adjustment >= 0 ? cents : -cents;
+    }
+  }
+  if (
+    [...totals.values()].some((row) => row.cents < 0 || row.cents > row.gross)
+  )
+    needsReview = true;
+  return { totals, needsReview };
 }
 
 function visibleCustomizations(attributes = []) {
@@ -111,6 +192,7 @@ export function reconcileCampaignOrders(orders, campaignId) {
     lastOrderAt: null,
     orders: [],
     unsupportedRuleCount: 0,
+    refundReviewCount: 0,
     settlementDelayDays: 0,
   };
 
@@ -120,6 +202,8 @@ export function reconcileCampaignOrders(orders, campaignId) {
     );
     if (!manifestLines.length) continue;
 
+    const refundSummary = refundsForOrder(order);
+    if (refundSummary.needsReview) result.refundReviewCount += 1;
     let orderGrossCents = 0;
     let orderRefundsCents = 0;
     let orderProceedsCents = 0;
@@ -137,11 +221,13 @@ export function reconcileCampaignOrders(orders, campaignId) {
         lineItem?.discountedTotalSet?.shopMoney?.currencyCode || orderCurrency;
       const quantity = Number(manifestLine.quantity || lineItem?.quantity || 0);
       const grossCents = lineAmountCents(lineItem, manifestLine);
-      const refunded = refundsForLine(order, manifestLine.lineItemId);
+      const refunded = refundSummary.totals.get(
+        resourceId(manifestLine.lineItemId),
+      ) || { quantity: 0, cents: 0 };
       const isCancelled = Boolean(order.cancelledAt);
       const refundCents = isCancelled
         ? grossCents
-        : Math.min(grossCents, refunded.cents);
+        : Math.max(0, Math.min(grossCents, refunded.cents));
       const refundedQuantity = isCancelled
         ? quantity
         : Math.min(quantity, refunded.quantity);
@@ -257,6 +343,7 @@ const ORDERS_QUERY = `#graphql
           jsonValue
         }
         lineItems(first: 100) {
+          pageInfo { hasNextPage }
           nodes {
             id
             name
@@ -272,7 +359,20 @@ const ORDERS_QUERY = `#graphql
         refunds(first: 100) {
           id
           createdAt
+          orderAdjustments(first: 100) {
+            pageInfo { hasNextPage }
+            nodes {
+              reason
+              amountSet { shopMoney { amount currencyCode } }
+              taxAmountSet { shopMoney { amount currencyCode } }
+            }
+          }
+          transactions(first: 100) {
+            pageInfo { hasNextPage }
+            nodes { kind status }
+          }
           refundLineItems(first: 100) {
+            pageInfo { hasNextPage }
             nodes {
               quantity
               subtotalSet { shopMoney { amount currencyCode } }
