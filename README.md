@@ -45,7 +45,10 @@ been migrated or changed by this project. External pilots are not yet cleared.
   locked completed batches, proof references, and sales/production/payout CSVs.
 - Refund/fulfillment-aware payout reconciliation, deductions, settlement delay,
   idempotent statements, payment confirmation and immutable paid statements.
-  Amount-only refunds are currently under repair; do not finalize affected payouts.
+  Amount-only refunds now include Shopify's signed discrepancy adjustments,
+  allocated across all merchandise lines without changing returned quantities.
+  Pending/failed transactions, truncated data and unsupported adjustments block
+  statement creation. The UI explains allocation and unit-rule behavior.
 
 ### Hosting and storage
 
@@ -104,9 +107,13 @@ paid service was added for the operational-record migration.
   the complete schema. The rebuilt worker's portal archive independently restored
   133 files from 136 encrypted objects with the intended monitoring baseline.
 
-The current verified backup baseline is 34 Shopify records, six PostgreSQL
-portal records, 10 orders, four companies, 15 drafts, four R2 objects, 32 Shopify
-file records and 35 downloaded assets. New testing will increase these counts.
+The current verified backup baseline is 36 Shopify records, seven PostgreSQL
+portal records, 11 orders, four companies, 16 drafts, four R2 objects, 32 Shopify
+file records and 35 downloaded assets. The 19:15 UTC combined worker run passed.
+An independent Backblaze download verified all 162 encrypted objects and decrypted
+159 files; recovered orders recalculated to the same $5/$4 simulated payouts,
+with archived campaigns, completed batches, approved proofs and the saved baseline
+intact. New testing will increase these counts.
 Historical gaps remain explicit: nine proofs, five batches, five requests, two
 older delivery records, four inaccessible historical references, limited older
 order access and one external video. Count discrepancies where Shopify reports
@@ -115,14 +122,42 @@ those historical gaps were recovered. Captures across services are not atomic.
 
 ### Remaining pilot gates and current rehearsal
 
-The hosted individual-shipping rehearsal reached approved artwork, a test
-purchase (#1010), verified attribution, a completed production batch, Shopify
-fulfillment and a $10 amount-only refund. No real payment, manufacture or shipment
-was made. The refund reporting correction and bulk workflow are in progress;
-payout and archive must follow accurate reconciliation.
+The October 1 hosted rehearsal completed both delivery paths through archive,
+using the development store's Bogus Gateway. No real payment, manufacture,
+shipment or organizer transfer was made. “Paid” below is a simulated portal status.
 
-Before an external pilot: complete both delivery workflows including duplicate
-checkout submissions, refund/adjustment, final statements and archive; resolve
+| Checkpoint | Individual shipping | Bulk delivery |
+| --- | --- | --- |
+| Campaign | E2E-20261001-IND | E2E-20261001-BULK |
+| Test order | #1010, one unit | #1011, two units from draft #D16 |
+| Gross merchandise | $949.95 | $1,899.90 |
+| Refund | $10.00 goodwill, no units returned | $949.95, one unit refunded |
+| Eligible fulfilled units | 1 | 1 |
+| Calculated proceeds | $5.00 | $5.00 |
+| Test deduction | $0.00 | $1.00 |
+| Final simulated statement | $5.00, paid | $4.00, paid |
+| Campaign status | Archived | Archived |
+
+Both orders retain the approved artwork ID/version/hash and campaign attribution.
+Bulk checkout locked the organizer address and charged $0 shipping. Double-click
+checkout/payment testing produced one bulk draft/order with the intended quantity.
+Both production batches passed queued → in production → ready to ship → completed
+and locked; the bulk batch reserved all units against duplicate batching. Shopify
+fulfillment was recorded without shipment notifications. The item refund had
+restocking and refund notification disabled. Shopify automatically sent its
+standard order confirmation to the test account owner.
+
+Statements passed draft → approved → paid. Missing paid confirmation was rejected,
+and trying to overwrite the paid bulk statement was rejected. The amount-only
+refund fix was verified against Shopify's actual successful $10 transaction and
+in the hosted payout screen before either statement was finalized. Validation:
+177 passing tests, production build, targeted lint, and Shopify API 2026-07 schema
+validation. Tests cover cent allocation across campaigns, percentage proceeds,
+positive discrepancies, shipping exclusion and unresolved refund safeguards.
+Backups now preserve paginated refund adjustments and transaction status/amounts
+in addition to refund line items, so restored reports retain this evidence.
+
+Before an external pilot: resolve
 or explicitly accept the historical synthetic-data gaps; establish retention and
 credential-rotation ownership; finish reliability/security review and an
 operational app-rebuild drill. Immutable backup retention is not enabled and
@@ -157,8 +192,10 @@ npm run build
 shopify app config validate --json
 ```
 
-Run `shopify app dev` after validation to update the development URLs, approve
-the expanded scopes, and preview the app on Analog Adventures Test.
+For the hosted app, commit reviewed changes and manually deploy the selected
+commit on Render; verify `/health` and the embedded app. Do not start a local
+`shopify app dev` preview against this installed app during a hosted pilot:
+preview/configuration changes require a separate reviewed test plan and backup.
 
 ## Shopify template reference
 

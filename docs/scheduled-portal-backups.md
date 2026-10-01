@@ -115,3 +115,39 @@ app's published links use `/community/stores`. The installed proxy was changed
 to the intended path and the canonical Test Company storefront now displays the
 bulk campaign with $0-shipping checkout available. No purchase was made during
 this migration verification.
+
+### October 1 — completed hosted business workflow
+
+The amount-only refund correction is live in app commit `2443424`. Backup worker
+`ea421ea` now exports paginated refund adjustments and transaction records, so
+recovery preserves the evidence used by payout reconciliation. Its saved baseline
+was verified after reload and the worker was rebuilt before running it.
+
+Both E2E campaigns completed approved artwork, test-gateway purchase, attribution,
+production, fulfillment, refund, statement approval/paid simulation and archive.
+Individual order #1010 reports the $10 amount-only refund and $5 test proceeds.
+Bulk order #1011 contains two units, $0 shipping and one checkout attempt/draft
+(#D16) despite double-click submission; one unit was refunded for $949.95. Its
+$5 proceeds less a $1 test deduction produce a $4 simulated final statement.
+Paid confirmation and statement-lock safeguards were exercised. No real organizer
+payment or physical shipment occurred. The public store no longer offers either
+archived campaign. See the README for the complete results table.
+
+The combined run finished successfully at 19:15:23 UTC, with PostgreSQL archive
+`recovery/postgresql/scheduled/2026-10-01T19-14-03.230Z-d11653a2-f4b2-4e0b-9ff1-13bddb39b6ec/`
+and portal archive
+`recovery/postgresql/scheduled/portal/2026-10-01T19-14-06.879Z-e30aacae-2d26-49d0-ac24-e0e1fbc622f0/`.
+The portal archive has 162 encrypted objects. Minimum counts now include 36
+Shopify records, 7 portal records, 11 orders and 16 drafts; other minimums and
+all 13 accepted historical limitations remain unchanged. Both monitors received
+success only after backup verification. The next automatic run remains a future
+check; this run was manually triggered using the scheduled worker.
+
+Independent verification downloaded all 162 objects, checked every transfer hash,
+and decrypted 159 files using the offsite-recovered private key. Recalculating
+both campaign reports from the recovered orders reproduced the exact refund and
+simulated payout totals. Each campaign has one paid statement, one completed
+batch and its approved proof; both campaigns are archived. All seven PostgreSQL
+portal records match the separate post-workflow capture. The embedded coverage
+baseline has the new minimums, zero unexpected gaps and zero count regressions.
+Private evidence: `recovery-private/workflow-final-scheduled-restored-20261001/WORKFLOW-VERIFIED.json`.
