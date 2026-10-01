@@ -10,6 +10,8 @@ The owner accepted a limited monitoring baseline: 29 metaobjects, 9 orders, 4 co
 
 `PORTAL_BACKUP_BASELINE_BASE64` contains the explicitly accepted gaps and minimum counts. New gaps, counts below those minimums, and capture failures fail the portal monitor. These static minimums do not detect every deletion when counts remain above the baseline. Captures across services are not atomic snapshots.
 
+After changing the baseline, rebuild the Render cron worker before considering the scheduled configuration updated. A saved environment value and a successful manually triggered run are insufficient evidence: the October 1 scheduled run retained the September 29 baseline despite the September 30 manual runs using the saved changes. Verify the deployed build and the actual baseline inside a newly downloaded archive. Render documents that saved-only environment changes do not take effect until deployment: https://render.com/docs/configure-environment-variables.
+
 ## Implementation and recovery
 
 `scheduled-all.mjs` runs the existing PostgreSQL backup then, when `BACKUP_PORTAL_ENABLED=1`, the portal backup. Each has a separate Healthchecks monitor. Both use the existing daily 08:00 UTC schedule and a shared twenty-minute deadline. Portal archives use `recovery/postgresql/scheduled/portal/` within the existing Backblaze credential's restricted prefix.
@@ -50,3 +52,13 @@ Read-back verified the new records and exact bytes. The production authorization
 Monitoring minimums now include 33 records, two R2 objects, and 33 assets. The historical proof discrepancy is 2 captured of 11 reported (the same nine missing). The next manual backup finished September 30 at 14:13:37 UTC, verified 129 encrypted objects, and kept all twelve known gaps flagged. Its portal prefix is `recovery/postgresql/scheduled/portal/2026-09-30T14-12-42.749Z-314f4f58-cc16-452b-8756-aabf7d3bfa96/`.
 
 Private execution evidence and new-to-original identifiers are in `recovery-private/operational-copy-20260930/journal.json`. This drill reuses the existing hosted application, Shopify organization/product records, and database. It does not prove recovery of a lost Shopify store, database-plus-app rebuild, full product catalog, or historical missing records. The separately prepared new-store plan was superseded by the owner's clarified scope.
+
+## October 1 scheduled-run alert
+
+The 08:00 UTC PostgreSQL backup passed. The portal archive was uploaded successfully, but its coverage check failed because the scheduled worker still carried the original baseline: 29 records, no R2 objects, 31 assets, and 0 of 9 reported proofs. The capture actually contained 33 records, two R2 objects, 33 assets, and 2 of 11 reported proofs. There were no count regressions and no additional missing proofs. Render's saved environment already held the correct September 30 baseline, but the cron worker's last build was September 29.
+
+Independent download verified all 129 encrypted objects from `recovery/postgresql/scheduled/portal/2026-10-01T08-00-37.973Z-15b65485-a00e-40b4-8b9e-cbfb38fb3a44/`. The offsite-recovered key decrypted 126 files. Reassessing the saved report against the approved September 30 baseline passed with the same twelve historical gaps. Private evidence: `recovery-private/backup-diagnosis-20261001.json` and `failed-backup-restored-20261001/coverage.json`.
+
+Rebuilt the existing cron service at commit `e4a4566` (build `bld-dav7ge142hec73darud0`, 37.8 seconds), without changing credentials, accepted gaps, or schedule. The replacement run started at 15:13:28 UTC and finished successfully at 15:14:39 UTC. PostgreSQL verified five objects; the portal verified 129 objects under `recovery/postgresql/scheduled/portal/2026-10-01T15-13-40.220Z-c0782985-24fd-4843-afee-d24ae5a30df3/`. Both Healthchecks monitors recovered.
+
+Independent download and decryption verified all 129 encrypted objects and restored 126 files. The archive records the rebuilt commit and exactly the approved September 30 baseline. Coverage passed with no new gaps or count regressions; both restored R2 artwork files matched the original SHA256 and 548,648-byte size. Evidence: `recovery-private/repaired-backup-restored-20261001/REPAIR-VERIFIED.json`. The next 08:00 UTC automatic run remains a future event; this repair verifies deployment and a manual run, not tomorrow's execution.
