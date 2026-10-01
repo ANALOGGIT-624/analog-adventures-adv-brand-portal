@@ -167,9 +167,12 @@ customer authentication, each downloading the restored original artwork over
 HTTPS with a matching SHA-256. Its tunnel and local services were then stopped;
 the temporary app registration and unlinked customer page remain. This separate
 app test does not prove production cutover or replacement R2 hosting.
-A final hosted check also found a transient customer-portal HTTP 500 during
-offline-session renewal; it recovered after staff session creation and reload.
-Fix and test unattended customer access across token expiry before pilot.
+The customer-portal session-renewal failure found during the drill was repaired
+and deployed on October 1. A controlled stale-expiry test renewed access from
+the customer page without staff navigation, preserved all portal/checkout
+records, and returned HTTP 200 for the portal and artwork-link preparation.
+The rebuilt backup worker also completed an immediate verified backup. See
+[the session-renewal evidence](docs/session-renewal-20261001.md).
 Immutable backup retention is not enabled and
 proposed recovery-time/data-loss targets are not yet proven. The existing app's
 R2 key expires October 24, 2026; backup R2 and Backblaze keys expire December 28.
@@ -445,5 +448,3 @@ Shopify:
 Internationalization:
 
 - [Internationalizing your app](https://shopify.dev/docs/apps/best-practices/internationalization/getting-started)
-
-Session-renewal repair and deployment evidence: [October 1 renewal check](docs/session-renewal-20261001.md).

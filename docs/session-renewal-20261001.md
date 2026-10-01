@@ -45,6 +45,35 @@ or other database names.
 
 ## Hosted verification
 
-Pending deployment of both web app and backup worker, a controlled expiry of
-only the development store's saved session timestamp, customer-initiated
-renewal without staff navigation, and a successful backup run.
+Commit `87d2650` was deployed to the existing Render web service and built for
+the existing backup worker. Web deployment `dep-davce7fpn0mc73cgdd80` and
+worker build `bld-davcegflk1mc739hhbh0` both succeeded.
+
+At 20:50:56 UTC, only the saved access-token expiry timestamp for
+`analog-adventures-test.myshopify.com` was made stale. The token values and
+business records were left intact. The customer page was reloaded before any
+staff navigation. Render logged creation of the renewed session at 20:51:03
+and `GET /public/portal 200` at 20:51:04. The customer saw all four approved
+proofs, both archived rehearsal campaigns and the $9 combined test proceeds.
+
+A separate database check confirmed both access and refresh credentials rotated,
+with the next access expiry at 21:51:02 UTC. A before/after fingerprint confirmed
+all seven portal records and five checkout attempts were unchanged. Credentials
+were not written to the report. Secure artwork preparation returned
+`POST /public/artwork 200` at 20:51:41. The staff dashboard was then reloaded
+successfully and showed four proofs. `/health` returned `ok`.
+
+The rebuilt worker was manually triggered at approximately 20:51 UTC. Its
+PostgreSQL archive was uploaded and read-back verified at 20:51:54. Its portal
+archive was verified at 20:52:58: 162 transferred objects, 36 Shopify records,
+7 PostgreSQL portal records, 11 orders, 4 companies, 16 drafts, 4 R2 objects,
+32 Shopify file entries and 35 downloaded assets. The existing 13 known gaps
+remain reported against the accepted baseline; they were not recovered by this
+repair. Render logged successful job completion at 20:53:01 UTC. This was an
+immediate manual run of the scheduled worker, not an
+observation of the next 08:00 UTC automatic run.
+
+Private database-check evidence is in
+`recovery-private/session-renewal-result-20261001.json`. The local PostgreSQL
+test process was stopped after verification. No new service or paid capacity
+was added. Remaining pilot gates in the README still apply.

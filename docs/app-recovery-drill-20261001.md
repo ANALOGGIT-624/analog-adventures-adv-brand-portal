@@ -145,7 +145,9 @@ After that session creation, a customer-page reload returned HTTP 200 at
 20:30:58 UTC and displayed all four proofs and the $5/$4 paid statements.
 The saved customer endpoint remained the original Render URL.
 
-This is a reliability finding, not a completed permanent fix. The timing points
-to offline-session availability/refresh handling; investigate and regression-test
-customer access across token expiry and concurrent refresh before pilot. A
-healthy `/health` response alone did not detect this customer-facing failure.
+This finding was subsequently repaired in commit `87d2650` and verified on the
+hosted development app. Customer-initiated renewal succeeded without staff
+navigation after a controlled stale-expiry test, and the rebuilt backup worker
+completed a verified backup. See [the repair and evidence](session-renewal-20261001.md).
+A healthy `/health` response alone had not detected this customer-facing failure;
+the repair was verified through real customer authentication as well.
