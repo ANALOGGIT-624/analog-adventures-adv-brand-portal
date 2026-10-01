@@ -30,9 +30,13 @@ test("R2 capture preserves bytes and metadata, rejects bad hashes and reports co
   const keyFile = path.join(root, "key"); await createKey(keyFile);
   const bytes = Buffer.from([0, 1, 255, 10]);
   const empty = { nodes:[], pageInfo:{hasNextPage:false} };
-  const queryExecutor = async kind => {
+  const queryExecutor = async (kind, variables = {}) => {
     if (kind === "identity") return {shop:{myshopifyDomain:BACKUP_STORE},currentAppInstallation:{app:{apiKey:"8158f984f0ec6fed1e5f85b44a588777",id:"gid://shopify/App/1"},accessScopes:[{handle:"read_all_orders"}]}};
     if (kind === "historical") return {nodes:[{id:"gid://shopify/Metaobject/427021893817"}]};
+    if (kind === "orders") return {orders:{...empty,nodes:[{id:"order",lineItems:empty,refunds:[{id:"refund"}]}]}};
+    if (kind === "refundLines") return {refund:{refundLineItems:empty}};
+    if (kind === "refundAdjustments") return {refund:{orderAdjustments:{nodes:[{id:variables.after?"adjustment-2":"adjustment-1",reason:"REFUND_DISCREPANCY",amountSet:{shopMoney:{amount:"-5.00"}}}],pageInfo:{hasNextPage:!variables.after,endCursor:"next"}}}};
+    if (kind === "refundTransactions") return {refund:{transactions:{...empty,nodes:[{id:"transaction",kind:"REFUND",status:"SUCCESS",amountSet:{shopMoney:{amount:"10.00"}}}]}}};
     return {[{definitions:"metaobjectDefinitions",orders:"orders",companies:"companies",drafts:"draftOrders",files:"files"}[kind]]:empty};
   };
   for (const scenario of ["good", "hash", "changed"]) {
@@ -45,6 +49,9 @@ test("R2 capture preserves bytes and metadata, rejects bad hashes and reports co
     const report=await capture({store:BACKUP_STORE,output,keyFile,queryExecutor,includeRepositoryHistory:false,seal:false,artworkConfig:{bucket:"synthetic-bucket",client:{}},artworkClient});
     if(scenario==="good") {
       assert.equal(report.status,"captured");assert.equal(report.counts.r2Objects,1);
+      const savedOrders=JSON.parse(await readFile(path.join(output,"capture/shopify/orders.json"),"utf8"));
+      assert.equal(savedOrders[0].refunds[0].orderAdjustments.nodes.length,2);
+      assert.equal(savedOrders[0].refunds[0].transactions.nodes[0].status,"SUCCESS");
       const inventory=JSON.parse(await readFile(path.join(output,"capture/artwork/inventory.json"),"utf8"));
       assert.deepEqual(await readFile(path.join(output,"capture",inventory[0].path)),bytes);
       assert.equal(inventory[0].sha256,sha256(bytes));assert.equal(requests[1].IfMatch,"original");

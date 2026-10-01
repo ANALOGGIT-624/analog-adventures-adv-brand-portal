@@ -234,6 +234,10 @@ export async function capture({
       if (order.refunds.length >= 250)
         report.gaps.push({ kind: "refund_limit", orderId: order.id });
       for (const refund of order.refunds) {
+        for (const [kind, field] of [["refundAdjustments", "orderAdjustments"], ["refundTransactions", "transactions"]]) {
+          refund[field] = { nodes: await collectPages(async after =>
+            (await query(kind, { id: refund.id, after })).refund[field]) };
+        }
         refund.refundLineItems = {
           nodes: await collectPages(
             async (after) =>

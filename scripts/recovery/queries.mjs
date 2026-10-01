@@ -62,6 +62,19 @@ export const queries = {
       nodes { quantity subtotalSet { shopMoney { amount currencyCode } } lineItem { id } }
     } }
   }`,
+  refundAdjustments: `query RecoveryRefundAdjustments($id: ID!, $after: String) {
+    refund(id: $id) { orderAdjustments(first: 100, after: $after) {
+      pageInfo { hasNextPage endCursor }
+      nodes { id reason amountSet { shopMoney { amount currencyCode } }
+        taxAmountSet { shopMoney { amount currencyCode } } }
+    } }
+  }`,
+  refundTransactions: `query RecoveryRefundTransactions($id: ID!, $after: String) {
+    refund(id: $id) { transactions(first: 100, after: $after) {
+      pageInfo { hasNextPage endCursor }
+      nodes { id kind status amountSet { shopMoney { amount currencyCode } } }
+    } }
+  }`,
   files: `query RecoveryFiles($after: String) {
     files(first: 100, after: $after) { pageInfo { hasNextPage endCursor }
       nodes { id alt createdAt updatedAt fileStatus
