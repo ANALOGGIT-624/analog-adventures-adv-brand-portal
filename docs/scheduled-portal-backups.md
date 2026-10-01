@@ -99,3 +99,19 @@ Private evidence: `recovery-private/postgres-migration-scheduled-restored-202610
 and `recovery-private/portal-migration-scheduled-restored-20261001/`.
 The remaining business workflow and amount-only refund reconciliation are still
 pilot gates; this migration does not clear them.
+
+The corrected baseline was verified after save and worker `fc9bddc` was rebuilt.
+Its verification run finished successfully at 18:32:26 UTC. The portal archive
+`recovery/postgresql/scheduled/portal/2026-10-01T18-31-29.943Z-c1336a41-f980-4bed-b39d-e2207581aa51/`
+was independently downloaded (136 encrypted objects) and decrypted (133 files).
+Its embedded baseline exactly matches the reviewed six-record minimums and
+historical gaps; coverage passes with no new gaps or count regressions. All six
+operational records match the independently restored earlier archive. Both
+Healthchecks monitors received success. Tomorrow's automatic run is still a
+future event. Final evidence: `recovery-private/portal-migration-final-restored-20261001/MIGRATION-BACKUP-VERIFIED.json`.
+
+The installed Shopify proxy had been assigned `/community/stores-1`, while the
+app's published links use `/community/stores`. The installed proxy was changed
+to the intended path and the canonical Test Company storefront now displays the
+bulk campaign with $0-shipping checkout available. No purchase was made during
+this migration verification.
