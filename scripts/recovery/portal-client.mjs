@@ -41,7 +41,8 @@ export async function createPortalReader(env, sessionStorage) {
   });
   // Official SDK refreshes expiring offline tokens and persists their replacement.
   // No Shopify business-data mutations are exposed to this worker.
-  const { session } = await app.unauthenticated.admin(BACKUP_STORE);
+  const load = () => app.unauthenticated.admin(BACKUP_STORE);
+  const { session } = await (sessionStorage.withShop ? sessionStorage.withShop(BACKUP_STORE, load) : load());
   if (session.shop !== BACKUP_STORE || session.isOnline || session.isExpired()) throw new Error("Backup session unavailable");
   const query = createReadOnlyQuery(session.accessToken);
   const identity = await query("identity");

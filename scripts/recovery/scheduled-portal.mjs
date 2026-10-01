@@ -6,7 +6,7 @@ import path from "node:path";
 import os from "node:os";
 import { Buffer } from "node:buffer";
 import { S3Client } from "@aws-sdk/client-s3";
-import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
+import { createCoordinatedSessionStorage } from "../../app/lib/coordinated-session-storage.server.js";
 import { capture } from "./capture.mjs";
 import { createPortalReader, BACKUP_STORE } from "./portal-client.mjs";
 import { privateArtworkConfig } from "../../app/lib/private-artwork-storage.server.js";
@@ -48,7 +48,7 @@ export async function runPortalBackup(env = process.env) {
     const { PrismaClient } = await import("@prisma/client");
     prisma = new PrismaClient({ datasources: { db: { url: env.DATABASE_URL } }, log: [] });
     await prisma.$connect();
-    const queryExecutor = await createPortalReader(env, new PrismaSessionStorage(prisma));
+    const queryExecutor = await createPortalReader(env, createCoordinatedSessionStorage(prisma,{apiKey:env.SHOPIFY_API_KEY,databaseUrl:env.DATABASE_URL}));
     const runKey = randomBytes(32), envelope = wrapKey(runKey, recipient), keyFile = path.join(root, "key");
     await writeFile(keyFile, runKey, { mode: 0o600, flag: "wx" }); runKey.fill(0);
     const captureRoot = path.join(root, "portal");

@@ -112,6 +112,9 @@ function harness({
   data = fixture(),
   sub = "customer-a",
   authError,
+  sessionError,
+  queryError,
+  cors = response => response,
   database = false,
   errors,
 } = {}) {
@@ -136,7 +139,7 @@ function harness({
           if (authError) throw authError;
           return {
             sessionToken: { sub, dest: "test-shop" },
-            cors: (response) => response,
+            cors,
           };
         },
       },
@@ -144,10 +147,12 @@ function harness({
     unauthenticated: {
       admin: async (shop) => {
         shops.push(shop);
+        if (sessionError) throw sessionError;
         return {
           admin: {
             graphql: async (query, options) => {
               queries.push({ query, ...options });
+              if (queryError) throw queryError;
               return { json: async () => ({ data: database ? {...data, proofs:undefined, requests:undefined} : data, errors }) };
             },
           },
@@ -433,4 +438,20 @@ test("database-backed customer loader scopes records and approval preserves owne
  assert.ok(!JSON.stringify(data).includes("proof-b"));
  assert.equal((await h.post({intent:"approve-proof",proofHandle:"proof-a"})).status,200);
  assert.equal(h.writes.length,1);
+});
+
+
+test("renewal failures return retryable CORS JSON without exposing credentials or making writes", async () => {
+  for (const mode of ["sessionError", "queryError"]) {
+    const h = harness({[mode]: new Error("secret internal OAuth details"), cors: response => {response.headers.set("Access-Control-Allow-Origin", "https://shopify.com"); return response;}});
+    for (const response of [await h.loader({request:new Request("https://app.example.com/public/portal")}), await h.post({intent:"approve-proof",proofId:"proof-a"})]) {
+      assert.equal(response.status,503);
+      assert.equal(response.headers.get("Access-Control-Allow-Origin"),"https://shopify.com");
+      assert.equal(response.headers.get("Retry-After"),"5");
+      assert.equal(response.headers.get("Cache-Control"),"private, no-store");
+      assert.match((await response.json()).error,/temporarily unavailable/);
+    }
+    assert.equal(h.writes.length,0);
+    assert.equal(h.uploads.length,0);
+  }
 });

@@ -4,8 +4,17 @@ import {
   AppDistribution,
   shopifyApp,
 } from "@shopify/shopify-app-react-router/server";
-import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
+import { shopifyApi } from "@shopify/shopify-api";
+import {
+  createCoordinatedSessionStorage,
+  coordinateShopifyAuthentication,
+} from "./lib/coordinated-session-storage.server.js";
 import prisma from "./db.server";
+
+const storage = createCoordinatedSessionStorage(prisma, {
+  apiKey: process.env.SHOPIFY_API_KEY,
+  databaseUrl: process.env.DATABASE_URL,
+});
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -14,7 +23,7 @@ const shopify = shopifyApp({
   scopes: process.env.SCOPES?.split(","),
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
-  sessionStorage: new PrismaSessionStorage(prisma),
+  sessionStorage: storage,
   distribution: AppDistribution.AppStore,
   future: {
     expiringOfflineAccessTokens: true,
@@ -27,8 +36,21 @@ const shopify = shopifyApp({
 export default shopify;
 export const apiVersion = ApiVersion.July26;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
-export const authenticate = shopify.authenticate;
-export const unauthenticated = shopify.unauthenticated;
+const tokenVerifier = shopifyApi({
+  apiKey: process.env.SHOPIFY_API_KEY,
+  apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
+  apiVersion: ApiVersion.July26,
+  hostName: new URL(process.env.SHOPIFY_APP_URL).host,
+  isEmbeddedApp: true,
+  logger: { level: 0 },
+});
+const coordinated = coordinateShopifyAuthentication(
+  shopify,
+  storage,
+  tokenVerifier.session.decodeSessionToken,
+);
+export const authenticate = coordinated.authenticate;
+export const unauthenticated = coordinated.unauthenticated;
 export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = shopify.sessionStorage;

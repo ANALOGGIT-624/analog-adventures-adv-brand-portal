@@ -445,3 +445,5 @@ Shopify:
 Internationalization:
 
 - [Internationalizing your app](https://shopify.dev/docs/apps/best-practices/internationalization/getting-started)
+
+Session-renewal repair and deployment evidence: [October 1 renewal check](docs/session-renewal-20261001.md).
