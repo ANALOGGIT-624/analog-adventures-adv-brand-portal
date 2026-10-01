@@ -1,9 +1,10 @@
 # Isolated app recovery drill — October 1, 2026
 
-Status: **local rebuild and recovered-data checks passed; live Shopify sign-in
-and hosted replacement cutover remain untested. This does not clear the pilot.**
+Status: **local rebuild, recovered-data checks, real staff/customer authentication,
+and authenticated HTTPS artwork downloads passed. Full hosted replacement
+cutover remains untested. This does not clear the pilot.**
 
-## Recovery sources and isolation
+## Phase 1: offline recovery sources and isolation
 
 - Source commit: `c963a10`, exported into a separate directory. The original
   checkout, active app, hosted database, Shopify settings and R2 bucket were not
@@ -22,7 +23,7 @@ and hosted replacement cutover remain untested. This does not clear the pilot.**
   HTTP and HTTPS requests. No real Shopify token exchange or business mutation
   was attempted. Local recovery services were stopped after verification.
 
-## Checks completed
+## Phase 1 checks completed
 
 1. Generated the PostgreSQL Prisma client in the isolated copy and rebuilt the
    actual production server/client bundles successfully.
@@ -63,13 +64,88 @@ Shopify login, customer extension routing, object-store replacement and traffic
 cutover were excluded. The paired source archives were produced seconds apart,
 not in a cross-service atomic transaction. Exact replay cutoff/RPO is unproven.
 
-The next live recovery exercise needs a separately reviewed HTTPS recovery
-endpoint and Shopify authentication/routing arrangement. Do not repoint the
-installed app, customer extension or live traffic merely to make the local drill
-appear complete. Keep business mutations blocked during the rehearsal and verify
-real staff/customer login and authorized artwork delivery before accepting the
-full operational-recovery gate.
+The authenticated follow-up below verifies the real sign-in and HTTPS file
+delivery portion. Full replacement hosting, object-store replacement, original
+app identity/routing cutover and an agreed RTO/RPO remain unproven. Do not treat a
+separate recovery app as proof that the original app can be cut over unchanged.
 
 The most recent scheduled-worker run remains the successful manual verification
 at 19:15 UTC. The next automatic run is October 2 at 08:00 UTC / 4am New York and
 was not yet due during this drill. No automatic-run pass is claimed.
+
+## Phase 2: authenticated HTTPS recovery follow-up
+
+On October 1, after explicit approval, created **Analog Recovery Drill 20261001**
+(app `430568243201`) and installed it only on
+`analog-adventures-test.myshopify.com`. The original hosted app and live store
+were not repointed. No additional paid service was created.
+
+The isolated source uses the existing Shopify authentication SDK, a separate
+in-memory session store, and the restored database's SELECT-only role. The
+original recovered session was retained in the database but was not used for
+recovery-app authentication. A minimal read-only staff page and customer
+verification extension exercise the existing artwork authorization routes.
+The customer query omits the unnecessary protected `displayName` field.
+Shopify permissions are read-only; customer data was enabled for development
+authentication, with no optional name/email/phone/address field access selected.
+
+The app listened on loopback port 55442 behind a temporary Cloudflare HTTPS
+tunnel. A local recovered-file adapter issued 60-second signed links and checked
+the archived SHA-256 before serving bytes. It did not read the active R2 bucket.
+Only health, authentication, static assets, read-only recovery views, artwork
+authorization and signed restored-file delivery were exposed. Business write
+routes were blocked. The customer page was added separately, without adding it
+to navigation or replacing Brand Portal.
+
+Verified outcomes:
+
+- Real Shopify staff authentication displayed all four approved recovered proofs.
+- Real customer authentication identified Test Company's existing test customer
+  and returned its four recovered proofs. Current Shopify company membership,
+  organization and campaign references were used for authorization.
+- Both staff and customer independently authorized and downloaded **Test Compay
+  Artwork** through HTTPS. Each browser download is 548,648 bytes and matches
+  SHA-256 `c1a3e3cf4fdcaa3995d54b082863f72150c14011a41354ace29d14ea1baee71c`.
+- The staff test passed again after restarting the recovery app and obtaining
+  fresh app sessions; the final customer test also passed after that restart.
+- Anonymous customer portal/artwork requests and unsigned restored-file requests
+  returned 401. Business mutation requests returned 405. Staff authentication
+  bootstrap HTML contained no recovered artwork or payout data.
+- Final database counts stayed at 7 portal records, 5 checkout attempts and 1
+  original session. A write probe was rejected by PostgreSQL.
+- Shopify CLI configuration validation, isolated app build and extension
+  component validation passed. The recovery extension's Preact configuration
+  and new-tab download behavior were corrected during testing.
+
+Private evidence: `LIVE-AUTH-CHECKS.json`, `HTTPS-CHECKS.json`, server logs,
+isolated source and scripts under `recovery-private/app-drill-20261001/`.
+The two downloaded test copies are in the Mac's Downloads folder. Credentials
+and private evidence remain outside Git.
+
+At completion the temporary tunnel, HTTP server and local recovery database
+were stopped. The recovery Shopify app registration/install and unlinked
+customer page remain for a future drill; their temporary backend is offline.
+No new Render charge was introduced.
+
+Limits: this used an adapted read-only recovery view and local file adapter,
+a separate app identity, and current Shopify authorization references. It does
+not prove replacement R2 provisioning, restored Shopify merchant-record imports,
+unchanged production deployment, original-app cutover, or an end-to-end RTO/RPO.
+Cross-company denial was verified in phase 1 with simulated identities; a second
+real customer account was not exercised in phase 2. External pilot approval
+still requires the remaining reliability/security, retention/rotation and
+recovery acceptance work.
+
+## Hosted-portal follow-up finding
+
+The original Render `/health` check and staff dashboard passed after cleanup.
+The original customer portal initially returned HTTP 500 / “Failed to fetch” at
+20:29:51 UTC, while staff access was obtaining a new offline Shopify session.
+After that session creation, a customer-page reload returned HTTP 200 at
+20:30:58 UTC and displayed all four proofs and the $5/$4 paid statements.
+The saved customer endpoint remained the original Render URL.
+
+This is a reliability finding, not a completed permanent fix. The timing points
+to offline-session availability/refresh handling; investigate and regression-test
+customer access across token expiry and concurrent refresh before pilot. A
+healthy `/health` response alone did not detect this customer-facing failure.

@@ -159,10 +159,18 @@ in addition to refund line items, so restored reports retain this evidence.
 
 Before an external pilot: resolve
 or explicitly accept the historical synthetic-data gaps; establish retention and
-credential-rotation ownership; finish reliability/security review and the live-authentication/hosted-cutover
-portion of the operational recovery drill. The isolated October 1 app rebuild,
-read-only database startup, restart, recovered-data authorization and artwork
-hash checks passed; simulated identities do not prove live Shopify sign-in. Immutable backup retention is not enabled and
+credential-rotation ownership; finish reliability/security review and the hosted
+replacement/cutover portion of the operational recovery drill. The isolated
+October 1 rebuild, read-only database, restart and recovered-data checks passed.
+A separately approved temporary recovery app also passed real Shopify staff and
+customer authentication, each downloading the restored original artwork over
+HTTPS with a matching SHA-256. Its tunnel and local services were then stopped;
+the temporary app registration and unlinked customer page remain. This separate
+app test does not prove production cutover or replacement R2 hosting.
+A final hosted check also found a transient customer-portal HTTP 500 during
+offline-session renewal; it recovered after staff session creation and reload.
+Fix and test unattended customer access across token expiry before pilot.
+Immutable backup retention is not enabled and
 proposed recovery-time/data-loss targets are not yet proven. The existing app's
 R2 key expires October 24, 2026; backup R2 and Backblaze keys expire December 28.
 
