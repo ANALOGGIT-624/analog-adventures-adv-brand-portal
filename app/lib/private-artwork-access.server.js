@@ -1,3 +1,4 @@
+import { databasePortalEnabled, portalStoreForAdmin, isPortalRecordId } from "./portal-records.server.js";
 import { PORTAL_TYPES, normalizeMetaobject } from "./brand-portal.server.js";
 
 export function artworkShop(destination) {
@@ -37,14 +38,17 @@ export async function authorizedArtwork({
     throw new Response("Sign in to download artwork.", { status: 401 });
   if (
     !["proof", "request"].includes(kind) ||
-    !/^gid:\/\/shopify\/Metaobject\/\d+$/.test(recordId || "")
+    !isPortalRecordId(recordId)
   )
     throw unavailable();
   const type =
     kind === "proof"
       ? PORTAL_TYPES.artworkProof
       : PORTAL_TYPES.organizationRequest;
-  const data = await query(
+  const data = databasePortalEnabled() ? {
+    metaobject: await (await portalStoreForAdmin(admin)).get(type, recordId),
+    metaobjectDefinitionByType: {type},
+  } : await query(
     admin,
     `#graphql
     query PrivateArtworkRecord($id: ID!, $type: String!) {

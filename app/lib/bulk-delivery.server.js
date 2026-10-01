@@ -1,3 +1,4 @@
+import { databasePortalEnabled, portalStoreForAdmin } from "./portal-records.server.js";
 import {
   PORTAL_TYPES,
   normalizeMetaobject,
@@ -39,7 +40,9 @@ export async function gql(admin, query, variables) {
   return result.data;
 }
 export async function loadDelivery(admin, organizationId) {
-  const data = await gql(
+  const data = databasePortalEnabled() ? {
+    metaobjectByHandle: await (await portalStoreForAdmin(admin)).byHandle(DELIVERY_TYPE, deliveryHandle(organizationId)),
+  } : await gql(
     admin,
     `#graphql
     query OrganizerDelivery($handle: MetaobjectHandleInput!) {

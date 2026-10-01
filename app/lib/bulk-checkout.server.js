@@ -1,3 +1,4 @@
+import { databasePortalEnabled, databasePortalNodes } from "./portal-records.server.js";
 import { createHash, randomUUID } from "node:crypto";
 import { PORTAL_TYPES, normalizeMetaobject } from "./brand-portal.server.js";
 import { gql, loadDelivery } from "./bulk-delivery.server.js";
@@ -49,18 +50,20 @@ export async function createBulkCheckout({
   const data = await gql(
     admin,
     `#graphql
-    query BulkCheckoutContext($organizationId: ID!, $campaign: MetaobjectHandleInput!, $proofType: String!) {
+    query BulkCheckoutContext($organizationId: ID!, $campaign: MetaobjectHandleInput!, $proofType: String!, $databaseRecords: Boolean!) {
       organization: metaobject(id: $organizationId) { id handle fields { key value } }
       campaign: metaobjectByHandle(handle: $campaign) { id handle fields { key value } }
-      proofs: metaobjects(type: $proofType, first: 100) { nodes { id handle fields { key value } } }
+      proofs: metaobjects(type: $proofType, first: 100) @skip(if: $databaseRecords) { nodes { id handle fields { key value } } }
       shop { currencyCode }
     }`,
     {
       organizationId: token.p,
       campaign: { type: PORTAL_TYPES.campaign, handle: token.c },
       proofType: PORTAL_TYPES.artworkProof,
+      databaseRecords: databasePortalEnabled(),
     },
   );
+  if (databasePortalEnabled()) data.proofs = {nodes: await databasePortalNodes(admin, PORTAL_TYPES.artworkProof)};
   const organization =
     data.organization && normalizeMetaobject(data.organization);
   const campaign = data.campaign && normalizeMetaobject(data.campaign);

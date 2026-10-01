@@ -113,3 +113,30 @@ independently stored encrypted backup; separately held recovery key; and a
 measured end-to-end restore into a separate test environment. The proposed
 15-minute data-loss and four-hour recovery targets are not yet achieved by
 these manual capture tools.
+
+## PostgreSQL portal records
+
+With `PORTAL_DATA_BACKEND=postgresql`, artwork proofs, production batches,
+organization requests, and organizer delivery addresses use the tenant-scoped
+`PortalRecord` table. Campaigns, organizations, payouts, products and orders
+remain in Shopify; private artwork remains in R2. Set the same backend flag
+on the hosted app and backup job. Apply `prisma-postgresql` migrations before
+turning on the app flag; `/health` checks the new table when enabled.
+
+The October 1 recovery imported four proofs and one production batch from the
+verified offsite snapshot. IDs, field values (including empty fields), approval
+history and update timestamps were preserved. Older missing records remain
+unresolved. `scripts/recovery/import-portal-records.mjs` provides a dry-run and
+an explicit apply path, validates the source shop/app and ownership references,
+and refuses to overwrite conflicting records.
+
+The full PostgreSQL dump includes this table. Portal backups additionally export
+`postgresql/portal-records.json` and include its private artwork references in
+R2/file verification. Historical coverage counts recovered Shopify IDs only;
+new records do not offset historical gaps. The monitoring baseline must retain
+those gaps and enforce a minimum `portalRecords` count as well as Shopify counts.
+
+Do not disable the backend flag after new writes as a rollback: Shopify does not
+contain those new records. Roll back code only to a database-aware release, or
+pause writes and perform a separately verified reverse migration. Never drop
+`PortalRecord` as part of application rollback.

@@ -1,3 +1,4 @@
+import { createPortalRecordStore, DATABASE_PORTAL_TYPES } from "../../app/lib/portal-records.server.js";
 import process from "node:process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { mkdtemp, writeFile, rm, readFile } from "node:fs/promises";
@@ -51,8 +52,13 @@ export async function runPortalBackup(env = process.env) {
     const runKey = randomBytes(32), envelope = wrapKey(runKey, recipient), keyFile = path.join(root, "key");
     await writeFile(keyFile, runKey, { mode: 0o600, flag: "wx" }); runKey.fill(0);
     const captureRoot = path.join(root, "portal");
+    let portalRecords;
+    if (env.PORTAL_DATA_BACKEND === "postgresql") {
+      const store = createPortalRecordStore(prisma, BACKUP_STORE);
+      portalRecords = (await Promise.all([...DATABASE_PORTAL_TYPES].map(type => store.list(type)))).flat();
+    }
     const report = await capture({ store: BACKUP_STORE, output: captureRoot, keyFile, queryExecutor,
-      includeRepositoryHistory: false, seal: false, artworkConfig: privateArtworkConfig(env) });
+      includeRepositoryHistory: false, seal: false, portalRecords, artworkConfig: privateArtworkConfig(env) });
     const coverage = assessPortalCoverage(report, baseline);
     await writeFile(path.join(captureRoot, "capture", "coverage.json"), JSON.stringify({ ...coverage,
       scope: "Current accessible portal data only; accepted historical gaps remain unresolved.", baseline }), { mode: 0o600, flag: "wx" });

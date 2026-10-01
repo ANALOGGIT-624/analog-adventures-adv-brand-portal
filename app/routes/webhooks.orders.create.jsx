@@ -1,3 +1,4 @@
+import { databasePortalEnabled, databasePortalNodes } from "../lib/portal-records.server.js";
 import prisma from "../db.server";
 import { bulkOrderManifest } from "../lib/bulk-checkout.server";
 import process from "node:process";
@@ -39,6 +40,7 @@ export const action = async ({ request }) => {
         $campaignType: String!
         $payoutRuleType: String!
         $proofType: String!
+        $databaseRecords: Boolean!
       ) {
         campaigns: metaobjects(type: $campaignType, first: 100) {
           nodes { id handle displayName fields { key value } }
@@ -46,7 +48,7 @@ export const action = async ({ request }) => {
         payoutRules: metaobjects(type: $payoutRuleType, first: 100) {
           nodes { id handle displayName fields { key value } }
         }
-        proofs: metaobjects(type: $proofType, first: 100) {
+        proofs: metaobjects(type: $proofType, first: 100) @skip(if: $databaseRecords) {
           nodes { id handle displayName fields { key value } }
         }
       }
@@ -56,6 +58,7 @@ export const action = async ({ request }) => {
           campaignType: PORTAL_TYPES.campaign,
           payoutRuleType: PORTAL_TYPES.payoutRule,
           proofType: PORTAL_TYPES.artworkProof,
+          databaseRecords: databasePortalEnabled(),
         },
       },
     );
@@ -66,6 +69,7 @@ export const action = async ({ request }) => {
       );
     }
 
+    if (databasePortalEnabled()) referencePayload.data.proofs = {nodes: await databasePortalNodes(admin, PORTAL_TYPES.artworkProof)};
     const campaigns =
       referencePayload.data.campaigns.nodes.map(normalizeMetaobject);
     const payoutRules =

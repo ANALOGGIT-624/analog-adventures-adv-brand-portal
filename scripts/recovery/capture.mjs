@@ -14,6 +14,7 @@ import {
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
 import { privateArtworkConfig } from "../../app/lib/private-artwork-storage.server.js";
+import { canonicalPortalType } from "../../app/lib/portal-records.server.js";
 import { queries } from "./queries.mjs";
 import { hashingStream, sha256, sealDirectory, loadKey } from "./archive.mjs";
 
@@ -74,6 +75,7 @@ export async function capture({
   seal = true,
   artworkConfig,
   artworkClient,
+  portalRecords,
 }) {
   if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(store))
     throw new Error("Supply a canonical myshopify store");
@@ -191,12 +193,18 @@ export async function capture({
         async (after) => (await query("records", { type, after })).metaobjects,
       );
       records.push(...values);
-      if (values.length !== definition.metaobjectsCount)
+      // Recovered legacy IDs count toward historical coverage; new PostgreSQL
+      // records must never hide older missing Shopify entries.
+      const capturedIds = new Set(values.map(row => row.id));
+      for (const row of portalRecords || []) {
+        if (canonicalPortalType(row.type) === type && /^gid:\/\/shopify\/Metaobject\/\d+$/.test(row.id)) capturedIds.add(row.id);
+      }
+      if (capturedIds.size !== definition.metaobjectsCount)
         report.gaps.push({
           kind: "metaobject_count_mismatch",
           type,
           expected: definition.metaobjectsCount,
-          captured: values.length,
+          captured: capturedIds.size,
         });
       console.log(
         `Captured ${type}: ${values.length}/${definition.metaobjectsCount} reported records.`,
@@ -204,6 +212,12 @@ export async function capture({
     }
     await privateJson(path.join(stage, "shopify/metaobjects.json"), records);
     report.counts.metaobjects = records.length;
+    if (portalRecords) {
+      await privateJson(path.join(stage, "postgresql/portal-records.json"), portalRecords);
+      report.counts.portalRecords = portalRecords.length;
+      // Include database-owned asset references and resolve preserved historical IDs.
+      records.push(...portalRecords);
+    }
     const orders = await collectPages(
       async (after) => (await query("orders", { after })).orders,
     );
@@ -242,8 +256,9 @@ export async function capture({
       const ids = [...historicalIds].slice(i, i + 100),
         result = await query("historical", { ids });
       ids.forEach((id, index) => {
-        history.push({ requestedId: id, record: result.nodes[index] });
-        if (!result.nodes[index])
+        const record = result.nodes[index] || portalRecords?.find(row => row.id === id) || null;
+        history.push({ requestedId: id, record });
+        if (!record)
           report.gaps.push({ kind: "inaccessible_historical_record", id });
       });
     }

@@ -267,3 +267,74 @@ test("invalid body or failed session verification cannot reach download signing"
   await assert.rejects(invalid.run());
   assert.equal(invalid.counts().signed, 0);
 });
+
+test("database-backed private downloads retain company and campaign authorization", async () => {
+  const source = (
+    await readFile(
+      new URL("../app/lib/private-artwork-access.server.js", import.meta.url),
+      "utf8",
+    )
+  )
+    .replace(/^import .*;\n/gm, "")
+    .replace(/export /g, "");
+  for (const foreign of [false, true]) {
+    const context = vm.createContext({
+      Response,
+      databasePortalEnabled: () => true,
+      isPortalRecordId: () => true,
+      normalizeMetaobject,
+      PORTAL_TYPES: {
+        artworkProof: "$app:artwork_proof",
+        organizationRequest: "$app:organization_request",
+        organizationStore: "aa_organization_store",
+        campaign: "aa_store_campaign",
+      },
+      portalStoreForAdmin: async () => ({
+        get: async () =>
+          node("$app:artwork_proof", {
+            private_asset_id: privateId,
+            organization_store_id: "org1",
+            campaign_id: "campaign1",
+            original_filename: "proof.svg",
+          }),
+      }),
+    });
+    vm.runInContext(source, context);
+    const admin = {
+      graphql: async (document) => ({
+        json: async () => ({
+          data: document.includes("PrivateArtworkOrganization")
+            ? {
+                metaobject: node("aa_organization_store", {
+                  company: "company1",
+                }),
+              }
+            : document.includes("PrivateArtworkCampaign")
+              ? {
+                  metaobject: node("aa_store_campaign", {
+                    organization_store: "org1",
+                  }),
+                }
+              : {
+                  customer: {
+                    companyContactProfiles: [
+                      {
+                        company: { id: foreign ? "other-company" : "company1" },
+                      },
+                    ],
+                  },
+                },
+        }),
+      }),
+    };
+    const result = context.authorizedArtwork({
+      admin,
+      shop: "test.myshopify.com",
+      customerId: "customer1",
+      kind: "proof",
+      recordId: id,
+    });
+    if (foreign) await assert.rejects(result, (e) => e.status === 404);
+    else assert.equal((await result).assetId, privateId);
+  }
+});

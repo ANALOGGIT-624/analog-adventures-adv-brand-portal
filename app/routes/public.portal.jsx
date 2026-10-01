@@ -1,3 +1,4 @@
+import { databasePortalEnabled, databasePortalNodes } from "../lib/portal-records.server.js";
 import { authenticate, unauthenticated } from "../shopify.server";
 import {
   PORTAL_TYPES,
@@ -115,6 +116,7 @@ export const loader = async ({ request }) => {
         $payoutRuleType: String!
         $proofType: String!
         $requestType: String!
+        $databaseRecords: Boolean!
       ) {
         customer(id: $customerId) {
           id
@@ -138,7 +140,7 @@ export const loader = async ({ request }) => {
         payoutRules: metaobjects(type: $payoutRuleType, first: 100) {
           nodes { id handle displayName fields { key value } }
         }
-        proofs: metaobjects(type: $proofType, first: 100) {
+        proofs: metaobjects(type: $proofType, first: 100) @skip(if: $databaseRecords) {
           nodes {
             id handle displayName fields {
               key value
@@ -149,7 +151,7 @@ export const loader = async ({ request }) => {
             }
           }
         }
-        requests: metaobjects(type: $requestType, first: 100) {
+        requests: metaobjects(type: $requestType, first: 100) @skip(if: $databaseRecords) {
           nodes {
             id handle displayName fields {
               key value
@@ -170,6 +172,7 @@ export const loader = async ({ request }) => {
         payoutStatementType: PORTAL_TYPES.payoutStatement,
         payoutRuleType: PORTAL_TYPES.payoutRule,
         proofType: PORTAL_TYPES.artworkProof,
+        databaseRecords: databasePortalEnabled(),
         requestType: PORTAL_TYPES.organizationRequest,
       },
     },
@@ -185,6 +188,10 @@ export const loader = async ({ request }) => {
     );
   }
 
+  if (databasePortalEnabled()) {
+    payload.data.proofs = {nodes: await databasePortalNodes(admin,PORTAL_TYPES.artworkProof)};
+    payload.data.requests = {nodes: await databasePortalNodes(admin,PORTAL_TYPES.organizationRequest)};
+  }
   const customer = payload.data.customer;
   if (!customer) {
     return cors(jsonResponse({ error: "Customer was not found." }, 404));
@@ -443,14 +450,14 @@ export const action = async ({ request }) => {
 
   const response = await admin.graphql(
     `#graphql
-      query AuthorizeProofReview($customerId: ID!, $organizationType: String!, $proofType: String!, $campaignType: String!) {
+      query AuthorizeProofReview($customerId: ID!, $organizationType: String!, $proofType: String!, $campaignType: String!, $databaseRecords: Boolean!) {
         customer(id: $customerId) {
           companyContactProfiles { company { id } }
         }
         organizations: metaobjects(type: $organizationType, first: 100) {
           nodes { id handle displayName fields { key value } }
         }
-        proofs: metaobjects(type: $proofType, first: 100) {
+        proofs: metaobjects(type: $proofType, first: 100) @skip(if: $databaseRecords) {
           nodes { id handle displayName fields { key value } }
         }
         campaigns: metaobjects(type: $campaignType, first: 100) {
@@ -463,6 +470,7 @@ export const action = async ({ request }) => {
         customerId: sessionToken.sub,
         organizationType: PORTAL_TYPES.organizationStore,
         proofType: PORTAL_TYPES.artworkProof,
+        databaseRecords: databasePortalEnabled(),
         campaignType: PORTAL_TYPES.campaign,
       },
     },
@@ -486,6 +494,7 @@ export const action = async ({ request }) => {
       .filter(({ company }) => companyIds.has(company))
       .map(({ id }) => id),
   );
+  if (databasePortalEnabled()) payload.data.proofs = {nodes: await databasePortalNodes(admin,PORTAL_TYPES.artworkProof)};
   const proof = payload.data.proofs.nodes
     .map(normalizeMetaobject)
     .find((item) => item.handle === handle);

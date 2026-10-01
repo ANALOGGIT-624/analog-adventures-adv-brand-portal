@@ -1,3 +1,4 @@
+import { databasePortalEnabled, DATABASE_PORTAL_TYPES, databasePortalNodes, portalStoreForAdmin } from "./portal-records.server.js";
 export const PORTAL_TYPES = {
   brandKit: "aa_brand_kit",
   organizationStore: "aa_organization_store",
@@ -80,17 +81,18 @@ export async function getPortalSnapshot(admin) {
         $proofType: String!
         $productionBatchType: String!
         $organizationRequestType: String!
+        $databaseRecords: Boolean!
       ) {
         definitions: metaobjectDefinitions(first: 100) {
           nodes { type name metaobjectsCount }
         }
-        proofDefinition: metaobjectDefinitionByType(type: $proofType) {
+        proofDefinition: metaobjectDefinitionByType(type: $proofType) @skip(if: $databaseRecords) {
           type name metaobjectsCount
         }
-        productionBatchDefinition: metaobjectDefinitionByType(type: $productionBatchType) {
+        productionBatchDefinition: metaobjectDefinitionByType(type: $productionBatchType) @skip(if: $databaseRecords) {
           type name metaobjectsCount
         }
-        organizationRequestDefinition: metaobjectDefinitionByType(type: $organizationRequestType) {
+        organizationRequestDefinition: metaobjectDefinitionByType(type: $organizationRequestType) @skip(if: $databaseRecords) {
           type name metaobjectsCount
         }
         organizations: metaobjects(type: $organizationType, first: 50) {
@@ -105,7 +107,7 @@ export async function getPortalSnapshot(admin) {
         payoutStatements: metaobjects(type: $payoutStatementType, first: 50) {
           nodes { id handle displayName updatedAt fields { key value } }
         }
-        proofs: metaobjects(type: $proofType, first: 100) {
+        proofs: metaobjects(type: $proofType, first: 100) @skip(if: $databaseRecords) {
           nodes {
             id handle displayName updatedAt
             fields {
@@ -117,10 +119,10 @@ export async function getPortalSnapshot(admin) {
             }
           }
         }
-        productionBatches: metaobjects(type: $productionBatchType, first: 100) {
+        productionBatches: metaobjects(type: $productionBatchType, first: 100) @skip(if: $databaseRecords) {
           nodes { id handle displayName updatedAt fields { key value } }
         }
-        organizationRequests: metaobjects(type: $organizationRequestType, first: 100) {
+        organizationRequests: metaobjects(type: $organizationRequestType, first: 100) @skip(if: $databaseRecords) {
           nodes {
             id handle displayName updatedAt
             fields {
@@ -136,6 +138,7 @@ export async function getPortalSnapshot(admin) {
     `,
     {
       variables: {
+        databaseRecords: databasePortalEnabled(),
         organizationType: PORTAL_TYPES.organizationStore,
         campaignType: PORTAL_TYPES.campaign,
         payoutRuleType: PORTAL_TYPES.payoutRule,
@@ -150,6 +153,12 @@ export async function getPortalSnapshot(admin) {
   const payload = await response.json();
   assertGraphqlResponse(payload);
 
+  if (databasePortalEnabled()) {
+    for (const [key,type] of [["proofs",PORTAL_TYPES.artworkProof],["productionBatches",PORTAL_TYPES.productionBatch],["organizationRequests",PORTAL_TYPES.organizationRequest]]) {
+      payload.data[key] = {nodes: await databasePortalNodes(admin,type)};
+    }
+  }
+
   const normalizeConnection = (connection) =>
     connection.nodes.map(normalizeMetaobject);
 
@@ -160,7 +169,7 @@ export async function getPortalSnapshot(admin) {
       payload.data.proofDefinition,
       payload.data.productionBatchDefinition,
       payload.data.organizationRequestDefinition,
-    ),
+    ).filter(type => !databasePortalEnabled() || !DATABASE_PORTAL_TYPES.has(type)),
     organizations: normalizeConnection(payload.data.organizations),
     campaigns: normalizeConnection(payload.data.campaigns),
     payoutRules: normalizeConnection(payload.data.payoutRules),
@@ -183,6 +192,9 @@ export function slugify(value) {
 }
 
 export async function upsertMetaobject(admin, { type, handle, values }) {
+  if (databasePortalEnabled() && DATABASE_PORTAL_TYPES.has(type)) {
+    return (await portalStoreForAdmin(admin)).upsert(type,handle,values);
+  }
   const fields = Object.entries(values)
     .filter(([, value]) => value !== undefined && value !== null)
     .map(([key, value]) => ({

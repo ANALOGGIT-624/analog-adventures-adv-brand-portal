@@ -43,3 +43,21 @@ model BulkCheckoutAttempt {
   snapshot    String
   createdAt   DateTime @default(now())
 }
+
+// Operational records are independent of Shopify app-definition lifecycle.
+model PortalRecord {
+  shop String
+  id String
+  type String
+  handle String
+  displayName String
+  values String
+  sourceId String?
+  importedFrom String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([shop, id])
+  @@unique([shop, type, handle])
+  @@index([shop, type])
+}

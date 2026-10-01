@@ -112,6 +112,7 @@ function harness({
   data = fixture(),
   sub = "customer-a",
   authError,
+  database = false,
   errors,
 } = {}) {
   const writes = [],
@@ -121,6 +122,8 @@ function harness({
   const handlers = vm.runInNewContext(`${source}\n({ loader, action });`, {
     Response,
     File,
+    databasePortalEnabled: () => database,
+    databasePortalNodes: async (_admin,type) => type === PORTAL_TYPES.artworkProof ? data.proofs.nodes : data.requests.nodes,
     PORTAL_TYPES,
     normalizeMetaobject,
     slugify,
@@ -145,7 +148,7 @@ function harness({
           admin: {
             graphql: async (query, options) => {
               queries.push({ query, ...options });
-              return { json: async () => ({ data, errors }) };
+              return { json: async () => ({ data: database ? {...data, proofs:undefined, requests:undefined} : data, errors }) };
             },
           },
         };
@@ -413,4 +416,21 @@ test("authorized artwork upload stores private identity without returning a publ
   const result = await response.json();
   assert.equal(result.request.downloadRecordId, "saved");
   assert.equal(result.request.artworkUrl, undefined);
+});
+
+for (const handle of ["proof-b", "proof-mismatch", "proof-sibling"]) {
+  test(`database-backed approval rejects ${handle}`, async () => {
+    const h=harness({database:true});
+    const result=await h.post({intent:"approve-proof",proofHandle:handle});
+    assert.equal(result.status,403);assert.equal(h.writes.length,0);
+  });
+}
+test("database-backed customer loader scopes records and approval preserves ownership",async()=>{
+ const h=harness({database:true});
+ const response=await h.loader({request:new Request("https://example.test/public/portal")});
+ assert.equal(response.status,200);
+ const data=await response.json();
+ assert.ok(!JSON.stringify(data).includes("proof-b"));
+ assert.equal((await h.post({intent:"approve-proof",proofHandle:"proof-a"})).status,200);
+ assert.equal(h.writes.length,1);
 });
