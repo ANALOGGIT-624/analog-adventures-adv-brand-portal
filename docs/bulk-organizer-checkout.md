@@ -2,7 +2,7 @@
 
 Bulk campaigns use a separate Shopify draft-order invoice checkout. Buyers select one variant per product and quantities (0–100 per product, at most 50 selected products). Existing ordinary-cart items are not included. Individual-shipping campaigns continue through the ordinary cart.
 
-Staff saves an organizer address under Organization stores → Bulk delivery addresses. The app-owned `organizer_delivery` definition is installed from `shopify.app.toml`. Its address is read through Admin API and is not added to the public storefront markup. Missing/invalid addresses block bulk purchases. Address edits affect new drafts only.
+Staff saves an organizer address under Organization stores → Bulk delivery addresses. The hosted app uses PostgreSQL `PortalRecord` storage when `PORTAL_DATA_BACKEND=postgresql`. The legacy Shopify definition remains declared for compatibility. The address is read server-side and is not added to the public storefront markup. Missing/invalid addresses block bulk purchases. Address edits affect new drafts only.
 
 The server verifies proxy authentication, the signed checkout token, live store/campaign relationship, product membership, variant availability, tracked inventory and quantity. It creates real variant lines with Shopify pricing/tax behavior, a custom $0 shipping line, and the organizer address. Buyer contact and billing information are collected at checkout; the organizer is not assigned as the purchasing customer. Organizer shipping charges are handled separately outside this checkout.
 

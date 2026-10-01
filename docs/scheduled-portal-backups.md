@@ -62,3 +62,40 @@ Independent download verified all 129 encrypted objects from `recovery/postgresq
 Rebuilt the existing cron service at commit `e4a4566` (build `bld-dav7ge142hec73darud0`, 37.8 seconds), without changing credentials, accepted gaps, or schedule. The replacement run started at 15:13:28 UTC and finished successfully at 15:14:39 UTC. PostgreSQL verified five objects; the portal verified 129 objects under `recovery/postgresql/scheduled/portal/2026-10-01T15-13-40.220Z-c0782985-24fd-4843-afee-d24ae5a30df3/`. Both Healthchecks monitors recovered.
 
 Independent download and decryption verified all 129 encrypted objects and restored 126 files. The archive records the rebuilt commit and exactly the approved September 30 baseline. Coverage passed with no new gaps or count regressions; both restored R2 artwork files matched the original SHA256 and 548,648-byte size. Evidence: `recovery-private/repaired-backup-restored-20261001/REPAIR-VERIFIED.json`. The next 08:00 UTC automatic run remains a future event; this repair verifies deployment and a manual run, not tomorrow's execution.
+
+## October 1 PostgreSQL operational-record migration
+
+The hosted app now uses `PORTAL_DATA_BACKEND=postgresql` for proofs, production
+batches, organization requests and delivery addresses. Four approved proofs and
+one completed batch were restored from the independently verified pre-cleanup
+archive, preserving original IDs and every field. A synthetic Test Company
+organizer address was then saved successfully through the hosted staff interface.
+Staff and customer views display the four approvals and can prepare private
+artwork download links. The completed batch retains order #1010 and its original
+proof ID/hash.
+
+The new portal minimums are 34 Shopify metaobjects, 6 PostgreSQL portal records,
+10 orders, 4 companies, 15 drafts, 4 R2 objects, 32 Shopify files and 35 downloaded
+assets. Historical missing-record counts are unchanged. The additional campaign
+count discrepancy (11 exported versus 10 reported) already exists in the
+pre-migration snapshot and represents an extra exported record, not data loss.
+
+The PostgreSQL scheduled archive at
+`recovery/postgresql/scheduled/2026-10-01T18-20-21.334Z-9b2e9106-805b-45cd-86c0-05776578cd3a/`
+was independently downloaded, decrypted with the offsite-recovered private key,
+and restored into an isolated local PostgreSQL 18 database. All fields match
+for 6 PortalRecord rows, 4 BulkCheckoutAttempt rows, 1 Session row and both
+migration records; the full database schema also matches. The recovery database
+has no network listener and no application was started against it.
+
+The accompanying portal archive contains the same six operational records and
+all original recovered fields. Its first coverage check used the old baseline;
+this was diagnosed from its encrypted `coverage.json`, without accepting any
+additional missing history. Updating an existing masked Render field must be
+verified after save; then rebuild the worker and inspect a new archive's actual
+baseline before relying on future automatic runs.
+
+Private evidence: `recovery-private/postgres-migration-scheduled-restored-20261001/DATABASE-RESTORE-VERIFIED.json`
+and `recovery-private/portal-migration-scheduled-restored-20261001/`.
+The remaining business workflow and amount-only refund reconciliation are still
+pilot gates; this migration does not clear them.
