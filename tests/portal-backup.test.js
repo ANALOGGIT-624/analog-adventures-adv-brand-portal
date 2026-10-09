@@ -9,6 +9,20 @@ import { capture } from "../scripts/recovery/capture.mjs";
 import { createKey, sha256 } from "../scripts/recovery/archive.mjs";
 import { createReadOnlyQuery, BACKUP_STORE } from "../scripts/recovery/portal-client.mjs";
 import { assessPortalCoverage } from "../scripts/recovery/scheduled-portal.mjs";
+import { attributionCoverageGaps } from "../scripts/recovery/attribution-coverage.mjs";
+
+test("lost attribution fails coverage even when order counts are unchanged", () => {
+  const order = { id:"order", lineItems:{ nodes:[{ id:"gid://shopify/LineItem/1", customAttributes:[{key:"_aa_attribution",value:"checkout-tag"}]}] } };
+  const baseline = {store:BACKUP_STORE,acceptedGaps:[],minimumCounts:{orders:1}};
+  const check = o => assessPortalCoverage({status:"captured_with_gaps",counts:{orders:1},gaps:attributionCoverageGaps(o)},baseline).healthy;
+  assert.equal(check(order),false);
+  const attributed = {...order, attributionStatus:{value:"verified"},attributionManifest:{jsonValue:{lines:[{lineItemId:"1"}]}}};
+  assert.equal(check(attributed),true);
+  assert.equal(check({...attributed,attributionManifest:{jsonValue:{lines:[]}}}),false);
+  assert.equal(check({...attributed,attributionManifest:{jsonValue:{lines:[{lineItemId:"2"}]}}}),false);
+  assert.equal(check({...attributed,attributionStatus:null}),false);
+  assert.equal(check({id:"ordinary-order",lineItems:{nodes:[]}}),true);
+});
 
 test("backup reader is pinned to the pilot, refuses unknown operations and does not follow redirects", async () => {
   const requests = [];

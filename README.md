@@ -37,13 +37,19 @@ and Shopify GraphQL validation passed. A real interrupted upload recovered on
 retry, and the new offsite archive was independently downloaded and decrypted.
 Tot Time's actual signed-in portal displayed only its own organization data.
 
-**Pilot blocker:** ten development-store orders have lost API-visible attribution
-fields present in the October 1 backup. Orders and checkout tags remain. Recovery
-snapshots are preserved; no attribution restoration or duplicate webhook replay
-has been performed. Current backup monitoring checks counts but missed this
-field-level regression, so its green status is not full business-data assurance.
-See [the reliability review](docs/reliability-review-20261009.md) for evidence,
-deployment details, recovery steps and remaining acceptance work.
+The ten development orders whose attribution fields were missing have now been
+recovered from the verified October 1 archive using atomic create-only writes.
+Read-back matched the archived snapshots, and signed duplicate deliveries for
+#1010/#1011 returned 200 without changing attribution or database business data.
+Backup capture now flags missing/incomplete attribution on tagged orders, including
+when the total order count is unchanged (199 tests pass; one opt-in test skipped).
+
+**Pilot investigation remains open:** the cause of the disappearance is not yet
+established. Shopify's released configuration contains the five order definitions,
+but the installed API does not list them and a restored field reports no attached
+definition. A fresh release preserved the configuration and did not resolve that
+mismatch. See [the reliability review](docs/reliability-review-20261009.md) for
+recovery evidence, deployment status and remaining acceptance work.
 
 ### Business features implemented
 

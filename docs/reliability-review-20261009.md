@@ -111,3 +111,45 @@ due for rotation by October 24.
 
 References: [Shopify webhook verification](https://shopify.dev/docs/apps/build/webhooks/verify-deliveries)
 and [atomic metafield writes](https://shopify.dev/docs/api/admin-graphql/2026-07/mutations/metafieldsSet).
+
+
+## Recovery follow-up — October 9
+
+Recovered all ten affected orders from the independently restored October 1
+19:14 UTC archive. Preflight matched order IDs/names/creation times, line IDs and
+checkout tags, and proved all five target fields absent on each order. Each
+atomic `metafieldsSet` call used `compareDigest: null` on all five fields. The
+manifest and original verification timestamp were preserved; organization,
+campaign and payout-rule index fields were derived from those archived lines
+using the existing one-or-multiple rule. All 50 fields passed read-back checks.
+PostgreSQL portal and checkout records remained unchanged. Private per-order
+hashes/results are in `recovery-private/attribution-recovery-journal-20261009.json`.
+
+Four signed duplicate notifications (two each for #1010 and #1011) returned HTTP
+200 in 217–476 ms. Stored attribution and database business records were unchanged.
+No purchase, refund, shipment or payout was performed by this replay.
+
+Shopify version `attribution-recovery-20261009` (`1161551904769`) was built,
+inspected and released with deletion-disallowing flags. Its configuration content
+matches the previously active version 5 (including scopes, URLs and all custom
+data definitions). Local hosted TOML validation passed. The app installation ID
+and app ID are unchanged. Both filtered and complete order-definition listings
+omit the five app-owned definitions; a restored field's `definition` is null.
+Thus definition presence in the released configuration does not establish an
+attached store definition. Releasing identical configuration did not resolve that
+mismatch. Do not attribute the disappearance to a user action or a specific
+Shopify operation without additional evidence. The last local verified complete
+archive is October 1 19:14 UTC; the observed missing snapshot is October 9 14:58
+UTC. Orders were still attributed after the October 1 release.
+
+Backup capture now reports `missing_order_attribution` for tagged orders without
+a verified nonempty manifest, and `incomplete_order_attribution` when a tagged
+line is absent from the manifest. The existing monitor's unaccepted-gap rule
+makes these unhealthy. Ordinary untagged orders do not fail. The real October 1
+archive yields zero such gaps; the October 9 pre-recovery archive yields ten.
+199 tests pass (one opt-in PostgreSQL test skipped); targeted lint passes.
+This checks accessible orders with retained tags; it does not prove recovery of
+older inaccessible orders or detect simultaneous loss of both tags and metadata.
+
+Backup-worker deployment and a fresh post-recovery backup are pending below.
+The definition mismatch and cause investigation remain pilot acceptance items.

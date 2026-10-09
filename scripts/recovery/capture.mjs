@@ -16,6 +16,7 @@ import {
 import { privateArtworkConfig } from "../../app/lib/private-artwork-storage.server.js";
 import { canonicalPortalType } from "../../app/lib/portal-records.server.js";
 import { queries } from "./queries.mjs";
+import { attributionCoverageGaps } from "./attribution-coverage.mjs";
 import { hashingStream, sha256, sealDirectory, loadKey } from "./archive.mjs";
 
 const exec = promisify(execFile);
@@ -231,6 +232,7 @@ export async function capture({
             order.lineItems.pageInfo.endCursor,
           )),
         );
+      report.gaps.push(...attributionCoverageGaps(order));
       if (order.refunds.length >= 250)
         report.gaps.push({ kind: "refund_limit", orderId: order.id });
       for (const refund of order.refunds) {
