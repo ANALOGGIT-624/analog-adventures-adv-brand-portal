@@ -1,6 +1,7 @@
 # Render cron completion discrepancy — October 9, 2026
 
-Draft for Render support; not sent.
+Sent through Render dashboard support on October 9, 2026, with user authorization.
+Submission included a fresh observation that the run remained In progress at 37m10s.
 
 Please investigate a cron run that remains In progress after the application
 completed both backup stages and cleanup. We need to establish whether the
@@ -33,3 +34,10 @@ Please provide the actual run/container ID, process exit code and termination
 time, and check for delayed/stale scheduler events. Please preserve the existing
 service, schedule, environment and backup data; do not trigger or cancel runs
 without coordinating with us. No credentials or customer records are included.
+
+
+Render's automated assistant acknowledged the report. A follow-up requested
+human investigation and clarified that the completion log precedes output flush
+and process.exit, with no subsequent asynchronous cleanup. Render confirmed
+escalation to its team and said replies will arrive in dashboard chat and email.
+No ticket number was displayed. No cancellation or service change was requested.
