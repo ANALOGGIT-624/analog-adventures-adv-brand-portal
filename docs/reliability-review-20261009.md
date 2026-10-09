@@ -132,15 +132,16 @@ No purchase, refund, shipment or payout was performed by this replay.
 Shopify version `attribution-recovery-20261009` (`1161551904769`) was built,
 inspected and released with deletion-disallowing flags. Its configuration content
 matches the previously active version 5 (including scopes, URLs and all custom
-data definitions). Local hosted TOML validation passed. The app installation ID
-and app ID are unchanged. Both filtered and complete order-definition listings
+data definitions). Local hosted TOML validation passed. The app ID matches the archived identity; the installation ID stayed consistent
+during today's diagnostic calls (the older identity export does not include it). Both filtered and complete order-definition listings
 omit the five app-owned definitions; a restored field's `definition` is null.
 Thus definition presence in the released configuration does not establish an
 attached store definition. Releasing identical configuration did not resolve that
 mismatch. Do not attribute the disappearance to a user action or a specific
-Shopify operation without additional evidence. The last local verified complete
-archive is October 1 19:14 UTC; the observed missing snapshot is October 9 14:58
-UTC. Orders were still attributed after the October 1 release.
+Shopify operation without additional evidence. An independently downloaded/decrypted October 2 08:00 UTC archive still has all
+ten verified manifests and no attribution coverage gaps. The observed missing
+snapshot is October 9 14:58 UTC, narrowing the confirmed interval to October 2–9.
+Orders were still attributed after the October 1 release.
 
 Backup capture now reports `missing_order_attribution` for tagged orders without
 a verified nonempty manifest, and `incomplete_order_attribution` when a tagged
@@ -151,5 +152,23 @@ archive yields zero such gaps; the October 9 pre-recovery archive yields ten.
 This checks accessible orders with retained tags; it does not prove recovery of
 older inaccessible orders or detect simultaneous loss of both tags and metadata.
 
-Backup-worker deployment and a fresh post-recovery backup are pending below.
+Backup worker commit `0ebaf63` built successfully as
+`bld-db4hqa2d0e5s73cd4krg`. The post-recovery portal run reported verification at
+17:03:14 UTC, with 162 objects and 13 accepted historical gaps. The return from
+ten to thirteen known gaps reflects restored historical references; it is not
+newly lost data. Attribution completeness passed the new check. The PostgreSQL
+stage separately verified five objects. A delayed dashboard response prompted
+a second manual trigger; Render canceled the earlier attempt. The second run
+produced the verified archive. Independent archive read-back is recorded below.
 The definition mismatch and cause investigation remain pilot acceptance items.
+
+
+Independent post-recovery verification downloaded all 162 encrypted objects,
+verified transfer hashes, and decrypted 159 files. All ten recovered attribution
+manifests/status values exactly match the October 1 archive. The new capture has
+zero attribution gaps, healthy coverage, and the 13 explicitly accepted historical
+gaps. Evidence: `recovery-private/attribution-recovered-verification-20261009.json`.
+The backing archive prefix is
+`recovery/postgresql/scheduled/portal/2026-10-09T17-02-06.887Z-bb26c8bb-1716-48a4-a699-dfdf9506c6f2/`.
+See [the prepared platform investigation note](shopify-attribution-investigation-20261009.md)
+for the remaining definition/disappearance questions. No support message was sent.

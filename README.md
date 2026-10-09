@@ -41,8 +41,10 @@ The ten development orders whose attribution fields were missing have now been
 recovered from the verified October 1 archive using atomic create-only writes.
 Read-back matched the archived snapshots, and signed duplicate deliveries for
 #1010/#1011 returned 200 without changing attribution or database business data.
-Backup capture now flags missing/incomplete attribution on tagged orders, including
-when the total order count is unchanged (199 tests pass; one opt-in test skipped).
+Backup worker `0ebaf63` now flags missing/incomplete attribution on tagged orders,
+including when the total order count is unchanged (199 tests pass; one opt-in test
+skipped). A new offsite backup passed; independent download/decryption confirmed
+all ten restored snapshots match the original archive and no attribution gaps remain.
 
 **Pilot investigation remains open:** the cause of the disappearance is not yet
 established. Shopify's released configuration contains the five order definitions,
