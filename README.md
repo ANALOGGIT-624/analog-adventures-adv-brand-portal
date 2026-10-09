@@ -480,3 +480,10 @@ Shopify:
 Internationalization:
 
 - [Internationalizing your app](https://shopify.dev/docs/apps/best-practices/internationalization/getting-started)
+
+
+October 9 definition-repair follow-up: backup worker `0e8ee57` deployed and the
+17:28 UTC archive passed independent download/decryption (165 encrypted objects,
+162 restored files). Five definitions and ten original attribution manifests
+were preserved; no new coverage gaps. Render's final job-exit status remains
+unverified despite successful archive checks; see the reliability review.

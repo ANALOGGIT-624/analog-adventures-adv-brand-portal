@@ -189,3 +189,20 @@ definitions or changed types/admin access as unaccepted gaps. These checks run
 alongside the existing per-order attribution checks. Validation: 200 tests pass,
 one opt-in PostgreSQL test skipped; targeted ESLint, hosted TOML validation and
 GraphQL 2026-07 validation pass. Worker rollout is recorded below.
+
+
+Worker `0e8ee57` built successfully as `bld-db4i66om7kps73btqsk0`. A single
+manual verification run reported PostgreSQL verification at 17:26:57 UTC and
+portal verification at 17:28:06 UTC. The portal archive contains 165 encrypted
+objects. Independent download verified every transfer hash and decrypted 162
+files: five correct definitions, eleven orders, ten verified attribution
+manifests matching the October 1 originals, no attribution/definition gaps, and
+healthy coverage with the same thirteen accepted historical gaps. Evidence:
+`recovery-private/definition-sync-verification-20261009.json`. Archive prefix:
+`recovery/postgresql/scheduled/portal/2026-10-09T17-26-57.929Z-f593a9b8-4ad4-4ff5-9d50-518beaf19962/`.
+
+Render's log has not shown its final successful-exit marker for this run or the
+17:03 verification; the dashboard last-success timestamp remains older. Archive
+verification and successful monitor pings are confirmed, but clean process exit
+and Render run-status reconciliation remain unverified. Do not mark this
+operational item complete or repeatedly trigger runs to resolve dashboard lag.
