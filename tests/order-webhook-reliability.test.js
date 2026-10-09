@@ -12,17 +12,26 @@ import {
   attributionTokenForVariant,
 } from "../app/lib/attribution.server.js";
 import { approvedProofForCampaign } from "../app/lib/proof-workflow.server.js";
-const source = (
-  await readFile(
-    new URL("../app/routes/webhooks.orders.create.jsx", import.meta.url),
-    "utf8",
-  )
-)
-  .replace(/^import[\s\S]*?;\n/gm, "")
-  .replace(/export const /g, "const ");
+const strip = (s) =>
+  s.replace(/^import[\s\S]*?;\n/gm, "").replace(/export const /g, "const ");
+const source =
+  strip(
+    await readFile(
+      new URL("../app/lib/order-attribution.server.js", import.meta.url),
+      "utf8",
+    ),
+  ) +
+  "\n" +
+  strip(
+    await readFile(
+      new URL("../app/routes/webhooks.orders.create.jsx", import.meta.url),
+      "utf8",
+    ),
+  );
 const node = (id, handle, values) => ({
   id,
   handle,
+  updatedAt: "2026-09-30T00:00:00Z",
   fields: Object.entries(values).map(([key, value]) => ({ key, value })),
 });
 function harness({
@@ -135,7 +144,7 @@ function harness({
       return Response.json({ data });
     },
   };
-  const action = vm.runInNewContext(source + "\naction", {
+  const handlers = vm.runInNewContext(source + "\n({action, reconcileOrder})", {
     Response,
     console: { log() {} },
     process: { env: { SHOPIFY_API_SECRET: "test-secret" } },
@@ -159,8 +168,15 @@ function harness({
   return {
     writes,
     data,
+    recover: () =>
+      handlers.reconcileOrder({
+        admin,
+        payload,
+        shop: "test.myshopify.com",
+        recovery: true,
+      }),
     run: () =>
-      action({
+      handlers.action({
         request: new Request("https://app.example.com/webhooks/orders/create", {
           method: "POST",
         }),
@@ -252,5 +268,19 @@ test("unknown historical proof approval cannot be attributed automatically", asy
     (f) => f.key !== "reviewed_at",
   );
   await assert.rejects(h.run(), /No provable/);
+  assert.equal(h.writes.length, 0);
+});
+
+test("recovery attributes a genuinely missed order once and preserves duplicate snapshots", async () => {
+  const h = harness();
+  assert.equal(await h.recover(), "recovered");
+  assert.equal(await h.recover(), "verified");
+  assert.equal(h.writes.length, 1);
+  assert.ok(h.writes[0].every((x) => x.compareDigest === null));
+});
+test("recovery refuses references edited after purchase", async () => {
+  const h = harness();
+  h.data.payoutRules.nodes[0].updatedAt = "2026-10-02T00:00:00Z";
+  await assert.rejects(h.recover(), /Historical attribution/);
   assert.equal(h.writes.length, 0);
 });

@@ -1,9 +1,12 @@
+import { startOrderReconciliation } from "./lib/order-reconciliation.server";
 import { PassThrough } from "stream";
 import { renderToPipeableStream } from "react-dom/server";
 import { ServerRouter } from "react-router";
 import { createReadableStreamFromReadable } from "@react-router/node";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
+
+startOrderReconciliation();
 
 export const streamTimeout = 5000;
 

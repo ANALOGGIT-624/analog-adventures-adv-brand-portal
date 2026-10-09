@@ -1,0 +1,288 @@
+import {
+  databasePortalEnabled,
+  databasePortalNodes,
+} from "./portal-records.server.js";
+import prisma from "../db.server";
+import { bulkOrderManifest } from "./bulk-checkout.server";
+import process from "node:process";
+import { PORTAL_TYPES, normalizeMetaobject } from "./brand-portal.server";
+import { referenceIds } from "./public-storefront.server";
+import { signedLineAttributions } from "./attribution.server";
+import { approvedProofForCampaign } from "./proof-workflow.server";
+
+function oneOrMultiple(values) {
+  const unique = [...new Set(values)];
+  return unique.length === 1 ? unique[0] : "multiple";
+}
+
+async function hasVerifiedAttribution(admin, ownerId) {
+  const response = await admin.graphql(
+    `#graphql
+    query ExistingOrderAttribution($id: ID!) {
+      order(id: $id) {
+        manifest: metafield(key: "attribution_manifest") { jsonValue }
+        status: metafield(key: "attribution_status") { value }
+      }
+    }`,
+    { variables: { id: ownerId } },
+  );
+  const result = await response.json();
+  if (result.errors?.length || !result.data?.order)
+    throw new Error("Cannot verify existing order attribution.");
+  const { manifest, status } = result.data.order;
+  if (!manifest && !status) return false;
+  if (
+    status?.value === "verified" &&
+    Array.isArray(manifest?.jsonValue?.lines) &&
+    manifest.jsonValue.lines.length
+  )
+    return true;
+  // Never overwrite a partial or unexpected historical record automatically.
+  throw new Error("Existing order attribution requires review.");
+}
+
+export const reconcileOrder = async ({
+  admin,
+  payload,
+  shop,
+  recovery = false,
+}) => {
+  const ownerId =
+    payload.admin_graphql_api_id || `gid://shopify/Order/${payload.id}`;
+  if (await hasVerifiedAttribution(admin, ownerId)) return "verified";
+
+  const bulkManifest = await bulkOrderManifest({
+    admin,
+    attempts: prisma.bulkCheckoutAttempt,
+    payload,
+    shop,
+  });
+  let manifest = bulkManifest;
+  if (!manifest) {
+    const signedLines = signedLineAttributions(
+      payload.line_items,
+      process.env.SHOPIFY_API_SECRET,
+      payload.created_at,
+    );
+    if (!signedLines.length) return "unattributed";
+
+    const response = await admin.graphql(
+      `#graphql
+      query AttributionReferenceData(
+        $campaignType: String!
+        $payoutRuleType: String!
+        $proofType: String!
+        $databaseRecords: Boolean!
+      ) {
+        campaigns: metaobjects(type: $campaignType, first: 100) {
+          nodes { id handle displayName updatedAt fields { key value } }
+        }
+        payoutRules: metaobjects(type: $payoutRuleType, first: 100) {
+          nodes { id handle displayName updatedAt fields { key value } }
+        }
+        proofs: metaobjects(type: $proofType, first: 100) @skip(if: $databaseRecords) {
+          nodes { id handle displayName updatedAt fields { key value } }
+        }
+      }
+    `,
+      {
+        variables: {
+          campaignType: PORTAL_TYPES.campaign,
+          payoutRuleType: PORTAL_TYPES.payoutRule,
+          proofType: PORTAL_TYPES.artworkProof,
+          databaseRecords: databasePortalEnabled(),
+        },
+      },
+    );
+    const referencePayload = await response.json();
+    if (referencePayload.errors?.length) {
+      throw new Error(
+        referencePayload.errors.map(({ message }) => message).join("; "),
+      );
+    }
+
+    if (databasePortalEnabled())
+      referencePayload.data.proofs = {
+        nodes: await databasePortalNodes(admin, PORTAL_TYPES.artworkProof),
+      };
+    const campaigns =
+      referencePayload.data.campaigns.nodes.map(normalizeMetaobject);
+    const payoutRules =
+      referencePayload.data.payoutRules.nodes.map(normalizeMetaobject);
+    const proofs = referencePayload.data.proofs.nodes.map(normalizeMetaobject);
+    const orderCreatedAt = new Date(payload.created_at);
+    if (!Number.isFinite(orderCreatedAt.getTime()))
+      throw new Error("Invalid order creation timestamp.");
+    manifest = signedLines.flatMap(({ line, token }) => {
+      const campaign = campaigns.find(({ handle }) => handle === token.c);
+      const productGid = `gid://shopify/Product/${token.p}`;
+      if (
+        !campaign ||
+        !["live", "closed", "archived"].includes(
+          String(campaign.status).toLowerCase(),
+        )
+      )
+        throw new Error(
+          "Signed order campaign is unavailable for verification.",
+        );
+      if (
+        (campaign.starts_at && new Date(campaign.starts_at) > orderCreatedAt) ||
+        (campaign.closes_at && new Date(campaign.closes_at) < orderCreatedAt) ||
+        !referenceIds(campaign.products).includes(productGid)
+      ) {
+        return [];
+      }
+
+      const payoutRule = payoutRules.find(
+        ({ id }) => id === campaign.payout_rule,
+      );
+      if (!payoutRule)
+        throw new Error("Signed order payout rule is unavailable.");
+      if (recovery) {
+        const references = [
+          referencePayload.data.campaigns.nodes.find(
+            (x) => x.id === campaign.id,
+          ),
+          referencePayload.data.payoutRules.nodes.find(
+            (x) => x.id === payoutRule.id,
+          ),
+        ];
+        if (
+          references.some(
+            (x) => !x?.updatedAt || new Date(x.updatedAt) > orderCreatedAt,
+          )
+        )
+          throw new Error("Historical attribution references require review.");
+      }
+      const approvedProof = approvedProofForCampaign(
+        proofs.filter((proof) => {
+          const reviewedAt = new Date(proof.reviewed_at).getTime();
+          return (
+            Number.isFinite(reviewedAt) &&
+            reviewedAt <= orderCreatedAt.getTime() &&
+            proof.organization_store_id === campaign.organization_store
+          );
+        }),
+        campaign.id,
+      );
+      if (!approvedProof)
+        throw new Error(
+          "No provable approved artwork at the order creation time.",
+        );
+
+      return [
+        {
+          lineItemId: String(line.id),
+          productId: productGid,
+          variantId: `gid://shopify/ProductVariant/${token.i}`,
+          quantity: Number(line.quantity || 0),
+          linePrice: String(line.price || "0"),
+          organizationStoreId: campaign.organization_store,
+          campaignId: campaign.id,
+          campaignHandle: campaign.handle,
+          payoutRuleId: payoutRule.id,
+          payoutRuleSnapshot: {
+            name: payoutRule.rule_name,
+            method: payoutRule.method,
+            rate: payoutRule.rate,
+            basis: payoutRule.basis,
+            settlementDelayDays: payoutRule.settlement_delay_days || "0",
+          },
+          artworkProofSnapshot: approvedProof
+            ? {
+                id: approvedProof.id,
+                version: Number(approvedProof.version_number || 0),
+                fileId: approvedProof.asset_file,
+                privateAssetId: approvedProof.private_asset_id,
+                contentHash: approvedProof.content_hash,
+              }
+            : null,
+        },
+      ];
+    });
+  }
+
+  if (!manifest.length) return "unattributed";
+
+  if (recovery) {
+    const ids = new Set(manifest.map((x) => String(x.lineItemId)));
+    if (
+      (payload.line_items || []).some(
+        (line) =>
+          line.properties?.some((x) => x.name === "_aa_attribution") &&
+          !ids.has(String(line.id)),
+      )
+    )
+      throw new Error("Incomplete signed attribution requires review.");
+  }
+  const organizationIds = manifest.map(
+    ({ organizationStoreId }) => organizationStoreId,
+  );
+  const campaignIds = manifest.map(({ campaignId }) => campaignId);
+  const payoutRuleIds = manifest.map(({ payoutRuleId }) => payoutRuleId);
+  const metafields = [
+    {
+      ownerId,
+      key: "attribution_manifest",
+      type: "json",
+      // Atomic create-only guard: a competing delivery cannot overwrite a winner.
+      compareDigest: null,
+      value: JSON.stringify({
+        version: 2,
+        verifiedAt: new Date().toISOString(),
+        lines: manifest,
+      }),
+    },
+    {
+      ownerId,
+      key: "attribution_status",
+      type: "single_line_text_field",
+      value: "verified",
+    },
+    {
+      ownerId,
+      key: "organization_store_id",
+      type: "single_line_text_field",
+      value: oneOrMultiple(organizationIds),
+    },
+    {
+      ownerId,
+      key: "campaign_id",
+      type: "single_line_text_field",
+      value: oneOrMultiple(campaignIds),
+    },
+    {
+      ownerId,
+      key: "payout_rule_id",
+      type: "single_line_text_field",
+      value: oneOrMultiple(payoutRuleIds),
+    },
+  ];
+  if (recovery) for (const field of metafields) field.compareDigest = null;
+  const writeResponse = await admin.graphql(
+    `#graphql
+      mutation RecordOrderAttribution($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) {
+          metafields { id key }
+          userErrors { field message code }
+        }
+      }
+    `,
+    { variables: { metafields } },
+  );
+  const writePayload = await writeResponse.json();
+  const errors = writePayload.data?.metafieldsSet?.userErrors || [];
+  if (
+    !writePayload.data?.metafieldsSet ||
+    writePayload.errors?.length ||
+    errors.length
+  ) {
+    throw new Error(
+      [...(writePayload.errors || []), ...errors]
+        .map(({ message }) => message)
+        .join("; "),
+    );
+  }
+
+  return "recovered";
+};

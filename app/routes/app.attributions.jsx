@@ -1,9 +1,13 @@
-import { useLoaderData } from "react-router";
+import {
+  reconciliationStatus,
+  runOrderReconciliation,
+} from "../lib/order-reconciliation.server";
+import { Form, useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
 import { productionProofLabel } from "../lib/attribution-display";
 
 export const loader = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const response = await admin.graphql(
     `#graphql
       query AttributedOrders {
@@ -26,6 +30,10 @@ export const loader = async ({ request }) => {
   }
 
   return {
+    reconciliation:
+      session.shop === "analog-adventures-test.myshopify.com"
+        ? await reconciliationStatus()
+        : null,
     orders: payload.data.orders.nodes
       .filter(({ attribution }) => attribution?.jsonValue)
       .map((order) => ({
@@ -36,14 +44,41 @@ export const loader = async ({ request }) => {
   };
 };
 
+export const action = async ({ request }) => {
+  const { session } = await authenticate.admin(request);
+  if (session.shop !== "analog-adventures-test.myshopify.com")
+    throw new Response("Unavailable", { status: 403 });
+  await runOrderReconciliation();
+  return { ok: true };
+};
+
 export default function AttributedOrders() {
-  const { orders } = useLoaderData();
+  const { orders, reconciliation } = useLoaderData();
 
   return (
     <s-page
       heading="Attributed orders"
       subheading="Orders whose organization campaign tokens passed server verification."
     >
+      <s-section heading="Missed-order recovery">
+        <s-paragraph>
+          The app checks the last 59 days every 15 minutes. Larger scans
+          continue in batches. Orders with uncertain historical references are
+          held for review.
+        </s-paragraph>
+        <s-paragraph>
+          Last check: {reconciliation?.checkedAt || "Not run yet"}. Last
+          completed scan: {reconciliation?.completedAt || "Not completed"}.
+        </s-paragraph>
+        <Form method="post">
+          <s-button type="submit">Check missed orders now</s-button>
+        </Form>
+        {reconciliation?.issues?.length > 0 && (
+          <s-banner tone="warning" heading="Orders need attribution review">
+            {reconciliation.issues.map((x) => x.name).join(", ")}
+          </s-banner>
+        )}
+      </s-section>
       <s-section heading="Recent verified orders">
         {orders.length === 0 ? (
           <s-banner heading="No attributed orders yet" tone="info">
