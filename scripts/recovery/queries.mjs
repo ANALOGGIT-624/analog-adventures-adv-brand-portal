@@ -1,4 +1,11 @@
 export const queries = {
+  orderDefinitions: `query RecoveryOrderDefinitions {
+    attribution_manifest: metafieldDefinition(identifier: {ownerType: ORDER, namespace: "$app", key: "attribution_manifest"}) { id key type { name } access { admin } }
+    attribution_status: metafieldDefinition(identifier: {ownerType: ORDER, namespace: "$app", key: "attribution_status"}) { id key type { name } access { admin } }
+    organization_store_id: metafieldDefinition(identifier: {ownerType: ORDER, namespace: "$app", key: "organization_store_id"}) { id key type { name } access { admin } }
+    campaign_id: metafieldDefinition(identifier: {ownerType: ORDER, namespace: "$app", key: "campaign_id"}) { id key type { name } access { admin } }
+    payout_rule_id: metafieldDefinition(identifier: {ownerType: ORDER, namespace: "$app", key: "payout_rule_id"}) { id key type { name } access { admin } }
+  }`,
   definitionRecords: `query RecoveryDefinitionRecords($id: ID!, $after: String) {
     metaobjectDefinition(id: $id) {
       metaobjects(first: 100, after: $after) {

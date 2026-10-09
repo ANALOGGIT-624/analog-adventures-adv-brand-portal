@@ -34,27 +34,31 @@ api_version = "2026-07"
 
 [order.metafields.app.attribution_manifest]
 name = "Organization attribution manifest"
-description = "Server-verified organization campaign attribution for this order."
+description = "Immutable, server-verified campaign attribution captured when the order was placed; retain for recovery."
 type = "json"
 access.admin = "merchant_read"
 
 [order.metafields.app.attribution_status]
 name = "Organization attribution status"
+description = "Verification status of the immutable organization attribution manifest."
 type = "single_line_text_field"
 access.admin = "merchant_read"
 
 [order.metafields.app.organization_store_id]
 name = "Organization store ID"
+description = "Organization store identity from the verified order attribution snapshot."
 type = "single_line_text_field"
 access.admin = "merchant_read"
 
 [order.metafields.app.campaign_id]
 name = "Organization campaign ID"
+description = "Campaign identity from the verified order attribution snapshot."
 type = "single_line_text_field"
 access.admin = "merchant_read"
 
 [order.metafields.app.payout_rule_id]
 name = "Organization payout rule ID"
+description = "Payout rule identity from the verified order attribution snapshot."
 type = "single_line_text_field"
 access.admin = "merchant_read"
 

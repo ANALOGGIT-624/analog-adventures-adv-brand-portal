@@ -42,3 +42,25 @@ The separate live store is outside the investigation.
 Do not uninstall the app, delete definitions, or run preview cleanup as a
 troubleshooting step. Preserve existing archives and the private recovery journal.
 No passwords, tokens, order/customer payloads, or private artwork are included here.
+
+
+## Definition mismatch resolved
+
+A description-only change to each of the five existing order declarations was
+validated and released as `attribution-definition-sync-20261009` /
+`1161575858177`. Keys, types, access, scopes and URLs were unchanged; deletion
+was disallowed. Direct lookup then returned the manifest definition, and a full
+list returned all five definitions. The monitor query independently verified all
+five expected types and `MERCHANT_READ` access. All 50 recovered values were
+re-read and matched the immutable archived values. A no-change release had not
+reconciled the missing installed definitions, but an actual description update did.
+
+The current mismatch and non-destructive repair questions are resolved. The
+original removal event is still unknown. Shopify documents asynchronous removal
+of retained values following definition deletion. This is a plausible mechanism
+for delayed disappearance, not proof of the cause in this store:
+https://shopify.dev/docs/apps/build/metafields/definitions
+
+Backup capture now saves direct order-definition lookups and flags missing
+schemas, changed types or changed admin access as new coverage gaps. No new
+historical gap has been accepted. No support message has been sent.

@@ -16,7 +16,7 @@ import {
 import { privateArtworkConfig } from "../../app/lib/private-artwork-storage.server.js";
 import { canonicalPortalType } from "../../app/lib/portal-records.server.js";
 import { queries } from "./queries.mjs";
-import { attributionCoverageGaps } from "./attribution-coverage.mjs";
+import { attributionCoverageGaps, orderDefinitionCoverageGaps } from "./attribution-coverage.mjs";
 import { hashingStream, sha256, sealDirectory, loadKey } from "./archive.mjs";
 
 const exec = promisify(execFile);
@@ -164,6 +164,9 @@ export async function capture({
     )
       throw new Error("Shop or app identity mismatch");
     await privateJson(path.join(stage, "shopify/identity.json"), identity);
+    const orderDefinitions = await query("orderDefinitions");
+    await privateJson(path.join(stage, "shopify/order-definitions.json"), orderDefinitions);
+    report.gaps.push(...orderDefinitionCoverageGaps(orderDefinitions));
     if (
       !identity.currentAppInstallation.accessScopes.some(
         (x) => x.handle === "read_all_orders",

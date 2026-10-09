@@ -46,12 +46,17 @@ including when the total order count is unchanged (199 tests pass; one opt-in te
 skipped). A new offsite backup passed; independent download/decryption confirmed
 all ten restored snapshots match the original archive and no attribution gaps remain.
 
-**Pilot investigation remains open:** the cause of the disappearance is not yet
-established. Shopify's released configuration contains the five order definitions,
-but the installed API does not list them and a restored field reports no attached
-definition. A fresh release preserved the configuration and did not resolve that
-mismatch. See [the reliability review](docs/reliability-review-20261009.md) for
-recovery evidence, deployment status and remaining acceptance work.
+The Shopify definition mismatch is now repaired. A description-only deployment
+(`attribution-definition-sync-20261009`) caused all five existing declarations to
+resolve as installed definitions with the expected types and read-only merchant
+access. All 50 recovered values were rechecked and unchanged. Backup coverage
+also checks those five definitions, so missing schema or changed access is flagged
+before values disappear (200 tests pass; one opt-in test skipped).
+
+The exact original removal event remains unproven. Shopify documents asynchronous
+cleanup after definition removal; that is a possible explanation, not an established
+cause. See [the reliability review](docs/reliability-review-20261009.md) for the
+repair, recovery evidence, and remaining overall pilot gates.
 
 ### Business features implemented
 

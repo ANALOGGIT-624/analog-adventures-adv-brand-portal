@@ -172,3 +172,20 @@ The backing archive prefix is
 `recovery/postgresql/scheduled/portal/2026-10-09T17-02-06.887Z-bb26c8bb-1716-48a4-a699-dfdf9506c6f2/`.
 See [the prepared platform investigation note](shopify-attribution-investigation-20261009.md)
 for the remaining definition/disappearance questions. No support message was sent.
+
+
+## Definition synchronization repair
+
+The follow-up description-only release `attribution-definition-sync-20261009`
+(`1161575858177`) resolved all five installed order definitions. The release
+preserved keys, types, merchant-read access, scopes and URLs, and disallowed
+deletions. Direct definition lookup succeeded afterward; the new backup query
+confirmed five definitions with no schema/access gaps. All 50 recovered values
+were read again and matched the archived values. This resolves the current
+configuration mismatch; the original disappearance event remains unproven.
+
+Backup capture additionally saves direct definition lookups and marks missing
+definitions or changed types/admin access as unaccepted gaps. These checks run
+alongside the existing per-order attribution checks. Validation: 200 tests pass,
+one opt-in PostgreSQL test skipped; targeted ESLint, hosted TOML validation and
+GraphQL 2026-07 validation pass. Worker rollout is recorded below.

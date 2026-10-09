@@ -9,7 +9,21 @@ import { capture } from "../scripts/recovery/capture.mjs";
 import { createKey, sha256 } from "../scripts/recovery/archive.mjs";
 import { createReadOnlyQuery, BACKUP_STORE } from "../scripts/recovery/portal-client.mjs";
 import { assessPortalCoverage } from "../scripts/recovery/scheduled-portal.mjs";
-import { attributionCoverageGaps } from "../scripts/recovery/attribution-coverage.mjs";
+import { attributionCoverageGaps, orderDefinitionCoverageGaps, ORDER_ATTRIBUTION_TYPES } from "../scripts/recovery/attribution-coverage.mjs";
+
+const validOrderDefinitions = () => Object.fromEntries(Object.entries(ORDER_ATTRIBUTION_TYPES).map(([key, name]) =>
+  [key, {key, type:{name}, access:{admin:"MERCHANT_READ"}}]));
+
+test("missing or changed order definitions fail backup coverage before values disappear", () => {
+  const definitions = validOrderDefinitions();
+  assert.deepEqual(orderDefinitionCoverageGaps(definitions), []);
+  assert.equal(orderDefinitionCoverageGaps({}).length,5);
+  for (const replacement of [null, {...definitions.attribution_manifest,type:{name:"single_line_text_field"}}, {...definitions.attribution_manifest,access:{admin:"MERCHANT_READ_WRITE"}}]) {
+    const gaps = orderDefinitionCoverageGaps({...definitions,attribution_manifest:replacement});
+    assert.equal(gaps.length,1);
+    assert.equal(assessPortalCoverage({status:"captured_with_gaps",counts:{orders:11},gaps}, {store:BACKUP_STORE,minimumCounts:{orders:11},acceptedGaps:[]}).healthy,false);
+  }
+});
 
 test("lost attribution fails coverage even when order counts are unchanged", () => {
   const order = { id:"order", lineItems:{ nodes:[{ id:"gid://shopify/LineItem/1", customAttributes:[{key:"_aa_attribution",value:"checkout-tag"}]}] } };
@@ -45,6 +59,7 @@ test("R2 capture preserves bytes and metadata, rejects bad hashes and reports co
   const bytes = Buffer.from([0, 1, 255, 10]);
   const empty = { nodes:[], pageInfo:{hasNextPage:false} };
   const queryExecutor = async (kind, variables = {}) => {
+    if (kind === "orderDefinitions") return validOrderDefinitions();
     if (kind === "identity") return {shop:{myshopifyDomain:BACKUP_STORE},currentAppInstallation:{app:{apiKey:"8158f984f0ec6fed1e5f85b44a588777",id:"gid://shopify/App/1"},accessScopes:[{handle:"read_all_orders"}]}};
     if (kind === "historical") return {nodes:[{id:"gid://shopify/Metaobject/427021893817"}]};
     if (kind === "orders") return {orders:{...empty,nodes:[{id:"order",lineItems:empty,refunds:[{id:"refund"}]}]}};
