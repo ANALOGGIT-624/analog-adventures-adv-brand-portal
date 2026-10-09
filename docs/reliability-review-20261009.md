@@ -244,3 +244,9 @@ it does not by itself prove process termination. The source of this discrepancy
 remains unresolved. A credential-free draft for provider investigation is in
 [render-cron-status-investigation-20261009.md](render-cron-status-investigation-20261009.md);
 it has not been sent. No additional run, cancellation or service change was made.
+
+
+The hosted customer-isolation follow-up is now complete for the defined pilot
+fixtures: [results and method](customer-isolation-20261009.md). This supersedes
+the earlier outstanding direct cross-company denial item, with the explicit
+fixture and authentication-method limits in that report.

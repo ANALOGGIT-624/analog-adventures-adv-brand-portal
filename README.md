@@ -495,3 +495,11 @@ after awaited cleanup and explicitly exits with the stage result. The new run
 verified both archives and logged exit code 0 at 17:37 UTC, but Render's final
 provider event was still absent at 17:45 UTC. This status discrepancy remains
 open. Validation: 204 tests passed, one optional PostgreSQL test skipped.
+
+
+October 9 customer isolation: controlled hosted authorization checks passed for
+Tot Time and Test Company, including foreign record reads, request creation,
+proof reviews and private download denial. Eighteen assertions and 51 local
+authorization tests passed; portal business records were unchanged. Direct checks
+used short-lived locally signed test tokens, separately from the real signed-in
+Tot Time display check. See [scope and evidence](docs/customer-isolation-20261009.md).
