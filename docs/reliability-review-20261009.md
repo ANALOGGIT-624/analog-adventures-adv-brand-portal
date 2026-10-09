@@ -235,3 +235,12 @@ completion log. This timing inconsistency prevents attributing the remaining
 delay to a particular code or platform component. The new run's provider status
 remains open; no repeat trigger was sent. The explicit-exit change is defensive
 hardening, not proof of the original delay's cause or full resolution.
+
+
+Follow-up observation: Render still displayed the latest run as In progress at
+20m38s. Settings confirmed the Docker command override is empty. No runtime-limit
+message was observed. Completion is logged before output flush/process.exit, so
+it does not by itself prove process termination. The source of this discrepancy
+remains unresolved. A credential-free draft for provider investigation is in
+[render-cron-status-investigation-20261009.md](render-cron-status-investigation-20261009.md);
+it has not been sent. No additional run, cancellation or service change was made.
