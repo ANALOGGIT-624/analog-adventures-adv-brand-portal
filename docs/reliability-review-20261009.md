@@ -206,3 +206,32 @@ Render's log has not shown its final successful-exit marker for this run or the
 verification and successful monitor pings are confirmed, but clean process exit
 and Render run-status reconciliation remain unverified. Do not mark this
 operational item complete or repeatedly trigger runs to resolve dashboard lag.
+
+
+## Explicit cron completion follow-up
+
+Render eventually emitted a successful completion at 17:34:19 UTC for the
+previous verification run. This establishes delayed completion/reporting, not
+a permanently stuck process; the exact source of the delay is unproven.
+
+Worker `a72d719` adds a final status and explicit process exit only after each
+backup function returns, including its awaited cleanup. Failed stages preserve
+a nonzero exit while allowing the other backup to run. The existing 20-minute
+limit also bounds cleanup and output flushing. Four subprocess tests cover a
+lingering timer, database failure with portal continuation, cleanup failure,
+and stalled cleanup. Full validation: 204 pass, one optional PostgreSQL test
+skipped; targeted lint passes.
+
+Render build `bld-db4ib3l9fdbs73fcuprg` succeeded. One controlled run verified
+PostgreSQL at 17:35:52 UTC and portal at 17:37:01 UTC, with 165 encrypted portal
+objects and the same 13 accepted historical gaps. An interrupted streaming
+upload recovered on the existing bounded retry and passed read-back. Both
+stages logged completion after cleanup; the worker logged `backupJobComplete`
+with `exitCode: 0`. Final Render status is recorded below.
+
+As of 17:45 UTC, Render had not emitted the new run's final success event. It
+also emitted a start event timestamped 17:39:24 UTC, later than the worker's
+completion log. This timing inconsistency prevents attributing the remaining
+delay to a particular code or platform component. The new run's provider status
+remains open; no repeat trigger was sent. The explicit-exit change is defensive
+hardening, not proof of the original delay's cause or full resolution.

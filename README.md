@@ -487,3 +487,11 @@ October 9 definition-repair follow-up: backup worker `0e8ee57` deployed and the
 162 restored files). Five definitions and ten original attribution manifests
 were preserved; no new coverage gaps. Render's final job-exit status remains
 unverified despite successful archive checks; see the reliability review.
+
+
+October 9 cron completion follow-up: the previous run eventually received
+Render's successful completion event. Worker `a72d719` now logs completion
+after awaited cleanup and explicitly exits with the stage result. The new run
+verified both archives and logged exit code 0 at 17:37 UTC, but Render's final
+provider event was still absent at 17:45 UTC. This status discrepancy remains
+open. Validation: 204 tests passed, one optional PostgreSQL test skipped.
