@@ -54,14 +54,51 @@ with a fresh stream. Production build, targeted ESLint and Shopify GraphQL
 
 ## Deployment and live checks
 
-Pending deployment and read-only/duplicate-delivery checks on the development
-store. The separate live store is outside this change.
+Commit `535372f` is live on the existing web service (deploy
+`dep-db4fnth42hec73b56mqg`) and backup worker (build
+`bld-db4fo6flk1mc73ft22q0`). No new service or charge was introduced.
+The manual verification run finished at 14:59:17 UTC. Its PostgreSQL upload
+encountered a real interrupted stream, reopened the file and succeeded on attempt
+2/3. PostgreSQL and portal archives passed read-back verification. The portal
+archive contained 162 objects with the same counts listed above. Independently
+downloaded all 162 encrypted objects, verified their hashes, and decrypted 159
+files successfully using the separately held recovery key.
+
+The actual Tot Time Preschool contact signed in through Chrome. The hosted
+portal showed one organization (Tot Time), its four closed campaigns and three
+draft statements; Test Company's organization, proofs and paid statements were
+absent. This verifies normal signed-in display isolation, not every adversarial
+cross-company request. Existing authorization tests provide separate evidence.
+
+### New blocking finding: missing order attribution
+
+All 11 currently accessible orders return no attribution manifest/status. Ten
+of them had verified attribution in the October 1 independently restored backup;
+#1006 was already unattributed. The original order IDs, line IDs and checkout
+attribution tags match between those archived and current records. The current
+October 9 archive independently reproduces the missing fields. A direct #1010
+query also found no metafields, including with an explicit `$app` namespace.
+The user reports no known uninstall/reinstall or custom-field changes.
+
+This is not proof of when or why the fields disappeared. No order mutations or
+webhook replays were made during this review: the replay helper stopped at its
+preflight check. Preserved backup manifests make a guarded recovery possible.
+Private comparison evidence and a per-order recovery plan are stored outside
+Git in `recovery-private/attribution-recovery-plan-20261009.json`.
+
+The green backup signal proves transfer/decryption and the configured baseline,
+not attribution completeness. The existing baseline checks record counts and
+known reference gaps; it did not detect the missing attribution fields. Before
+pilot: investigate app/definition history, recover only proven missing fields
+with atomic create-only guards, add signed-order attribution coverage alerts,
+and repeat the hosted duplicate-delivery check. Do not silently accept this as
+a new baseline. Historical snapshots must not be rebuilt from today's proofs.
+The separate live store remains outside this change.
 
 ## Remaining acceptance work
 
-A second real customer sign-in is needed to finish company-isolation testing.
-Simulated company authorization and private-download denial tests pass, but do
-not substitute for that hosted check. A durable webhook queue/reconciliation
+The real second-company display check passed as described above. Direct hosted
+cross-company denial checks remain distinct from that result. A durable webhook queue/reconciliation
 path for deliveries missed beyond Shopify's retry window is still unproven;
 this repair does not provide one. Historical payout-rule edits, missing approval
 history, and reference sets beyond the current query limits need explicit

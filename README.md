@@ -22,11 +22,28 @@ with client ID `8158f984f0ec6fed1e5f85b44a588777`.
 See [the implementation roadmap](docs/brand-portal-roadmap.md) for the Gantt
 chart, launch gates, pilot sequence, and remaining Neighborhood-style features.
 
-## Current status — October 1, 2026
+## Current status — October 9, 2026
 
 This is a hosted development-store application for **Analog Adventures Test**
 (`analog-adventures-test.myshopify.com`). The separate live Shopify site has not
 been migrated or changed by this project. External pilots are not yet cleared.
+
+### October 9 reliability checkpoint
+
+Webhook retry/duplicate handling, historical proof selection, shared session
+renewal, and interrupted backup upload retries are deployed (`535372f`).
+Validation: 198 tests passed, one optional PostgreSQL test skipped; build, lint
+and Shopify GraphQL validation passed. A real interrupted upload recovered on
+retry, and the new offsite archive was independently downloaded and decrypted.
+Tot Time's actual signed-in portal displayed only its own organization data.
+
+**Pilot blocker:** ten development-store orders have lost API-visible attribution
+fields present in the October 1 backup. Orders and checkout tags remain. Recovery
+snapshots are preserved; no attribution restoration or duplicate webhook replay
+has been performed. Current backup monitoring checks counts but missed this
+field-level regression, so its green status is not full business-data assurance.
+See [the reliability review](docs/reliability-review-20261009.md) for evidence,
+deployment details, recovery steps and remaining acceptance work.
 
 ### Business features implemented
 
@@ -138,7 +155,9 @@ shipment or organizer transfer was made. “Paid” below is a simulated portal 
 | Final simulated statement | $5.00, paid | $4.00, paid |
 | Campaign status | Archived | Archived |
 
-Both orders retain the approved artwork ID/version/hash and campaign attribution.
+At the October 1 checkpoint, both orders retained the approved artwork ID/version/hash
+and campaign attribution. The October 9 finding above supersedes that live-state
+claim; the verified October 1 snapshots remain available in backup.
 Bulk checkout locked the organizer address and charged $0 shipping. Double-click
 checkout/payment testing produced one bulk draft/order with the intended quantity.
 Both production batches passed queued → in production → ready to ship → completed
