@@ -48,6 +48,7 @@ const coordinated = coordinateShopifyAuthentication(
   shopify,
   storage,
   tokenVerifier.session.decodeSessionToken,
+  tokenVerifier.webhooks.validate,
 );
 export const authenticate = coordinated.authenticate;
 export const unauthenticated = coordinated.unauthenticated;

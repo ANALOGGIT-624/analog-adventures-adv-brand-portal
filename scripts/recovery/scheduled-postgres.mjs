@@ -68,7 +68,7 @@ export async function ping(url, suffix = "", fetcher = fetch) {
 }
 
 // Caller creates a unique run prefix. Never delete remote backups or prune versions.
-export async function transferVerified({ client, bucket, prefix, sealed, download }) {
+export async function transferVerified({ client, bucket, prefix, sealed, download, retryDelay = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   await mkdir(download, { mode: 0o700 });
   const objects = (await readdir(path.join(sealed, "objects"))).sort();
   if (objects.some(name => !/^[a-f0-9]{64}\.enc$/.test(name))) throw new Error("Unexpected archive object");
@@ -76,9 +76,25 @@ export async function transferVerified({ client, bucket, prefix, sealed, downloa
   for (const relative of files) {
     const source = path.join(sealed, relative);
     const expected = await hashFile(source);
-    await client.send(new PutObjectCommand({ Bucket: bucket, Key: prefix + relative,
-      Body: createReadStream(source), ContentLength: expected.bytes, ContentType: "application/octet-stream",
-      Metadata: { sha256: expected.sha256 } }), { abortSignal: AbortSignal.timeout(120000) });
+    // SDK retries cannot replay a consumed file stream. Reopen the same sealed
+    // bytes for each bounded retry, always under this run's unique object key.
+    for (let attempt = 0; ; attempt++) {
+      const body = createReadStream(source);
+      try {
+        await client.send(new PutObjectCommand({ Bucket: bucket, Key: prefix + relative,
+          Body: body, ContentLength: expected.bytes, ContentType: "application/octet-stream",
+          Metadata: { sha256: expected.sha256 } }), { abortSignal: AbortSignal.timeout(120000) });
+        break;
+      } catch (error) {
+        const status = error.$metadata?.httpStatusCode;
+        const transient = [408, 429, 500, 502, 503, 504].includes(status) ||
+          ["ECONNRESET", "ETIMEDOUT", "EPIPE", "EAI_AGAIN", "ENETUNREACH", "ECONNREFUSED"].includes(error.code) ||
+          ["TimeoutError", "AbortError", "RequestTimeout", "SlowDown", "ServiceUnavailable"].includes(error.name);
+        if (!transient || attempt >= 2) throw error;
+        console.warn(`Retrying interrupted backup upload (attempt ${attempt + 2}/3)`);
+        await retryDelay(1000 * 2 ** attempt);
+      } finally { body.destroy(); }
+    }
     const response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: prefix + relative }), { abortSignal: AbortSignal.timeout(120000) });
     const target = path.join(download, relative);
     await mkdir(path.dirname(target), { recursive: true, mode: 0o700 });

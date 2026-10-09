@@ -110,10 +110,23 @@ export function coordinateShopifyAuthentication(
   app,
   storage,
   decodeSessionToken,
+  validateWebhook,
 ) {
   return {
     authenticate: {
       ...app.authenticate,
+      async webhook(request) {
+        if (!validateWebhook || request.method !== "POST")
+          return app.authenticate.webhook(request);
+        const check = await validateWebhook({
+          rawBody: await request.clone().text(),
+          rawRequest: request,
+        });
+        if (!check.valid) return app.authenticate.webhook(request);
+        const shop = sessionShop(check.domain);
+        // Verify before locking; the SDK repeats verification before handling it.
+        return storage.withShop(shop, () => app.authenticate.webhook(request));
+      },
       async admin(request) {
         const header = request.headers.get("Authorization") || "";
         const token =

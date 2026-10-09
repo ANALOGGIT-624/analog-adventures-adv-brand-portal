@@ -6,7 +6,8 @@ import {
   ApiVersion,
   AppDistribution,
 } from "@shopify/shopify-app-react-router/server";
-import { Session } from "@shopify/shopify-api";
+import { createHmac } from "node:crypto";
+import { Session, shopifyApi } from "@shopify/shopify-api";
 import { setAbstractFetchFunc } from "@shopify/shopify-api/runtime";
 import {
   createCoordinatedSessionStorage,
@@ -261,4 +262,79 @@ test("invalid and missing staff tokens follow SDK rejection/bootstrap without ac
     );
   }
   assert.equal(calls, 2);
+});
+
+test("webhook renewal locks only after HMAC validation and still invokes SDK authentication", async () => {
+  const calls = [];
+  const wrapped = coordinateShopifyAuthentication(
+    {
+      authenticate: {
+        webhook: async (request) => {
+          calls.push("sdk");
+          assert.equal(await request.text(), "payload");
+          return "ok";
+        },
+      },
+      unauthenticated: {},
+    },
+    {
+      withShop: async (shop, task) => {
+        calls.push(shop);
+        return task();
+      },
+    },
+    null,
+    async ({ rawBody }) => {
+      assert.equal(rawBody, "payload");
+      calls.push("hmac");
+      return { valid: true, domain: shop };
+    },
+  );
+  assert.equal(
+    await wrapped.authenticate.webhook(
+      new Request("https://app.example.com/webhooks/orders/create", {
+        method: "POST",
+        body: "payload",
+      }),
+    ),
+    "ok",
+  );
+  assert.deepEqual(calls, ["hmac", shop, "sdk"]);
+});
+test("invalid webhook signatures cannot acquire a session lock", async () => {
+  const wrapped = coordinateShopifyAuthentication(
+    {
+      authenticate: {
+        webhook: async () => {
+          throw new Response(null, { status: 401 });
+        },
+      },
+      unauthenticated: {},
+    },
+    { withShop: () => assert.fail("invalid HMAC acquired lock") },
+    null,
+    async () => ({ valid: false }),
+  );
+  await assert.rejects(
+    wrapped.authenticate.webhook(
+      new Request("https://app.example.com/webhooks/orders/create", {
+        method: "POST",
+        body: "forged",
+      }),
+    ),
+    (e) => e.status === 401,
+  );
+});
+
+
+test("real SDK webhook and customer refresh share one renewal", async()=>{
+ const db=database(), storage=db.storage(), sdk=app(storage);
+ const verifier=shopifyApi({apiKey,apiSecretKey:"test-secret",apiVersion:ApiVersion.July26,hostName:"app.example.com",isEmbeddedApp:true,logger:{level:0,log:()=>{}}});
+ const wrapped=coordinateShopifyAuthentication(sdk,storage,verifier.session.decodeSessionToken,verifier.webhooks.validate);
+ const body=JSON.stringify({id:123});
+ const request=new Request("https://app.example.com/webhooks/orders/create",{method:"POST",body,headers:{"X-Shopify-Hmac-Sha256":createHmac("sha256","test-secret").update(body).digest("base64"),"X-Shopify-Shop-Domain":shop,"X-Shopify-Topic":"orders/create","X-Shopify-Webhook-Id":"test-delivery","X-Shopify-API-Version":"2026-07"}});
+ let refreshes=0;
+ setAbstractFetchFunc(async()=>{refreshes++;await new Promise(resolve=>setTimeout(resolve,10));return Response.json({access_token:"new-access",refresh_token:"new-refresh",scope:"read_customers",expires_in:86400,refresh_token_expires_in:7776000});});
+ const results=await Promise.all([wrapped.authenticate.webhook(request),wrapped.unauthenticated.admin(shop)]);
+ assert.equal(refreshes,1);assert.ok(results.every(result=>result.session.accessToken==="new-access"));
 });

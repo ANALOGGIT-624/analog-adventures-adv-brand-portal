@@ -91,3 +91,21 @@ test("only matching private key unwraps an archive key; tampering fails", () => 
   const privateEncoded = Buffer.from(pair.privateKey.export({type:"pkcs8",format:"pem"})).toString("base64");
   assert.throws(() => parseRecipient(privateEncoded), /Public recipient key required/);
 });
+
+
+test("interrupted upload retries reopen complete encrypted bytes", async t => {
+ const root=await fixture(t), remote=storage(); let first=true, attempts=0;
+ const client={send:async command=>{
+   if(command.input.Body){attempts++;if(first){first=false;for await(const chunk of command.input.Body) void chunk;throw Object.assign(new Error("connection reset"),{code:"ECONNRESET"});}}
+   return remote.send(command);
+ }};
+ const count=await transferVerified({client,bucket:"fixture",prefix:"unique/",sealed:path.join(root,"sealed"),download:path.join(root,"download"),retryDelay:async()=>{}});
+ assert.equal(attempts,count+1);
+ await restoreDirectory(path.join(root,"download"),path.join(root,"restored"),path.join(root,"key"));
+ assert.equal(await readFile(path.join(root,"restored","database.dump"),"utf8"),"synthetic database fixture");
+});
+test("permission failures do not retry or publish a completion marker", async t=>{
+ const root=await fixture(t);let attempts=0;
+ await assert.rejects(transferVerified({client:{send:async()=>{attempts++;throw Object.assign(new Error("denied"),{$metadata:{httpStatusCode:403}});}},bucket:"fixture",prefix:"unique/",sealed:path.join(root,"sealed"),download:path.join(root,"download"),retryDelay:async()=>{}}));
+ assert.equal(attempts,1);
+});

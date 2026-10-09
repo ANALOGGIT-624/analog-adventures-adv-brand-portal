@@ -20,7 +20,7 @@ export function signAttribution(payload, secret) {
 }
 
 export function verifyAttribution(token, secret, now = new Date()) {
-  if (typeof token !== "string") return null;
+  if (typeof token !== "string" || !Number.isFinite(now.getTime())) return null;
   const [encoded, suppliedSignature, extra] = token.split(".");
   if (!encoded || !suppliedSignature || extra) return null;
 

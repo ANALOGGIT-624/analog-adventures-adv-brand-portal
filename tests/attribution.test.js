@@ -73,3 +73,8 @@ test("token expiry uses the earlier of seven days and campaign close", () => {
   );
   assert.equal(tokenExpiry({}, now).toISOString(), "2026-09-22T12:00:00.000Z");
 });
+
+
+test("invalid order timestamps cannot validate signed attribution", () => {
+ assert.deepEqual(signedLineAttributions([{product_id:1,variant_id:2,properties:[{name:"_aa_attribution",value:signAttribution({v:1,c:"campaign",p:"1",i:"2",e:1},"secret")}]}],"secret","not-a-date"),[]);
+});

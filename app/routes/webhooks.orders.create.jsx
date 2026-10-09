@@ -1,4 +1,7 @@
-import { databasePortalEnabled, databasePortalNodes } from "../lib/portal-records.server.js";
+import {
+  databasePortalEnabled,
+  databasePortalNodes,
+} from "../lib/portal-records.server.js";
 import prisma from "../db.server";
 import { bulkOrderManifest } from "../lib/bulk-checkout.server";
 import process from "node:process";
@@ -13,11 +16,43 @@ function oneOrMultiple(values) {
   return unique.length === 1 ? unique[0] : "multiple";
 }
 
+async function hasVerifiedAttribution(admin, ownerId) {
+  const response = await admin.graphql(
+    `#graphql
+    query ExistingOrderAttribution($id: ID!) {
+      order(id: $id) {
+        manifest: metafield(key: "attribution_manifest") { jsonValue }
+        status: metafield(key: "attribution_status") { value }
+      }
+    }`,
+    { variables: { id: ownerId } },
+  );
+  const result = await response.json();
+  if (result.errors?.length || !result.data?.order)
+    throw new Error("Cannot verify existing order attribution.");
+  const { manifest, status } = result.data.order;
+  if (!manifest && !status) return false;
+  if (
+    status?.value === "verified" &&
+    Array.isArray(manifest?.jsonValue?.lines) &&
+    manifest.jsonValue.lines.length
+  )
+    return true;
+  // Never overwrite a partial or unexpected historical record automatically.
+  throw new Error("Existing order attribution requires review.");
+}
+
 export const action = async ({ request }) => {
   const { admin, payload, shop, topic } = await authenticate.webhook(request);
   console.log(`Received ${topic} webhook for ${shop}`);
 
-  if (!admin) return new Response();
+  if (!admin)
+    return new Response("Order processing temporarily unavailable", {
+      status: 503,
+    });
+  const ownerId =
+    payload.admin_graphql_api_id || `gid://shopify/Order/${payload.id}`;
+  if (await hasVerifiedAttribution(admin, ownerId)) return new Response();
 
   const bulkManifest = await bulkOrderManifest({
     admin,
@@ -69,19 +104,31 @@ export const action = async ({ request }) => {
       );
     }
 
-    if (databasePortalEnabled()) referencePayload.data.proofs = {nodes: await databasePortalNodes(admin, PORTAL_TYPES.artworkProof)};
+    if (databasePortalEnabled())
+      referencePayload.data.proofs = {
+        nodes: await databasePortalNodes(admin, PORTAL_TYPES.artworkProof),
+      };
     const campaigns =
       referencePayload.data.campaigns.nodes.map(normalizeMetaobject);
     const payoutRules =
       referencePayload.data.payoutRules.nodes.map(normalizeMetaobject);
     const proofs = referencePayload.data.proofs.nodes.map(normalizeMetaobject);
     const orderCreatedAt = new Date(payload.created_at);
+    if (!Number.isFinite(orderCreatedAt.getTime()))
+      throw new Error("Invalid order creation timestamp.");
     manifest = signedLines.flatMap(({ line, token }) => {
       const campaign = campaigns.find(({ handle }) => handle === token.c);
       const productGid = `gid://shopify/Product/${token.p}`;
       if (
         !campaign ||
-        String(campaign.status).toLowerCase() !== "live" ||
+        !["live", "closed", "archived"].includes(
+          String(campaign.status).toLowerCase(),
+        )
+      )
+        throw new Error(
+          "Signed order campaign is unavailable for verification.",
+        );
+      if (
         (campaign.starts_at && new Date(campaign.starts_at) > orderCreatedAt) ||
         (campaign.closes_at && new Date(campaign.closes_at) < orderCreatedAt) ||
         !referenceIds(campaign.products).includes(productGid)
@@ -92,8 +139,23 @@ export const action = async ({ request }) => {
       const payoutRule = payoutRules.find(
         ({ id }) => id === campaign.payout_rule,
       );
-      if (!payoutRule) return [];
-      const approvedProof = approvedProofForCampaign(proofs, campaign.id);
+      if (!payoutRule)
+        throw new Error("Signed order payout rule is unavailable.");
+      const approvedProof = approvedProofForCampaign(
+        proofs.filter((proof) => {
+          const reviewedAt = new Date(proof.reviewed_at).getTime();
+          return (
+            Number.isFinite(reviewedAt) &&
+            reviewedAt <= orderCreatedAt.getTime() &&
+            proof.organization_store_id === campaign.organization_store
+          );
+        }),
+        campaign.id,
+      );
+      if (!approvedProof)
+        throw new Error(
+          "No provable approved artwork at the order creation time.",
+        );
 
       return [
         {
@@ -129,8 +191,6 @@ export const action = async ({ request }) => {
 
   if (!manifest.length) return new Response();
 
-  const ownerId =
-    payload.admin_graphql_api_id || `gid://shopify/Order/${payload.id}`;
   const organizationIds = manifest.map(
     ({ organizationStoreId }) => organizationStoreId,
   );
@@ -141,6 +201,8 @@ export const action = async ({ request }) => {
       ownerId,
       key: "attribution_manifest",
       type: "json",
+      // Atomic create-only guard: a competing delivery cannot overwrite a winner.
+      compareDigest: null,
       value: JSON.stringify({
         version: 2,
         verifiedAt: new Date().toISOString(),
@@ -185,7 +247,11 @@ export const action = async ({ request }) => {
   );
   const writePayload = await writeResponse.json();
   const errors = writePayload.data?.metafieldsSet?.userErrors || [];
-  if (writePayload.errors?.length || errors.length) {
+  if (
+    !writePayload.data?.metafieldsSet ||
+    writePayload.errors?.length ||
+    errors.length
+  ) {
     throw new Error(
       [...(writePayload.errors || []), ...errors]
         .map(({ message }) => message)
