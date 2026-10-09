@@ -98,9 +98,11 @@ The separate live store remains outside this change.
 ## Remaining acceptance work
 
 The real second-company display check passed as described above. Direct hosted
-cross-company denial checks remain distinct from that result. A durable webhook queue/reconciliation
-path for deliveries missed beyond Shopify's retry window is still unproven;
-this repair does not provide one. Historical payout-rule edits, missing approval
+cross-company denial checks remain distinct from that result. The original repair did not provide missed-delivery recovery. The subsequent
+October 9 deployment adds [persistent rolling reconciliation](order-reconciliation.md):
+startup and manual hosted scans passed, while missing-delivery recovery passed
+automated fixtures. Its 59-day history window, single-instance scheduler and
+staff inspection of last-check status remain operating constraints. Historical payout-rule edits, missing approval
 history, and reference sets beyond the current query limits need explicit
 operating constraints or further hardening before a broader rollout.
 

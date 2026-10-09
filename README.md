@@ -503,3 +503,13 @@ proof reviews and private download denial. Eighteen assertions and 51 local
 authorization tests passed; portal business records were unchanged. Direct checks
 used short-lived locally signed test tokens, separately from the real signed-in
 Tot Time display check. See [scope and evidence](docs/customer-isolation-20261009.md).
+
+### Missed-order recovery — October 9, 2026
+
+The existing hosted app now scans the development store every 15 minutes, with
+persistent progress across a rolling 59-day window. Verified attribution is
+preserved; uncertain historical references are held for staff review. Staff can
+check status and run a batch from **Attributed orders → Check missed orders now**.
+Startup and manual hosted scans each checked all 11 orders with no missing
+attribution or business-data changes. No new paid service was added.
+See [scope, safeguards and verification](docs/order-reconciliation.md).

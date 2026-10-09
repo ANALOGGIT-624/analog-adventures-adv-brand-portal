@@ -36,4 +36,17 @@ truncated line lists. Production build and targeted lint pass. New and shared
 GraphQL operations validate against Admin API 2026-07.
 
 References: [Shopify orders query](https://shopify.dev/docs/api/admin-graphql/2026-07/queries/orders).
-Hosted rollout results are appended after verification.
+## Hosted verification — October 9, 2026
+
+Render deployed app commit `74494b8` successfully. The startup scan completed at
+20:12:18 UTC; the staff **Check missed orders now** action completed another scan
+at 20:14:48 UTC. Each scanned all 11 accessible orders, recovered zero, and left
+no review items. The ten existing verified attribution records remained intact.
+Before/after hashes of order attribution and portal business records matched.
+The staff screen displayed the updated check and completion timestamps.
+
+There was no genuinely missing attribution among current hosted orders. Recovery
+of a missing delivery was proven in automated fixtures, not by deleting hosted
+order fields or creating a new purchase. The 15-minute timer is configured; this
+verification observed startup and manual execution, not a later timer tick.
+No additional paid service was introduced.
