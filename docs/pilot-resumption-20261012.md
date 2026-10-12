@@ -231,3 +231,24 @@ The database was suspended again after the checks; Render confirmed “Suspended
 by you.” Both temporary services remain suspended. The additional brief database
 compute remains within the approved $1 aggregate budget; invoice totals have not
 been independently checked.
+
+## Read-only HTTP recovery boundary prepared
+
+Added a separate Dockerfile.recovery startup path. The normal production
+Dockerfile/start command is unchanged. Its gateway exposes only reviewed
+read routes, static assets, Shopify authentication GET routes, customer CORS
+preflights, and POST /public/artwork (authorized signed-link issuance).
+All other methods/routes, including proof approval/uploads, customer requests,
+checkout creation, payouts, production actions, and webhooks, return 405 before
+reaching the application. Ambiguous encoded/traversal paths are rejected.
+
+The underlying standard React Router server listens on loopback only. Startup
+refuses any target other than the named temporary Render URL/database/schema,
+limited database role with verify-full TLS, and replacement private bucket.
+The existing reconciliation scheduler is disabled by the temporary app URL.
+
+Validation: both focused tests passed, including an actual HTTP proxy test that
+proved blocked actions never reached the upstream, and that artwork POST kept
+its authorization header/body and propagated an upstream 401. Targeted lint and
+startup refusal checks passed. This is prepared source, not a hosted deployment
+or completed cutover. Real authentication and rollback remain outstanding.
