@@ -13,6 +13,8 @@ test('recovery rejects business actions and alternate route spellings', () => {
     assert.equal(recoveryRequestAllowed('GET',path),true,path);
   assert.equal(recoveryRequestAllowed('POST','/public/artwork'),true);
   assert.equal(recoveryRequestAllowed('POST','/public/artwork.data'),false);
+  assert.equal(recoveryRequestAllowed('GET','/__manifest?p=%2Fapp%2Fproofs&version=fixture'),true);
+  assert.equal(recoveryRequestAllowed('POST','/__manifest'),false);
 });
 
 test('HTTP boundary never forwards a blocked action and preserves artwork authorization request',async t=>{

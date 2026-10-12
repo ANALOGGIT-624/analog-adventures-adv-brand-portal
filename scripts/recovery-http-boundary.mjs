@@ -1,6 +1,8 @@
 import http from 'node:http';
 
 const reads = new Set([
+  // React Router's lazy route discovery returns asset metadata, not loader data.
+  '/__manifest',
   '/', '/health', '/app', '/app.data', '/app/proofs', '/app/proofs.data',
   '/app/artwork', '/app/artwork.data', '/public/portal', '/public/artwork',
   '/auth', '/auth/login', '/auth/login.data', '/auth/callback',

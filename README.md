@@ -469,6 +469,14 @@ This forces Prisma to use the binary engine mode, which runs the query engine as
 
 ## Resources
 
+October 12 controlled recovery cutover: real staff and Tot Time customer access
+worked on replacement hosting. Original routing and services were restored;
+all eleven orders and portal business fingerprints were unchanged, and the
+post-rollback backup finished successfully at 20:24:43 UTC. Temporary services
+are suspended. Browser artwork download/hash verification and a hosted recheck
+of the recovery-only navigation fix remain before full recovery sign-off.
+See [the detailed recovery report](docs/pilot-resumption-20261012.md).
+
 React Router:
 
 - [React Router docs](https://reactrouter.com/home)

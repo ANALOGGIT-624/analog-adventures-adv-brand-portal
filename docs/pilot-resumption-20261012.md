@@ -252,3 +252,69 @@ proved blocked actions never reached the upstream, and that artwork POST kept
 its authorization header/body and propagated an upstream 401. Targeted lint and
 startup refusal checks passed. This is prepared source, not a hosted deployment
 or completed cutover. Real authentication and rollback remain outstanding.
+
+## Controlled development-store cutover and rollback completed
+
+The user approved an idle 20–30 minute test window. A fresh combined backup
+finished successfully at 20:08:16 UTC, before suspending the original web service
+and cron around 20:13 UTC. Both encrypted archives were independently downloaded,
+hash-verified and decrypted locally. The separate live store was not involved.
+
+The temporary app used Dockerfile.recovery and the explicit recovery startup
+command. Its first resumed deployment failed while the temporary database was
+still resuming; a subsequent manual deployment succeeded. Embedded Shopify login
+then exposed a missing read-only root redirect. Commit a07486e allowed `/`, and
+the temporary deployment was Live at 20:16:23 UTC. Business-changing requests
+remained blocked by the gateway and database grants.
+
+Released Shopify version recovery-cutover-20261012, changing the app and callback
+URLs to the temporary host, and saved the temporary customer Portal API URL.
+Real staff authentication succeeded. Staff saw both organizations, eleven
+campaigns and all four approved proofs from the restored database. Preparing the
+original Test Compay Artwork secure download produced an Open proof link.
+The browser download operation timed out, so a browser-delivered file/hash match
+is NOT claimed. The earlier independent private-R2 byte/hash checks remain valid.
+
+The existing real customer session was Tot Time Preschool. After reloading, its
+portal loaded successfully through replacement hosting, showed only Tot Time's
+organization/campaigns/statements, and showed no Test Company proofs. This proves
+the observed company-scoped display, not a new exhaustive authorization test.
+Test Company's own customer artwork download remains outstanding.
+
+Staff client-side navigation initially returned 405 during React Router lazy
+route discovery; a direct reload of the proofs page worked. Inspection of the
+installed React Router handler identified `/__manifest` as asset metadata rather
+than a loader/action endpoint. Added GET/HEAD allowance for this exact path;
+POST remains denied. Both focused gateway tests pass. This final navigation fix
+was prepared after rollback and has NOT been deployed or browser-rechecked.
+
+Rollback restored active Shopify version attribution-definition-sync-20261009
+(1161575858177), including the original app/callback/proxy settings, and saved
+the original customer endpoint `https://analog-portal-pilot.onrender.com/public/portal`.
+Stopped the temporary web service before transferring its newest offline sign-in
+session back to the original database. This updated only the session row;
+business tables were untouched. Resumed the original web service and backup cron.
+Render rebuilt the latest branch commit a07486e on resume (it did not simply
+restart the older image); the normal PostgreSQL Dockerfile/startup was retained.
+The original app deployment succeeded in 48.9 seconds, starting at 20:22:49 UTC.
+Staff's iframe hostname and real Tot Time customer portal were verified back on
+the original hosting. Both temporary services were confirmed suspended afterward.
+
+At 20:24:47 UTC, all eleven orders (ten verified attributions) and portal business
+records matched the pre-cutover fingerprints exactly. Reconciliation scanned
+eleven orders with zero issues and zero recovered records. SHA-256 fingerprints:
+
+- Orders: `2764f9c543cf17ac4878cdb81579413cc253ab0b4eafcab2ccea244fe069797a`
+- Business records: `3d65e5c3555a1304ca4fda3dafaa8ae07e33e2f435bde848121c893b894e1d32`
+
+The post-rollback combined backup finished successfully at 20:24:43 UTC, with
+backupJobComplete true and exitCode 0. It verified five database archive objects
+and 165 portal archive objects, retaining the same counts and thirteen known
+coverage gaps. Scheduled backups are resumed at 08:00 UTC daily.
+
+Private evidence is in cutover-preflight-20261012, SESSION-ROLLBACK.json and the
+before/after reconciliation reports. The limited cutover/rollback passed, but
+full hosted artwork recovery remains incomplete: recheck navigation and download
+the original artwork through staff and the Test Company customer session, then
+compare its bytes/hash. This is not pilot sign-off. Temporary services were
+suspended within the approved budget window; final invoice totals were not checked.
