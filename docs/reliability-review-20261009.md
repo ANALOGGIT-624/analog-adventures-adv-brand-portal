@@ -245,10 +245,14 @@ message was observed. Completion is logged before output flush/process.exit, so
 it does not by itself prove process termination. The source of this discrepancy
 remains unresolved. A credential-free draft for provider investigation is in
 [render-cron-status-investigation-20261009.md](render-cron-status-investigation-20261009.md);
-it has not been sent. No additional run, cancellation or service change was made.
+it was subsequently sent and escalated to Render support as recorded in that report. No additional run, cancellation or service change was made during that escalation.
 
 
 The hosted customer-isolation follow-up is now complete for the defined pilot
 fixtures: [results and method](customer-isolation-20261009.md). This supersedes
 the earlier outstanding direct cross-company denial item, with the explicit
 fixture and authentication-method limits in that report.
+
+
+October 12 status and the next recovery exercise are recorded in
+[pilot-resumption-20261012.md](pilot-resumption-20261012.md).

@@ -50,3 +50,9 @@ of a missing delivery was proven in automated fixtures, not by deleting hosted
 order fields or creating a new purchase. The 15-minute timer is configured; this
 verification observed startup and manual execution, not a later timer tick.
 No additional paid service was introduced.
+
+
+October 12 follow-up: the automatic checkpoint completed at 18:56:49 UTC,
+scanning all eleven orders with no recovery or review items. Attribution and
+business-record hashes still matched October 9. This establishes subsequent
+automatic execution; it does not prove every intervening timer tick ran.

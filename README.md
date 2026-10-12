@@ -513,3 +513,9 @@ check status and run a batch from **Attributed orders → Check missed orders no
 Startup and manual hosted scans each checked all 11 orders with no missing
 attribution or business-data changes. No new paid service was added.
 See [scope, safeguards and verification](docs/order-reconciliation.md).
+
+
+October 12: all three weekend/morning scheduled backups succeeded, and a later
+automatic order-reconciliation scan preserved the verified baseline. The old
+manual Render run remains a provider-support issue. See the
+[current checks and hosted recovery plan](docs/pilot-resumption-20261012.md).
