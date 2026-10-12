@@ -200,3 +200,34 @@ exercised by the hosted app process. Real Shopify sign-in and authenticated
 artwork delivery through this replacement app, followed by controlled original
 app routing cutover/rollback, remain outstanding. No pilot-readiness claim is
 made from the direct storage checks alone.
+
+## Original development-app authentication access prepared
+
+After explicit approval, saved the original development app's client ID, secret
+and existing scopes in the suspended temporary Render app. Verified all three
+saved values after reloading Render. The temporary database URL and private
+replacement-bucket read-only credential were retained; active database access
+and original restored Shopify session access were not granted.
+
+Temporarily resumed the recovery database and granted INSERT/UPDATE/DELETE only
+on recovery_app.Session to recovery_reader_20261012, with the role's default
+transaction-read-only setting disabled so those narrowly granted writes work.
+At 20:00:35 UTC a synthetic insert/update/delete probe passed inside a rolled-back
+transaction; original public.Session reads and business-table updates returned
+permission denied. Existing table write grants and elevated role flags were
+checked before changing permissions. At 20:01:46 UTC every field in all four
+original restored tables still matched the backup. Private evidence:
+AUTH-PERMISSIONS.json and HOSTED-ALL-FIELDS.json.
+
+The recovery web service was never resumed. No real sign-in, original routing
+change, active database modification, or live-store change occurred in this
+phase. Prepared local cutover/rollback TOML copies differ only in application_url
+and auth.redirect_urls; they have not been Shopify-CLI-validated or deployed.
+Before running the replacement with the original app identity, complete the
+read-only HTTP route boundary and controlled fresh-backup/freeze/rollback steps
+recorded in the private cutover-plan/REVIEW.md.
+
+The database was suspended again after the checks; Render confirmed “Suspended
+by you.” Both temporary services remain suspended. The additional brief database
+compute remains within the approved $1 aggregate budget; invoice totals have not
+been independently checked.
