@@ -89,3 +89,85 @@ Published prices checked October 12:
 New security-sensitive access and final resource deletion require their own
 specific approvals when the exact targets are known. A temporary-hosting spend
 approval does not authorize changing the live store or deleting source data.
+
+## Approved hosted drill — database phase
+
+The owner approved the new $1 total temporary Render budget. Created
+`analog-portal-recovery-20261012` (`dpg-db6j2p2j9qps73cj6250-a`) in Ohio,
+PostgreSQL 18, 0.1c-256mb, 1 GB, autoscaling disabled. The verified plan is
+$6.30/month prorated ($6 compute + $0.30 storage). Provisioned approximately
+19:14 UTC October 12; cleanup remains required within the approved cap.
+
+Restored the independently decrypted October 12 dump into this empty database
+with an exact hostname/database guard, verified TLS and one transaction. The
+first attempt rolled back because a verification query omitted the explicit
+public schema after the dump cleared search_path. The corrected restore
+committed at 19:18:13 UTC. Counts: 8 PortalRecord rows (7 business records and
+1 reconciliation checkpoint), 5 checkout attempts, 1 session, 2 migrations.
+
+At 19:19:22 UTC, a separate read-only COPY comparison matched every field of all
+four tables against the original dump. Evidence: HOSTED-DATABASE-RESTORE.json
+and HOSTED-ALL-FIELDS.json in the private preflight directory. PostgreSQL's
+standard pg_restore 18.0 was built locally from official source to convert the
+custom dump; COPY streams restored it over verified TLS. No system service was
+installed and no active database was changed.
+
+The replacement web-service form is prepared for the current durable-hosting
+branch, Dockerfile.postgresql, /health, $7/month compute and auto-deploy off.
+Creation is pending specific approval to store a limited read-only database
+credential in the temporary app. The proposed credential excludes Session and
+all writes; synthetic Shopify authentication will keep this initial deployment
+separate from the active app. Full authentication/cutover and replacement
+object storage remain separate unfinished checks.
+
+
+The owner approved limited recovery-app database access. The expiring role
+`recovery_reader_20261012` can SELECT only PortalRecord and BulkCheckoutAttempt;
+its default transaction mode is read-only and it expires October 13 at 19:00 UTC.
+Actual application record-store checks read 4 proofs, 2 batches and 1 delivery.
+Session SELECT and a no-op UPDATE were both rejected. Credentials were saved in
+the temporary app's private Render environment with synthetic Shopify values.
+
+Created temporary web service `srv-db6j6749v7es73fmgi00`, named
+`analog-portal-recovery-app-20261012`, at approximately 19:21 UTC. Deployment
+`dep-db6j67k9v7es73fmgjg0` builds source `4b089db`; auto-deploy is off, health
+path /health, Dockerfile.postgresql, Ohio, $7/month prorated. No R2 credentials
+or active-app Shopify credentials were copied into the service. Its configured
+URL keeps the original-app-only reconciliation scheduler disabled.
+
+
+Startup exposed the SDK's asynchronous Session-table availability check. The
+limited role intentionally cannot read public.Session, so the initial service
+restarted despite briefly healthy /health responses. A separate recovery_app
+schema now exposes read-only views of the two business tables and an empty
+Session table for startup checks. The original restored session stays blocked.
+The reader can count zero isolated sessions; all original public-table fields
+still match the backup after this adaptation. This is an isolated deployment
+exercise, not proof that original-app credentials/routing have been cut over.
+
+
+## Verified hosted deployment and suspension
+
+Final deployment `dep-db6jaobl550s73b6b7eg` became live at approximately
+19:31 UTC. After correcting the saved schema setting, HTTPS /health returned
+200 with `ok`; anonymous /public/portal and /public/artwork returned 401 with
+a browser User-Agent. The SDK separately returned 410 for a bot User-Agent.
+Render records “Service restarted by you” at 15:34 EDT. The post-restart HTTP
+checks passed, and every public-table field still matched the dump at
+19:34:38 UTC. Private evidence: HOSTED-HTTP-initial.json,
+HOSTED-HTTP-restart.json, HOSTED-ALL-FIELDS.json and APP-READER-CHECKS.json.
+
+Both temporary services were then suspended at approximately 19:36 UTC. Render
+confirmed suspended status and displayed “You are not billed for suspended
+services.” No database or source archive was deleted. At the listed prorated
+rates, this brief compute use is estimated below $0.02; the final invoice has
+not been inspected. The approved $1 total cap remains in effect for any resumed
+work. The read-only login expires October 13 at 19:00 UTC and must be renewed
+before a later resume.
+
+This completes isolated hosted database restore, production-container rebuild,
+read-only app data access, unauthenticated denial and restart persistence. It
+does not complete real Shopify authentication, replacement R2 signed downloads,
+or original-app routing cutover/rollback. Those require a controlled next phase
+with explicit approval for additional temporary-app access. Active pilot and
+live-store routing, databases, credentials and artwork storage remain unchanged.

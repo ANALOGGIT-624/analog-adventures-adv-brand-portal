@@ -519,3 +519,11 @@ October 12: all three weekend/morning scheduled backups succeeded, and a later
 automatic order-reconciliation scan preserved the verified baseline. The old
 manual Render run remains a provider-support issue. See the
 [current checks and hosted recovery plan](docs/pilot-resumption-20261012.md).
+
+
+The October 12 hosted recovery follow-up restored every field of all four
+PostgreSQL tables into a temporary Render database and rebuilt the production
+container on a separate temporary web service. Read-only business access,
+anonymous denial and a service restart passed. Both temporary services are
+suspended. Real Shopify sign-in, replacement artwork storage and original-app
+cutover remain untested; see the linked recovery report for limits and evidence.
