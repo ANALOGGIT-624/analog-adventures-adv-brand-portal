@@ -198,7 +198,13 @@ A separately approved temporary recovery app also passed real Shopify staff and
 customer authentication, each downloading the restored original artwork over
 HTTPS with a matching SHA-256. Its tunnel and local services were then stopped;
 the temporary app registration and unlinked customer page remain. This separate
-app test does not prove production cutover or replacement R2 hosting.
+app test does not prove production cutover. On October 12, the isolated hosted
+PostgreSQL restore and app restart checks passed. Four original artwork objects
+were restored to a new private R2 bucket and verified byte-for-byte; valid signed
+links worked and unsigned, tampered, and expired links were rejected. The
+replacement Render app has a separate 24-hour read-only artwork key saved, but
+remains suspended pending real Shopify authentication and routing cutover tests.
+See [the October 12 recovery evidence](docs/pilot-resumption-20261012.md).
 The customer-portal session-renewal failure found during the drill was repaired
 and deployed on October 1. A controlled stale-expiry test renewed access from
 the customer page without staff navigation, preserved all portal/checkout

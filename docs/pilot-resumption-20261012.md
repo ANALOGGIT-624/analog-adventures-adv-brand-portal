@@ -171,3 +171,32 @@ does not complete real Shopify authentication, replacement R2 signed downloads,
 or original-app routing cutover/rollback. Those require a controlled next phase
 with explicit approval for additional temporary-app access. Active pilot and
 live-store routing, databases, credentials and artwork storage remain unchanged.
+
+
+## Replacement private artwork storage verified
+
+With explicit approval, created private R2 bucket
+`analog-portal-recovery-20261012` and two bucket-scoped 24-hour credentials:
+an upload credential used locally and a separate Object Read only credential
+saved in the suspended temporary Render app. Both expire October 13, 2026.
+The original artwork buckets and their credentials were not modified.
+
+At 19:48:49 UTC, all four recovered R2 objects (1,098,538 bytes total) were
+verified against the authenticated backup by byte count, SHA-256, and stored
+SHA-256 metadata. Original object keys were preserved. Conditional writes used
+If-None-Match: *; repeat verification did not overwrite objects. The read-only
+credential successfully listed and downloaded the restored objects.
+
+A 60-second signed download returned HTTP 200 with matching original bytes.
+Unsigned requests returned HTTP 400; tampered and expired signatures returned
+HTTP 403. The initial verifier expected 403 for every rejection and therefore
+reported a failed assertion for the unsigned 400 response; the corrected
+verifier explicitly accepts 400/403 for unsigned rejection, and the final run
+passed. Private evidence: R2-HOSTED-RESTORE.json.
+
+Render saved all four ARTWORK_R2_* settings, and their presence persisted after
+a page reload. The service remained suspended; these settings have not yet been
+exercised by the hosted app process. Real Shopify sign-in and authenticated
+artwork delivery through this replacement app, followed by controlled original
+app routing cutover/rollback, remain outstanding. No pilot-readiness claim is
+made from the direct storage checks alone.
