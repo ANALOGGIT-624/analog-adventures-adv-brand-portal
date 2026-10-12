@@ -9,7 +9,7 @@ test('recovery rejects business actions and alternate route spellings', () => {
     for (const method of ['POST','PUT','PATCH','DELETE']) assert.equal(recoveryRequestAllowed(method,route),false,`${method} ${route}`);
   for (const path of ['/assets/../app/payouts','/app/%70roofs','//app','/auth/../app','/auth\\callback','https://other.test/app','/app/payouts','/app/reports','/auth/unknown'])
     assert.equal(recoveryRequestAllowed('GET',path),false,path);
-  for (const path of ['/app','/app.data','/app/proofs.data?_routes=routes/app.proofs','/auth/callback?code=example','/public/portal','/assets/example.js'])
+  for (const path of ['/?shop=analog-adventures-test.myshopify.com','/app','/app.data','/app/proofs.data?_routes=routes/app.proofs','/auth/callback?code=example','/public/portal','/assets/example.js'])
     assert.equal(recoveryRequestAllowed('GET',path),true,path);
   assert.equal(recoveryRequestAllowed('POST','/public/artwork'),true);
   assert.equal(recoveryRequestAllowed('POST','/public/artwork.data'),false);

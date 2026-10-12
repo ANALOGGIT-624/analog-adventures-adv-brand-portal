@@ -1,7 +1,7 @@
 import http from 'node:http';
 
 const reads = new Set([
-  '/health', '/app', '/app.data', '/app/proofs', '/app/proofs.data',
+  '/', '/health', '/app', '/app.data', '/app/proofs', '/app/proofs.data',
   '/app/artwork', '/app/artwork.data', '/public/portal', '/public/artwork',
   '/auth', '/auth/login', '/auth/login.data', '/auth/callback',
   '/auth/session-token', '/auth/exit-iframe',
