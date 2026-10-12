@@ -318,3 +318,49 @@ full hosted artwork recovery remains incomplete: recheck navigation and download
 the original artwork through staff and the Test Company customer session, then
 compare its bytes/hash. This is not pilot sign-off. Temporary services were
 suspended within the approved budget window; final invoice totals were not checked.
+
+## Test Company download and navigation retest
+
+After the user signed into Test Company and replied ready, resumed the same
+temporary database/app. Commit 717312a deployed successfully in 35.8 seconds
+starting at 20:34:37 UTC. A new pre-test fingerprint at 20:35:17 UTC matched the
+earlier baseline. Paused the original development app and cron, preserved its
+current offline session separately, released the existing recovery version and
+saved the recovery customer endpoint again.
+
+Real staff navigation from Artwork proofs to Dashboard and back worked without
+a reload or 405, confirming the `/__manifest` correction on hosted recovery.
+The staff iframe hostname was verified as the temporary recovery host. The real
+Test Company customer saw its own organization and approved artwork.
+
+Chrome's customer download returned `/Users/thomasoneil/Downloads/FSS (4).svg`.
+At 20:38:17 UTC its 548,648 bytes and SHA-256 exactly matched the original:
+`c1a3e3cf4fdcaa3995d54b082863f72150c14011a41354ace29d14ea1baee71c`.
+Private evidence: browser-customer-artwork.json.
+
+Staff secure-link issuance succeeded, but the in-app and Chrome iframe download
+capture operations timed out. Local `FSS (5).svg` was saved at 20:37:48 UTC during
+the staff attempt, three seconds after the customer file. It also matched the
+original size/hash at 20:40:10 UTC (browser-staff-artwork.json). A later file was
+saved during another attempt. Treat the staff result as a matching artifact
+correlated by save time, not a browser-confirmed download event. Browser policy
+blocked visiting Chrome's internal downloads page to confirm provenance; no
+alternative access to that internal page was attempted.
+
+Restored the original Shopify version and customer endpoint, suspended the
+temporary web service, transferred its latest offline session back, and resumed
+the original web/cron. Original hosting rebuilt 717312a successfully in 1m02s
+starting at 20:41:28 UTC. Staff proofs loaded through the original hostname again.
+The temporary database was suspended after session handoff. At 20:42:08 UTC,
+all eleven orders and portal business fingerprints still matched the pre-test
+values exactly. No business mutation was submitted during this read-only retest.
+
+A fresh Test Company browser tab loaded the original portal successfully after
+rollback. The final combined backup logged exitCode 0 at 20:43:46 UTC and Render
+confirmed success at 20:43:49 UTC: five database objects and 165 portal objects,
+with unchanged counts and thirteen pre-existing gaps. Both temporary services
+were confirmed suspended. Remaining pilot decisions include retention, key
+rotation ownership (original R2 key due October 24), acceptance of historical
+test-data gaps and pilot-store selection. Preserve the staff download evidence
+qualification above; the customer end-to-end download and hosted navigation
+checks are complete.

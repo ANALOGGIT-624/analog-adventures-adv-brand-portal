@@ -202,8 +202,12 @@ app test does not prove production cutover. On October 12, the isolated hosted
 PostgreSQL restore and app restart checks passed. Four original artwork objects
 were restored to a new private R2 bucket and verified byte-for-byte; valid signed
 links worked and unsigned, tampered, and expired links were rejected. The
-replacement Render app has a separate 24-hour read-only artwork key saved, but
-remains suspended pending real Shopify authentication and routing cutover tests.
+replacement Render app used a separate 24-hour read-only artwork key. Real staff
+and customer authentication, routing cutover/rollback and customer artwork
+download now passed. The customer file matched the original SHA-256; a staff
+file saved during the timed-out capture also matched, with download-event
+provenance still limited by the browser tool. The recovery navigation fix passed
+its hosted recheck. Temporary services were suspended after rollback.
 See [the October 12 recovery evidence](docs/pilot-resumption-20261012.md).
 The customer-portal session-renewal failure found during the drill was repaired
 and deployed on October 1. A controlled stale-expiry test renewed access from
@@ -473,8 +477,10 @@ October 12 controlled recovery cutover: real staff and Tot Time customer access
 worked on replacement hosting. Original routing and services were restored;
 all eleven orders and portal business fingerprints were unchanged, and the
 post-rollback backup finished successfully at 20:24:43 UTC. Temporary services
-are suspended. Browser artwork download/hash verification and a hosted recheck
-of the recovery-only navigation fix remain before full recovery sign-off.
+are suspended. The subsequent Test Company customer artwork download matched the
+original bytes/hash and the hosted navigation recheck passed. A staff download
+artifact also matched, but its provenance relies on save-time correlation because
+the browser capture timed out; retain that qualification in recovery sign-off.
 See [the detailed recovery report](docs/pilot-resumption-20261012.md).
 
 React Router:
