@@ -40,6 +40,20 @@ export async function collectPages(load, initial = null) {
     cursors.add(after);
   }
 }
+// Portal-owned IDs cannot be resolved by Shopify's nodes query. Preserve local
+// records (including migrated legacy IDs) and query only Shopify identifiers.
+export async function resolveHistoricalRecords(ids, portalRecords = [], query) {
+  const local = new Map(portalRecords.map(row => [row.id, row]));
+  const remoteIds = [...new Set(ids)].filter(id => !local.has(id) && /^gid:\/\/shopify\/Metaobject\/\d+$/.test(id));
+  const remote = new Map();
+  for (let offset = 0; offset < remoteIds.length; offset += 100) {
+    const batch = remoteIds.slice(offset, offset + 100);
+    const result = await query("historical", { ids: batch });
+    batch.forEach((id, index) => remote.set(id, result.nodes[index] || null));
+  }
+  return ids.map(requestedId => ({ requestedId, record: local.get(requestedId) || remote.get(requestedId) || null }));
+}
+
 async function privateJson(filename, value) {
   await mkdir(path.dirname(filename), { recursive: true, mode: 0o700 });
   await writeFile(filename, JSON.stringify(value, null, 2), {
@@ -260,17 +274,9 @@ export async function capture({
         if (line.artworkProofSnapshot?.id)
           historicalIds.add(line.artworkProofSnapshot.id);
       }
-    const history = [];
-    for (let i = 0; i < historicalIds.size; i += 100) {
-      const ids = [...historicalIds].slice(i, i + 100),
-        result = await query("historical", { ids });
-      ids.forEach((id, index) => {
-        const record = result.nodes[index] || portalRecords?.find(row => row.id === id) || null;
-        history.push({ requestedId: id, record });
-        if (!record)
-          report.gaps.push({ kind: "inaccessible_historical_record", id });
-      });
-    }
+    const history = await resolveHistoricalRecords([...historicalIds], portalRecords, query);
+    for (const { requestedId, record } of history)
+      if (!record) report.gaps.push({ kind: "inaccessible_historical_record", id: requestedId });
     await privateJson(
       path.join(stage, "shopify/historical-lookups.json"),
       history,

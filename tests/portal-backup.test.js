@@ -5,7 +5,7 @@ import { Readable } from "node:stream";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { capture } from "../scripts/recovery/capture.mjs";
+import { capture, resolveHistoricalRecords } from "../scripts/recovery/capture.mjs";
 import { createKey, sha256 } from "../scripts/recovery/archive.mjs";
 import { createReadOnlyQuery, BACKUP_STORE } from "../scripts/recovery/portal-client.mjs";
 import { assessPortalCoverage } from "../scripts/recovery/scheduled-portal.mjs";
@@ -112,4 +112,21 @@ test("accepted historical limitations never allow new gaps, count regressions or
   assert.equal(assessPortalCoverage({...report,counts:{metaobjects:2,downloadedAssets:2}},baseline).healthy,false);
   assert.equal(assessPortalCoverage({...report,status:"capture_failed"},baseline).healthy,false);
   assert.throws(()=>assessPortalCoverage(report,{...baseline,store:"another.myshopify.com"}), /baseline required/);
+});
+
+
+test("historical capture resolves portal IDs locally without sending them to Shopify", async () => {
+  const owned = {id:"gid://analog-portal/Record/new-proof", fields:[{key:"status",value:"approved"}]};
+  const migrated = {id:"gid://shopify/Metaobject/12", fields:[]};
+  const missing = "gid://analog-portal/Record/missing";
+  const remote = {id:"gid://shopify/Metaobject/13"};
+  const requested = [];
+  const rows = await resolveHistoricalRecords([owned.id,migrated.id,remote.id,missing,"gid://shopify/Metaobject/14"], [owned,migrated], async (kind,{ids}) => {
+    assert.equal(kind,"historical"); requested.push(...ids);
+    assert.ok(ids.every(id=>id.startsWith("gid://shopify/Metaobject/")));
+    return {nodes:ids.map(id=>id===remote.id?remote:null)};
+  });
+  assert.deepEqual(requested,[remote.id,"gid://shopify/Metaobject/14"]);
+  assert.deepEqual(rows.map(x=>x.record),[owned,migrated,remote,null,null]);
+  assert.deepEqual(await resolveHistoricalRecords([owned.id],[owned],()=>assert.fail("No remote lookup needed")),[{requestedId:owned.id,record:owned}]);
 });
