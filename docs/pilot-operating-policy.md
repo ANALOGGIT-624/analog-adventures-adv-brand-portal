@@ -70,8 +70,10 @@ This document does not create reminders or scheduled renewal automation.
 - Review retention cleanup without pruning existing copies; monthly archival
   and independent decryption passed October 13.
 - Renew the active R2 credential before November 11.
-- Review and explicitly accept or resolve the thirteen historical test-data
-  gaps. Acceptance of a limited backup baseline is not acceptance for launch.
+- October 13: Thomas approved development-store rehearsal using new test
+  records with the thirteen historical exceptions explicitly excluded. This
+  does not resolve those exceptions or authorize live-store launch. See the
+  [fresh-record rehearsal checklist](development-rehearsal-20261013.md).
 - Reconciliation monitoring is deployed and received a real automatic success
   October 13, with another successful check-in around 09:36 Eastern. Owner inbox
   receipt of the integration test is confirmed. An intentional missed-run
