@@ -55,3 +55,25 @@ of the fresh records. It does not establish a broader production recovery-time
 or data-loss guarantee. Live-store configuration and launch approval remain
 separate. An intentional missed-run alert transition remains untested; inbox
 delivery of the Healthchecks integration test is confirmed.
+
+## First execution evidence — October 13
+
+Created `REHEARSAL-20261013 — Individual Shipping`, permanent campaign ID
+`REHEARSAL-20261013-IND`, for Test Company Pilot Store. It remains draft with
+no dates set, individual shipping, batch-after-close production, retail pricing,
+The Inventory Not Tracked Snowboard, and the existing test-only $5 per fulfilled
+unit/zero-delay payout rule. No checkout or payment occurred.
+
+Staff uploaded fresh `REHEARSAL-20261013.svg` at 09:47:02 Eastern; the signed-in
+Testy Tester customer approved Version 1 through the portal. Source: 585 bytes,
+SHA-256 `5b3b248e6e4bb832c07467cc1ed2e2471bf7dce7900c2136af6c87facff2a457`.
+The customer download matched this hash. Browser download-event capture timed
+out; filesystem arrival is corroborating evidence, not a captured download event.
+A second file arrived after the staff download click and also matched all 585
+bytes and the source hash; see private download verification.
+The earlier event-capture qualification remains open. Native Chrome file selection
+worked after automated chooser events timed out. No upload permission change made.
+
+Private evidence: `recovery-private/rehearsal-20261013/`. Remaining: fresh-record
+isolation, test-payment setup verification, campaign dates/lifecycle, bulk campaign
+and proof, purchases/refunds/payout/archive, and fresh-record backup/recovery.
