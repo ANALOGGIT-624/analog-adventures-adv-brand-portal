@@ -82,8 +82,8 @@ This document does not create reminders or scheduled renewal automation.
   October 13, with another successful check-in around 09:36 Eastern. Owner inbox
   receipt of the integration test is confirmed. An accelerated missed-run
   transition and recovery passed at 10:53–10:54 Eastern with the original
-  15-minute period/grace restored. Inbox receipt of these specific alerts is
-  pending owner confirmation. Continue inspecting staff review items and the
+  15-minute period/grace restored. Thomas confirmed inbox receipt of both specific alerts on October 13;
+  the controlled alert-delivery check is complete. Continue inspecting staff review items and the
   completed-sweep timestamp during operation.
 - Preserve the October 12 staff-download evidence qualification: the saved file
   matched, but browser download-event capture timed out. The customer download

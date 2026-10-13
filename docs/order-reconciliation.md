@@ -121,6 +121,6 @@ and its original schedule is restored.
 
 This verifies missing-success detection and recovery signaling on the real
 check with an accelerated deadline; it does not claim the app stopped or prove
-a 30-minute production outage. Owner inbox receipt of these particular DOWN
-and recovery notifications is pending confirmation. Private screenshot evidence:
+a 30-minute production outage. Thomas subsequently confirmed receipt of both the DOWN and recovery emails
+on October 13. This closes the controlled alert-delivery acceptance check. Private screenshot evidence:
 `recovery-private/rehearsal-20261013/monitor-transition-evidence.png`.

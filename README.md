@@ -234,7 +234,7 @@ production deployment scanned all 11 orders with no review items and delivered
 its real success check-in. Healthchecks reported the email integration test
 delivered October 13; Thomas confirmed inbox receipt with a screenshot. An accelerated missed-run test subsequently recorded down at 10:53 Eastern
 and recovery after a real reconciliation run at 10:54. The normal 15-minute
-period/grace is restored; receipt of those specific emails is pending confirmation. See [monitoring evidence](docs/order-reconciliation.md).
+period/grace is restored; Thomas confirmed receipt of both specific emails, completing the controlled alert-delivery check. See [monitoring evidence](docs/order-reconciliation.md).
 
 The October 13 fresh development-store rehearsal completed individual and bulk
 checkout, duplicate submission/retry, artwork approval, attribution, simulated
