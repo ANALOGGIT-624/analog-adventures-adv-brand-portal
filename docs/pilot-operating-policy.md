@@ -73,8 +73,9 @@ This document does not create reminders or scheduled renewal automation.
 - Review and explicitly accept or resolve the thirteen historical test-data
   gaps. Acceptance of a limited backup baseline is not acceptance for launch.
 - Reconciliation monitoring is deployed and received a real automatic success
-  October 13. The email integration test reports delivered; owner inbox receipt
-  confirmation and an intentional missed-run transition remain unverified;
+  October 13, with another successful check-in around 09:36 Eastern. Owner inbox
+  receipt of the integration test is confirmed. An intentional missed-run
+  transition remains unverified;
   inspect staff review items and the completed-sweep timestamp during rehearsal.
 - Preserve the October 12 staff-download evidence qualification: the saved file
   matched, but browser download-event capture timed out. The customer download

@@ -89,14 +89,15 @@ No synthetic success ping was used to establish this result.
 
 This verifies a real automatic run and successful monitor delivery. Failure
 signaling is covered by automated tests; an intentional missed-run or failure
-email delivery test has not been performed. The separate 15-minute timer tick
-with monitoring has not yet been observed. The ping credential stays outside
+email delivery test has not been performed. A subsequent successful check-in was observed around 09:36 Eastern,
+consistent with the 15-minute timer following the 09:21 startup run. The ping credential stays outside
 Git; no order contents are transmitted to Healthchecks. No paid service added.
 
 ## Email integration test — October 13
 
 The existing email integration’s Test action returned “Test notification sent!”
 and “Delivered, now” for the configured owner email. All three checks remain
-assigned. This verifies provider-reported test delivery; owner confirmation of
-inbox receipt is pending. It does not exercise a real missed-run or failure
+assigned. Thomas supplied an inbox screenshot showing “DOWN | TEST” at
+09:30:59 Eastern and “OK, all checks up” in the project overview, confirming
+inbox receipt. This was the integration test notification, not a real outage. It does not exercise a real missed-run or failure
 transition. No app or backup job was paused and no check assignments changed.

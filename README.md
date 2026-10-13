@@ -232,7 +232,7 @@ Order reconciliation now has an independent Healthchecks alert (15-minute
 period plus 15-minute grace), separate from backup alerts. The October 13
 production deployment scanned all 11 orders with no review items and delivered
 its real success check-in. Healthchecks reported the email integration test
-delivered October 13; inbox receipt awaits owner confirmation. An actual
+delivered October 13; Thomas confirmed inbox receipt with a screenshot. An actual
 failure/missed-run transition has not been intentionally exercised. See [monitoring evidence](docs/order-reconciliation.md).
 
 ### Operating references
