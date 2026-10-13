@@ -1,3 +1,4 @@
+import { deploymentScope } from "../../app/lib/deployment-scope.js";
 import process from "node:process";
 import { runBackup, ping } from "./scheduled-postgres.mjs";
 import { runBackupJob } from "./job-lifecycle.mjs";
@@ -17,7 +18,7 @@ await runBackupJob({
       credentials: { accessKeyId: process.env.B2_ACCESS_KEY_ID, secretAccessKey: process.env.B2_SECRET_ACCESS_KEY }, maxAttempts: 3 });
     try {
       await ping(process.env.PORTAL_BACKUP_MONITOR_URL, "/start");
-      const result = await preserveRecoverySet({ client, database, portal });
+      const result = await preserveRecoverySet({ client, database, portal, root: deploymentScope(process.env).backupRoot });
       await ping(process.env.PORTAL_BACKUP_MONITOR_URL);
       console.log(JSON.stringify({ recoverySetVerified: true, ...result }));
     } catch {

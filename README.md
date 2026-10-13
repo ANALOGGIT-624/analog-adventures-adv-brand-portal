@@ -251,6 +251,12 @@ read-only review found an older portal installation and development-only
 backup/reconciliation restrictions. Real checkout and participant invitations
 remain gated on the [live-store readiness plan](docs/live-store-readiness-20261013.md).
 
+Live deployment profiles, store-specific reconciliation, and isolated backup
+paths are prepared and tested locally. The live app is confirmed to be the
+original placeholder registration. Hosting selection, access approval, Shopify
+configuration validation and deployment are pending; live protection is not
+yet active.
+
 ### Operating references
 
 - [Approved pilot scope, ownership, retention policy, and renewal procedure](docs/pilot-operating-policy.md)

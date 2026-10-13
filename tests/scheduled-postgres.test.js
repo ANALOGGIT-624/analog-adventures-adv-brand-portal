@@ -109,3 +109,13 @@ test("permission failures do not retry or publish a completion marker", async t=
  await assert.rejects(transferVerified({client:{send:async()=>{attempts++;throw Object.assign(new Error("denied"),{$metadata:{httpStatusCode:403}});}},bucket:"fixture",prefix:"unique/",sealed:path.join(root,"sealed"),download:path.join(root,"download"),retryDelay:async()=>{}}));
  assert.equal(attempts,1);
 });
+
+
+test("live database backup requires an explicit provisioned host and separate database", () => {
+  const live={...env,PORTAL_DEPLOYMENT:"live",BACKUP_EXPECTED_DATABASE_HOST:"dpg-livefixture-a",DATABASE_URL:"postgresql://fixture:fixture@dpg-livefixture-a/analog_portal_live?sslmode=verify-full"};
+  assert.equal(configuration(live).scope.name,"live");
+  assert.throws(()=>configuration({...live,BACKUP_EXPECTED_DATABASE_HOST:undefined}));
+  assert.throws(()=>configuration({...live,DATABASE_URL:env.DATABASE_URL}));
+  assert.throws(()=>configuration({...live,DATABASE_URL:live.DATABASE_URL.replace('analog_portal_live','analog_portal_pilot')}));
+  assert.throws(()=>configuration({...live,BACKUP_EXPECTED_DATABASE_HOST:'example.com'}));
+});

@@ -12,8 +12,8 @@ COPY --from=dependencies /usr/local/bin/node /usr/local/bin/node
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY scripts/recovery ./scripts/recovery
-COPY app/lib/coordinated-session-storage.server.js app/lib/private-artwork-storage.server.js app/lib/proof-workflow.server.js app/lib/brand-portal.server.js app/lib/portal-records.server.js ./app/lib/
-COPY shopify.app.toml ./shopify.app.toml
+COPY app/lib/deployment-scope.js app/lib/coordinated-session-storage.server.js app/lib/private-artwork-storage.server.js app/lib/proof-workflow.server.js app/lib/brand-portal.server.js app/lib/portal-records.server.js ./app/lib/
+COPY shopify.app.toml shopify.app.render.toml shopify.app.live.toml ./
 COPY prisma/schema.prisma ./prisma/schema.prisma
 USER postgres
 ENTRYPOINT ["node"]

@@ -1,3 +1,4 @@
+import { deploymentScope } from "../../app/lib/deployment-scope.js";
 import process from "node:process";
 import { randomUUID, randomBytes } from "node:crypto";
 import { parseRecipient, wrapKey } from "./recipient.mjs";
@@ -16,10 +17,13 @@ import { archiveReceipt } from "./recovery-sets.mjs";
 export function configuration(env) {
   for (const name of ["DATABASE_URL", "BACKUP_PUBLIC_KEY_BASE64", "B2_ACCESS_KEY_ID", "B2_SECRET_ACCESS_KEY", "BACKUP_MONITOR_URL"])
     if (!env[name]) throw new Error("Required backup configuration missing");
+  const scope = deploymentScope(env);
+  const expectedHost = scope.databaseHost || env.BACKUP_EXPECTED_DATABASE_HOST;
+  if (!/^dpg-[a-z0-9]+-a$/.test(expectedHost || "")) throw new Error("Expected database host required");
   const database = new URL(env.DATABASE_URL);
-  if (database.hostname !== "dpg-daql1l1srm7s73dfn2rg-a" && database.hostname !== "dpg-daql1l1srm7s73dfn2rg-a.ohio-postgres.render.com")
+  if (database.hostname !== expectedHost && database.hostname !== `${expectedHost}.ohio-postgres.render.com`)
     throw new Error("Unexpected database host");
-  if (!['postgres:', 'postgresql:'].includes(database.protocol) || database.pathname !== "/analog_portal_pilot")
+  if (!['postgres:', 'postgresql:'].includes(database.protocol) || database.pathname !== `/${scope.databaseName}`)
     throw new Error("Unexpected database identity");
   if (!['require', 'verify-full'].includes(database.searchParams.get("sslmode")))
     throw new Error("Database TLS required");
@@ -27,7 +31,7 @@ export function configuration(env) {
   const monitor = new URL(env.BACKUP_MONITOR_URL);
   if (monitor.protocol !== "https:" || monitor.hostname !== "hc-ping.com" || monitor.username || monitor.password || monitor.search || monitor.hash || !/^\/[0-9a-f-]{36}$/.test(monitor.pathname))
     throw new Error("Unexpected monitoring endpoint");
-  return { database: database.href, recipient, monitor: monitor.href };
+  return { database: database.href, recipient, monitor: monitor.href, scope };
 }
 
 export function databaseEnvironment(connection, executablePath) {
@@ -111,7 +115,7 @@ export async function runBackup(env = process.env) {
   const config = configuration(env);
   const root = await mkdtemp(path.join(os.tmpdir(), "portal-pg-backup-"));
   const bucket = "analog-adventures-portal-backups";
-  const prefix = `recovery/postgresql/scheduled/${new Date().toISOString().replaceAll(":", "-")}-${randomUUID()}/`;
+  const prefix = `${config.scope.backupRoot}${new Date().toISOString().replaceAll(":", "-")}-${randomUUID()}/`;
   const client = new S3Client({ region: "us-east-005", endpoint: "https://s3.us-east-005.backblazeb2.com",
     credentials: { accessKeyId: env.B2_ACCESS_KEY_ID, secretAccessKey: env.B2_SECRET_ACCESS_KEY }, maxAttempts: 3 });
   try {
@@ -131,11 +135,11 @@ export async function runBackup(env = process.env) {
     if ((await stat(dump)).size === 0) throw new Error("Empty database export");
     await command("pg_restore", ["--list", dump], childEnv);
     await writeFile(path.join(source, "scope.json"), JSON.stringify({
-      capturedAt: new Date().toISOString(), database: "analog_portal_pilot", format: "PostgreSQL custom dump",
+      capturedAt: new Date().toISOString(), database: config.scope.databaseName, format: "PostgreSQL custom dump",
       scope: "PostgreSQL only. Shopify business metadata and R2 objects are not included.",
       verification: "Encrypted read-back and dump readability; scheduled runs do not restore a running database.",
     }), { mode: 0o600 });
-    await sealDirectory(source, path.join(root, "sealed"), keyFile, { kind: "scheduled-postgresql", database: "analog_portal_pilot" });
+    await sealDirectory(source, path.join(root, "sealed"), keyFile, { kind: "scheduled-postgresql", database: config.scope.databaseName });
     await writeFile(path.join(root, "sealed", "recipient.json"), JSON.stringify(envelope), { mode: 0o600, flag: "wx" });
     await restoreDirectory(path.join(root, "sealed"), path.join(root, "local-verified"), keyFile);
     console.log("Backup stage: offsite-transfer");

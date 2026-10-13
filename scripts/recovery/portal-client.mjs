@@ -2,16 +2,18 @@ import "@shopify/shopify-app-react-router/adapters/node";
 import { shopifyApp, ApiVersion, AppDistribution } from "@shopify/shopify-app-react-router/server";
 import { queries } from "./queries.mjs";
 
+import { deploymentScope, requireDeploymentIdentity } from "../../app/lib/deployment-scope.js";
+
 export const BACKUP_STORE = "analog-adventures-test.myshopify.com";
 export const BACKUP_APP = "8158f984f0ec6fed1e5f85b44a588777";
 
-export function createReadOnlyQuery(token, fetcher = fetch, sleep = ms => new Promise(resolve => setTimeout(resolve, ms))) {
+export function createReadOnlyQuery(token, fetcher = fetch, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)), scope = deploymentScope()) {
   return async (kind, variables = {}) => {
     if (!Object.hasOwn(queries, kind) || !/^query\s/.test(queries[kind])) throw new Error("Unknown backup query");
     for (let attempt = 0; attempt < 5; attempt++) {
       let response, result;
       try {
-        response = await fetcher(`https://${BACKUP_STORE}/admin/api/2026-07/graphql.json`, {
+        response = await fetcher(`https://${scope.shop}/admin/api/2026-07/graphql.json`, {
           method: "POST", redirect: "error", signal: AbortSignal.timeout(60000),
           headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
           body: JSON.stringify({ query: queries[kind], variables }),
@@ -31,7 +33,8 @@ export function createReadOnlyQuery(token, fetcher = fetch, sleep = ms => new Pr
 }
 
 export async function createPortalReader(env, sessionStorage) {
-  if (env.SHOPIFY_API_KEY !== BACKUP_APP || !env.SHOPIFY_API_SECRET || env.SHOPIFY_APP_URL !== "https://analog-portal-pilot.onrender.com")
+  const scope = requireDeploymentIdentity(env);
+  if (!env.SHOPIFY_API_SECRET)
     throw new Error("Unexpected backup app identity");
   const app = shopifyApp({
     apiKey: env.SHOPIFY_API_KEY, apiSecretKey: env.SHOPIFY_API_SECRET,
@@ -41,12 +44,12 @@ export async function createPortalReader(env, sessionStorage) {
   });
   // Official SDK refreshes expiring offline tokens and persists their replacement.
   // No Shopify business-data mutations are exposed to this worker.
-  const load = () => app.unauthenticated.admin(BACKUP_STORE);
-  const { session } = await (sessionStorage.withShop ? sessionStorage.withShop(BACKUP_STORE, load) : load());
-  if (session.shop !== BACKUP_STORE || session.isOnline || session.isExpired()) throw new Error("Backup session unavailable");
-  const query = createReadOnlyQuery(session.accessToken);
+  const load = () => app.unauthenticated.admin(scope.shop);
+  const { session } = await (sessionStorage.withShop ? sessionStorage.withShop(scope.shop, load) : load());
+  if (session.shop !== scope.shop || session.isOnline || session.isExpired()) throw new Error("Backup session unavailable");
+  const query = createReadOnlyQuery(session.accessToken, fetch, undefined, scope);
   const identity = await query("identity");
-  if (identity.shop?.myshopifyDomain !== BACKUP_STORE || identity.currentAppInstallation?.app?.apiKey !== BACKUP_APP)
+  if (identity.shop?.myshopifyDomain !== scope.shop || identity.currentAppInstallation?.app?.apiKey !== scope.appId)
     throw new Error("Shopify backup identity mismatch");
   return query;
 }

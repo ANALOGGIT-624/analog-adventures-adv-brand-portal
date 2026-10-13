@@ -91,12 +91,16 @@ export async function capture({
   artworkConfig,
   artworkClient,
   portalRecords,
+  configFile = "shopify.app.toml",
+  historicalRecordIds = ["gid://shopify/Metaobject/427021893817"],
 }) {
   if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(store))
     throw new Error("Supply a canonical myshopify store");
   process.umask(0o077);
   await loadKey(keyFile);
-  const config = await readFile(path.join(repo, "shopify.app.toml"), "utf8");
+  if (!["shopify.app.toml", "shopify.app.render.toml", "shopify.app.live.toml"].includes(configFile))
+    throw new Error("Unknown backup app configuration");
+  const config = await readFile(path.join(repo, configFile), "utf8");
   const expectedApp = config.match(/^client_id\s*=\s*"([^"]+)"/m)?.[1];
   if (!expectedApp) throw new Error("Missing app identity");
   const base = path.resolve(output),
@@ -268,7 +272,7 @@ export async function capture({
     }
     await privateJson(path.join(stage, "shopify/orders.json"), orders);
     report.counts.orders = orders.length;
-    const historicalIds = new Set(["gid://shopify/Metaobject/427021893817"]);
+    const historicalIds = new Set(historicalRecordIds);
     for (const order of orders)
       for (const line of order.attributionManifest?.jsonValue?.lines || []) {
         if (line.artworkProofSnapshot?.id)
@@ -499,7 +503,7 @@ export async function capture({
       report.codeHistory = "Separate repository; configuration snapshots included";
     }
     await copyFile(
-      path.join(repo, "shopify.app.toml"),
+      path.join(repo, configFile),
       path.join(stage, "code/shopify.app.toml"),
     );
     await copyFile(

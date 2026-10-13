@@ -1,3 +1,4 @@
+import { deploymentScope, requireDeploymentIdentity } from "../../app/lib/deployment-scope.js";
 import { createPortalRecordStore, DATABASE_PORTAL_TYPES } from "../../app/lib/portal-records.server.js";
 import process from "node:process";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -8,7 +9,7 @@ import { Buffer } from "node:buffer";
 import { S3Client } from "@aws-sdk/client-s3";
 import { createCoordinatedSessionStorage } from "../../app/lib/coordinated-session-storage.server.js";
 import { capture } from "./capture.mjs";
-import { createPortalReader, BACKUP_STORE } from "./portal-client.mjs";
+import { createPortalReader } from "./portal-client.mjs";
 import { privateArtworkConfig } from "../../app/lib/private-artwork-storage.server.js";
 import { configuration, transferVerified, ping } from "./scheduled-postgres.mjs";
 import { parseRecipient, wrapKey } from "./recipient.mjs";
@@ -16,8 +17,8 @@ import { sealDirectory, restoreDirectory } from "./archive.mjs";
 import { archiveReceipt } from "./recovery-sets.mjs";
 
 const normalized = gap => JSON.stringify(Object.fromEntries(Object.entries(gap).filter(([k]) => k !== "detail").sort(([a], [b]) => a.localeCompare(b))));
-export function assessPortalCoverage(report, baseline) {
-  if (!baseline || baseline.store !== BACKUP_STORE || !Array.isArray(baseline.acceptedGaps) || !baseline.minimumCounts)
+export function assessPortalCoverage(report, baseline, scope = deploymentScope()) {
+  if (!baseline || baseline.store !== scope.shop || !Array.isArray(baseline.acceptedGaps) || !baseline.minimumCounts)
     throw new Error("Portal backup scope baseline required");
   const accepted = new Set(baseline.acceptedGaps.map(normalized));
   const unexpectedGaps = report.gaps.filter(g => !accepted.has(normalized(g)));
@@ -29,18 +30,19 @@ export function assessPortalCoverage(report, baseline) {
 
 export async function runPortalBackup(env = process.env) {
   process.umask(0o077);
+  const scope = requireDeploymentIdentity(env);
   const portalEnv = { ...env, BACKUP_MONITOR_URL: env.PORTAL_BACKUP_MONITOR_URL };
   configuration(portalEnv); // Includes the same source database and monitor guards.
   if (env.ARTWORK_R2_ACCOUNT_ID !== "6da62e9e9b3c4aac0de6d4d867b78dcf" ||
-      env.ARTWORK_R2_BUCKET !== "analog-brand-portal-private")
+      env.ARTWORK_R2_BUCKET !== scope.artworkBucket)
     throw new Error("Unexpected portal artwork backup source");
   const recipient = parseRecipient(env.BACKUP_PUBLIC_KEY_BASE64);
   const baseline = JSON.parse(Buffer.from(env.PORTAL_BACKUP_BASELINE_BASE64 || "", "base64").toString("utf8"));
-  assessPortalCoverage({ status: "captured", gaps: [], counts: baseline.minimumCounts }, baseline);
+  assessPortalCoverage({ status: "captured", gaps: [], counts: baseline.minimumCounts }, baseline, scope);
   const root = await mkdtemp(path.join(os.tmpdir(), "portal-business-backup-"));
   const bucket = "analog-adventures-portal-backups";
   // Separate subtree and separate monitor, within the existing scheduled identity.
-  const prefix = `recovery/postgresql/scheduled/portal/${new Date().toISOString().replaceAll(":", "-")}-${randomUUID()}/`;
+  const prefix = `${scope.backupRoot}portal/${new Date().toISOString().replaceAll(":", "-")}-${randomUUID()}/`;
   const client = new S3Client({ region: "us-east-005", endpoint: "https://s3.us-east-005.backblazeb2.com",
     credentials: { accessKeyId: env.B2_ACCESS_KEY_ID, secretAccessKey: env.B2_SECRET_ACCESS_KEY }, maxAttempts: 3 });
   let prisma;
@@ -55,16 +57,17 @@ export async function runPortalBackup(env = process.env) {
     const captureRoot = path.join(root, "portal");
     let portalRecords;
     if (env.PORTAL_DATA_BACKEND === "postgresql") {
-      const store = createPortalRecordStore(prisma, BACKUP_STORE);
+      const store = createPortalRecordStore(prisma, scope.shop);
       portalRecords = (await Promise.all([...DATABASE_PORTAL_TYPES].map(type => store.list(type)))).flat();
     }
-    const report = await capture({ store: BACKUP_STORE, output: captureRoot, keyFile, queryExecutor,
-      includeRepositoryHistory: false, seal: false, portalRecords, artworkConfig: privateArtworkConfig(env) });
-    const coverage = assessPortalCoverage(report, baseline);
+    const report = await capture({ store: scope.shop, output: captureRoot, keyFile, queryExecutor,
+      includeRepositoryHistory: false, seal: false, portalRecords, configFile: scope.configFile,
+      historicalRecordIds: scope.name === "development" ? ["gid://shopify/Metaobject/427021893817"] : [], artworkConfig: privateArtworkConfig(env) });
+    const coverage = assessPortalCoverage(report, baseline, scope);
     await writeFile(path.join(captureRoot, "capture", "coverage.json"), JSON.stringify({ ...coverage,
       scope: "Current accessible portal data only; accepted historical gaps remain unresolved.", baseline }), { mode: 0o600, flag: "wx" });
     const sealed = path.join(root, "sealed");
-    await sealDirectory(path.join(captureRoot, "capture"), sealed, keyFile, { kind: "scheduled-portal", store: BACKUP_STORE, status: report.status });
+    await sealDirectory(path.join(captureRoot, "capture"), sealed, keyFile, { kind: "scheduled-portal", store: scope.shop, status: report.status });
     await writeFile(path.join(sealed, "recipient.json"), JSON.stringify(envelope), { mode: 0o600, flag: "wx" });
     const download = path.join(root, "download");
     const objects = await transferVerified({ client, bucket, prefix, sealed, download });

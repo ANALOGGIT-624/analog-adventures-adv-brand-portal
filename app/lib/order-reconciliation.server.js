@@ -4,16 +4,19 @@ import { unauthenticated } from "../shopify.server";
 import { reconcileOrder } from "./order-attribution.server";
 import { reconcileBatch } from "./order-reconciliation";
 import { monitoredReconciliation } from "./reconciliation-monitor";
+import { deploymentScope, requireDeploymentIdentity } from "./deployment-scope.js";
 const id = "internal:order-reconciliation";
-const shop = "analog-adventures-test.myshopify.com";
+export function reconciliationShop() { return deploymentScope(process.env).shop; }
 let running = false;
 export async function reconciliationStatus() {
+  const shop = reconciliationShop();
   const row = await prisma.portalRecord.findUnique({
     where: { shop_id: { shop, id } },
   });
   return row ? JSON.parse(row.values) : null;
 }
 export async function runOrderReconciliation() {
+  const shop = requireDeploymentIdentity(process.env).shop;
   if (running) return { busy: true };
   running = true;
   try {
@@ -48,10 +51,12 @@ export async function runOrderReconciliation() {
 export function startOrderReconciliation() {
   if (
     process.env.NODE_ENV !== "production" ||
-    process.env.PORTAL_DATA_BACKEND !== "postgresql" ||
-    process.env.SHOPIFY_APP_URL !== "https://analog-portal-pilot.onrender.com"
+    process.env.PORTAL_DATA_BACKEND !== "postgresql"
   )
     return;
+  // Recovery/preview hosts must not start a background production writer.
+  if (process.env.SHOPIFY_APP_URL !== deploymentScope(process.env).appUrl) return;
+  requireDeploymentIdentity(process.env);
   const tick = () =>
     runOrderReconciliation()
       .then((s) =>

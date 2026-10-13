@@ -1,4 +1,5 @@
 import {
+  reconciliationShop,
   reconciliationStatus,
   runOrderReconciliation,
 } from "../lib/order-reconciliation.server";
@@ -31,7 +32,7 @@ export const loader = async ({ request }) => {
 
   return {
     reconciliation:
-      session.shop === "analog-adventures-test.myshopify.com"
+      session.shop === reconciliationShop()
         ? await reconciliationStatus()
         : null,
     orders: payload.data.orders.nodes
@@ -46,7 +47,7 @@ export const loader = async ({ request }) => {
 
 export const action = async ({ request }) => {
   const { session } = await authenticate.admin(request);
-  if (session.shop !== "analog-adventures-test.myshopify.com")
+  if (session.shop !== reconciliationShop())
     throw new Response("Unavailable", { status: 403 });
   await runOrderReconciliation();
   return { ok: true };

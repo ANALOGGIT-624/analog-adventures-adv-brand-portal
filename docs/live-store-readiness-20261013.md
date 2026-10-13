@@ -71,3 +71,53 @@ Do not reuse accepted historical test-data gaps as a live-store baseline.
 
 No new paid service is proposed or provisioned by this review. The development
 rehearsal evidence remains valid within its recorded scope.
+
+## Implementation preparation — October 13
+
+Developer Dashboard confirmed live app registration `416059686913`, client ID
+`06e65ab0c39620391d34ec284f2b61aa`, under Analog Adventures. Its sole active
+version `1106020794369` (`analog-adventures-brand-portal-1`) points at Shopify's
+default app-home/auth URLs and has only `write_products`. It is a placeholder,
+not the tested hosted portal. The existing registration can be prepared for a
+live deployment; uninstalling it is not required by this finding.
+
+Prepared, but **not deployed**:
+
+- `shopify.app.live.toml`, reusing the tested configuration with the verified
+  live client ID and proposed `https://analog-portal-live.onrender.com` host.
+  That hostname is not provisioned or verified and must match actual hosting.
+- Explicit development/live deployment profiles. Development remains default;
+  unknown profiles and mismatched app credentials/URLs fail identity checks.
+- Reconciliation reads/writes the selected store's checkpoint and processes only
+  that profile's store. Preview/recovery URLs do not start its background writer.
+- Live backup capture selects the live app/store, a separate private artwork
+  bucket, a separately reviewed baseline, and no seeded development historical
+  record ID. The database export requires `analog_portal_live` and an explicit
+  provisioned Render database host. Existing development database guards remain.
+- Daily pairs and monthly copies use a separate live backup subtree and reject
+  mixed development/live archive sources. No deletion or expiration is added.
+
+Proposed live identities: R2 bucket `analog-brand-portal-live`; B2 subtree
+`recovery/postgresql/scheduled/live/16e80f-5b/`; database `analog_portal_live`.
+These are configuration proposals, not created resources or granted permissions.
+The extension already reads its API URL from its customer-account editor
+setting; the live installation must set that to the live backend. Shopify's
+UID mapping guidance permits the same app-scoped extension UID across separate
+app instances; inspect the first live CLI deployment mapping before release.
+
+Validation: full suite passed 232 tests with one optional PostgreSQL test skipped;
+production build and targeted lint passed. An additional live database identity
+regression and focused scope/backup tests passed afterward. Shopify CLI live
+TOML validation, extension build/mapping, and live deployment remain pending.
+No claim is made that live-store rollout or protection is active.
+
+Hosting choice is pending Thomas's response: separate live services (app and
+small database, plus backup compute/storage) versus a controlled cutover that
+reuses paid resources and stops the current development environment. No paid
+service creation is authorized by the preparation work. After that choice,
+present exact resources/costs and the specific new credential/data access for
+approval, then validate/deploy, confirm live backup recovery and monitoring,
+and proceed to the controlled real-checkout gates above.
+
+References: [Shopify extension UID mapping](https://shopify.dev/docs/apps/build/dev-dashboard/migrate-from-partners)
+and [Render pricing](https://render.com/pricing).

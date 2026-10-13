@@ -1,3 +1,4 @@
+import { DEVELOPMENT_SCOPE, LIVE_SCOPE } from "../../app/lib/deployment-scope.js";
 import { randomUUID } from "node:crypto";
 import { Buffer } from "node:buffer";
 import { readdir } from "node:fs/promises";
@@ -6,7 +7,11 @@ import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { hashFile, sha256 } from "./archive.mjs";
 
 export const BACKUP_BUCKET = "analog-adventures-portal-backups";
-const ROOT = "recovery/postgresql/scheduled/";
+const ROOT = DEVELOPMENT_SCOPE.backupRoot;
+function checkedRoot(root) {
+  if (![ROOT, LIVE_SCOPE.backupRoot].includes(root)) throw new Error("Unknown recovery scope");
+  return root;
+}
 // Bound memory on the worker; larger objects fail while daily copies remain.
 const MAX_BYTES = 32 * 1024 * 1024;
 
@@ -34,13 +39,14 @@ function validateArchive(archive, prefix) {
     if (!names.has(name)) throw new Error("Incomplete recovery archive");
 }
 
-export function validateDailyPair(pair) {
+export function validateDailyPair(pair, root = ROOT) {
+  checkedRoot(root);
   if (!pair || pair.schema !== 1 || !/^\d{4}-\d{2}-\d{2}T/.test(pair.createdAt) ||
       !Number.isFinite(Date.parse(pair.createdAt))) throw new Error("Invalid recovery pair");
   const run = "[0-9TZ.:-]+-[a-f0-9-]{36}/";
   for (const kind of ["database", "portal"]) {
     const prefix = pair[kind]?.prefix;
-    if (!new RegExp(`^${ROOT}${kind === "portal" ? "portal/" : ""}${run}$`).test(prefix))
+    if (!new RegExp(`^${root}${kind === "portal" ? "portal/" : ""}${run}$`).test(prefix))
       throw new Error("Unexpected daily source");
     validateArchive(pair[kind], prefix);
   }
@@ -72,11 +78,12 @@ async function checkedObject(client, prefix, object) {
   return data;
 }
 
-function validateMonthly(receipt, month) {
+function validateMonthly(receipt, month, root = ROOT) {
+  checkedRoot(root);
   if (receipt?.schema !== 1 || receipt.month !== month ||
-      !new RegExp(`^${ROOT}monthly/${month}/[a-f0-9-]{36}/$`).test(receipt.prefix))
+      !new RegExp(`^${root}monthly/${month}/[a-f0-9-]{36}/$`).test(receipt.prefix))
     throw new Error("Invalid monthly receipt");
-  validateDailyPair(receipt.source);
+  validateDailyPair(receipt.source, root);
   if (receipt.source.createdAt.slice(0, 7) !== month) throw new Error("Monthly date mismatch");
   for (const kind of ["database", "portal"])
     validateArchive(receipt[kind], receipt.prefix + kind + "/");
@@ -87,26 +94,27 @@ function validateMonthly(receipt, month) {
 
 // Never deletes or overwrites archive objects. Incomplete copies have no monthly
 // marker; a subsequent run retries under a new prefix and preserves daily sources.
-export async function preserveRecoverySet({ client, database, portal, now = new Date(), id = randomUUID() }) {
+export async function preserveRecoverySet({ client, database, portal, now = new Date(), id = randomUUID(), root = ROOT }) {
+  checkedRoot(root);
   if (!/^[a-f0-9-]{36}$/.test(id)) throw new Error("Invalid recovery set ID");
   const createdAt = now.toISOString(), month = createdAt.slice(0, 7);
   const pair = { schema: 1, createdAt, database, portal: { prefix: portal?.prefix, objects: portal?.objects },
     knownGaps: portal?.knownGaps, scope: "Sequential captures; not an atomic cross-provider snapshot. Historical gaps remain." };
-  validateDailyPair(pair);
-  await putVerified(client, `${ROOT}pairs/${createdAt.replaceAll(":", "-")}-${id}.json`, Buffer.from(JSON.stringify(pair)));
-  const marker = `${ROOT}monthly/${month}/COMPLETE.json`;
+  validateDailyPair(pair, root);
+  await putVerified(client, `${root}pairs/${createdAt.replaceAll(":", "-")}-${id}.json`, Buffer.from(JSON.stringify(pair)));
+  const marker = `${root}monthly/${month}/COMPLETE.json`;
   let existing;
   try { existing = JSON.parse((await bytes(client, marker, 8 * 1024 * 1024)).toString("utf8")); }
   catch (error) {
     if (error.name !== "NoSuchKey" && !(error.name === "NotFound" && error.$metadata?.httpStatusCode === 404)) throw error;
   }
   if (existing) {
-    validateMonthly(existing, month);
+    validateMonthly(existing, month, root);
     for (const kind of ["database", "portal"])
       for (const object of existing[kind].objects) await checkedObject(client, existing[kind].prefix, object);
     return { month, monthlyCreated: false, prefix: existing.prefix };
   }
-  const prefix = `${ROOT}monthly/${month}/${id}/`;
+  const prefix = `${root}monthly/${month}/${id}/`;
   const receipt = { schema: 1, month, prefix, source: pair };
   for (const kind of ["database", "portal"]) {
     receipt[kind] = { prefix: prefix + kind + "/", objects: pair[kind].objects };
