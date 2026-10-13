@@ -235,6 +235,16 @@ its real success check-in. Healthchecks reported the email integration test
 delivered October 13; Thomas confirmed inbox receipt with a screenshot. An actual
 failure/missed-run transition has not been intentionally exercised. See [monitoring evidence](docs/order-reconciliation.md).
 
+The October 13 fresh development-store rehearsal completed individual and bulk
+checkout, duplicate submission/retry, artwork approval, attribution, simulated
+production/fulfillment, a $10 test refund, paid test statements, and archive.
+Final-data recovery also passed: 182 encrypted backup objects were independently
+downloaded/decrypted, both artwork hashes matched, and all four PostgreSQL tables
+matched every field after an isolated local restore. A backup defect involving
+portal-owned proof IDs was repaired and deployed; the successful run completed
+at 10:48 Eastern. Historical exclusions and pilot qualifications still apply.
+See [the fresh rehearsal and recovery evidence](docs/development-rehearsal-20261013.md).
+
 ### Operating references
 
 - [Approved pilot scope, ownership, retention policy, and renewal procedure](docs/pilot-operating-policy.md)

@@ -65,8 +65,12 @@ original artwork bytes. The old October 24 key was revoked October 13; a fresh c
 using the replacement still matched the original artwork.
 This document does not create reminders or scheduled renewal automation.
 
-## Rehearsal gates still to close
+## Pilot qualifications and operating follow-ups
 
+- October 13 fresh-record workflow and independent final-data recovery passed
+  for both delivery paths, including the $10 refund and duplicate bulk retry.
+  See the [rehearsal evidence](development-rehearsal-20261013.md). No live-store
+  launch or real funds transfer was performed.
 - Review retention cleanup without pruning existing copies; monthly archival
   and independent decryption passed October 13.
 - Renew the active R2 credential before November 11.

@@ -158,3 +158,53 @@ still sees both approved proofs, archived campaigns and paid statements. The
 Remaining gates: independently back up/restore these fresh final records and
 artwork, retain the download-event capture qualification, and qualify any wider
 pilot claims. This rehearsal does not resolve the excluded historical gaps.
+
+## Final-data backup and independent recovery — October 13
+
+The 10:26 and 10:29 Eastern backup runs failed during historical proof lookup.
+Independent decryption of the first failed capture confirmed `Shopify read
+failed: historical`: new `gid://analog-portal/Record/...` proof IDs were sent to
+Shopify's historical-node query. Commit `d6ba4d4` resolves database-owned records
+locally, retains migrated legacy records, and sends only unresolved Shopify
+Metaobject IDs to Shopify. Missing records still produce coverage gaps. All 23
+focused backup/recovery tests passed, including the new mixed-ID regression.
+
+The repaired Render worker built successfully and its 10:46:13 Eastern run
+finished successfully at **10:48:22 Eastern**. It captured 40 Shopify custom
+records, 11 portal business records, 13 orders, 4 companies, 17 drafts, 6 R2
+objects, and 37 downloaded assets. Both daily archives were paired; the existing
+October monthly recovery copy was verified without being replaced.
+
+The new capture reports 12 accepted gaps rather than 13 because the campaign
+count discrepancy is no longer present (13 captured / 13 reported). The original
+13 historical exceptions remain excluded from rehearsal scope; this count
+change is not a declaration that missing historical data was recovered. No
+baseline relaxation was made.
+
+Independent download verified all **182 encrypted objects** (5 database + 177
+portal) against the paired receipt, then authenticated decryption succeeded with
+the separately held recovery key. Assertions against the restored records passed
+for #1012 and #1013: correct attribution and quantities, approved Version 1
+proofs, completed production, fulfilled line quantities, $10/$0 successful
+refunds, $5/$10 paid test statements, and archived campaigns. Both restored
+artwork objects were 585 bytes and matched the original SHA-256 above.
+
+The decrypted PostgreSQL dump was restored using `pg_restore --exit-on-error
+--single-transaction` into a new local PostgreSQL 18 database with TCP disabled
+and an owner-only Unix socket. Independent COPY comparisons matched every field
+in all four tables. Restored counts: 12 PortalRecord rows (11 business records
+plus reconciliation checkpoint), 6 BulkCheckoutAttempt rows, 1 Session row, and
+2 migrations. The four fresh proof/production records and exactly one bulk
+checkout attempt for draft 1620045267129 were confirmed. The temporary local
+server was stopped after verification; no paid recovery service was created.
+
+Private evidence under `recovery-private/rehearsal-20261013/`:
+`restored-pair/VERIFIED.json`, `RECORDS-VERIFIED.json`,
+`DATABASE-ALL-FIELDS.json`, `DATABASE-REHEARSAL-VERIFIED.json`, and
+`backup-recovery-success.png`. Recovery contents and credentials are not committed.
+
+The fresh-record workflow and final-data recovery gates are complete. Remaining
+pilot qualifications include the untested intentional missed-run alert
+transition, physical delivery/actual fund transfers, download-event provenance,
+operating sign-off, and historical exclusions. Live-store installation and
+configuration remain a separate authorization and validation step.
