@@ -74,8 +74,8 @@ a stopped or hung scheduler eventually misses the independent check deadline.
 This monitors batch execution, not a guaranteed time to finish a large sweep.
 
 Validation: 12 reconciliation/monitor tests pass, targeted ESLint and production
-build pass. No Shopify query or attribution-writing logic changed. Deployment,
-first real ping, and end-to-end notification delivery remain pending.
+build pass. No Shopify query or attribution-writing logic changed. Deployment
+and notification evidence are recorded below.
 
 ## Monitoring deployed — October 13
 
@@ -92,3 +92,11 @@ signaling is covered by automated tests; an intentional missed-run or failure
 email delivery test has not been performed. The separate 15-minute timer tick
 with monitoring has not yet been observed. The ping credential stays outside
 Git; no order contents are transmitted to Healthchecks. No paid service added.
+
+## Email integration test — October 13
+
+The existing email integration’s Test action returned “Test notification sent!”
+and “Delivered, now” for the configured owner email. All three checks remain
+assigned. This verifies provider-reported test delivery; owner confirmation of
+inbox receipt is pending. It does not exercise a real missed-run or failure
+transition. No app or backup job was paused and no check assignments changed.
