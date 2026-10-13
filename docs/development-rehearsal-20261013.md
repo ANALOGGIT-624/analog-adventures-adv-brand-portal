@@ -77,3 +77,28 @@ worked after automated chooser events timed out. No upload permission change mad
 Private evidence: `recovery-private/rehearsal-20261013/`. Remaining: fresh-record
 isolation, test-payment setup verification, campaign dates/lifecycle, bulk campaign
 and proof, purchases/refunds/payout/archive, and fresh-record backup/recovery.
+
+## Isolation, test gateway, and individual purchase — October 13
+
+At 14:00:13 UTC, the existing hosted isolation harness passed all 18 assertions
+using the fresh rehearsal proof specifically. Owner download returned 200;
+Tot Time download returned 404, and foreign approval/revision attempts returned
+403. Anonymous/expired/invalid authentication was denied. Both company views
+were isolated, and all PostgreSQL portal business records were unchanged.
+This used locally signed short-lived test tokens, not a fresh Tot Time browser
+sign-in; the method limitation from the October 9 report still applies.
+Evidence: `recovery-private/rehearsal-20261013/isolation-result.json`.
+
+Shopify Payments settings showed **Test payment gateway — Active**, and checkout
+independently displayed Test Payment Gateway instructions. No provider settings
+were changed. The individual campaign was set live with start October 13 and
+close October 14 (stored as 00:00:00Z and 23:59:59Z respectively).
+
+The public campaign page added one Inventory Not Tracked Snowboard ($949.95).
+Checkout used the gateway's simulated approval number, free Standard shipping,
+and PO `REHEARSAL-20261013-IND`. Confirmation `LW5XG8HXF` succeeded. Staff's
+Attributed orders page shows **#1012**, created 10:03:43 Eastern, verified,
+campaign `rehearsal-20261013-ind`, one attributed unit, production proof Version 1.
+This is a simulated test purchase, not a real card charge. Duplicate checkout
+submission was not exercised in this purchase. Production, refund, payout,
+archive, bulk-mode and final backup/recovery steps remain pending.
