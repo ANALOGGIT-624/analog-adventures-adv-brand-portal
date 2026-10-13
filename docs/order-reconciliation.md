@@ -25,9 +25,9 @@ It uses the app's existing offline credentials and PostgreSQL table, with no new
 service, credential or migration. This implementation assumes the current single
 web instance. A multi-instance rollout needs a distributed scheduler lease; the
 create-only attribution guard already protects against concurrent webhook writes.
-The scheduler pauses during app downtime and resumes from saved progress. Staff
-must inspect the last-check time; there is not yet a separate missing-run alert
-for reconciliation. Backup monitoring remains independent.
+The scheduler pauses during app downtime and resumes from saved progress. A separate Healthchecks missing-run alert was deployed October 13, as recorded
+below. Staff should still inspect review items and the completed-sweep timestamp.
+Backup monitoring remains independent.
 
 Validation: 212 tests pass, one optional PostgreSQL test skipped. Tests cover
 missing-delivery recovery, duplicate/concurrent writes, changed historical rules,
@@ -76,3 +76,19 @@ This monitors batch execution, not a guaranteed time to finish a large sweep.
 Validation: 12 reconciliation/monitor tests pass, targeted ESLint and production
 build pass. No Shopify query or attribution-writing logic changed. Deployment,
 first real ping, and end-to-end notification delivery remain pending.
+
+## Monitoring deployed — October 13
+
+Thomas approved saving the private check URL in the existing Render app and
+deploying. Render deployed `b155c7b` as `dep-db72vs59fdbs73ertfjg`; the service
+logged live at 13:21:24 UTC. Its automatic startup reconciliation completed at
+13:21:48 UTC (9:21:48 a.m. Eastern), scanned 11 orders and reported zero review
+items. Healthchecks independently showed the check up, a two-second run, the
+15-minute period and 15-minute grace, and the existing email integration ON.
+No synthetic success ping was used to establish this result.
+
+This verifies a real automatic run and successful monitor delivery. Failure
+signaling is covered by automated tests; an intentional missed-run or failure
+email delivery test has not been performed. The separate 15-minute timer tick
+with monitoring has not yet been observed. The ping credential stays outside
+Git; no order contents are transmitted to Healthchecks. No paid service added.

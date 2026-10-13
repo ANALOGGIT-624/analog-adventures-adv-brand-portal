@@ -228,6 +228,12 @@ R2 key was replaced on October 12 and expires November 11, 2026; backup R2 and
 Backblaze keys expire December 28. The old October 24 key was revoked October 13. A fresh hosted customer download used the replacement signing key
 and matched the original artwork's bytes and SHA-256.
 
+Order reconciliation now has an independent Healthchecks alert (15-minute
+period plus 15-minute grace), separate from backup alerts. The October 13
+production deployment scanned all 11 orders with no review items and delivered
+its real success check-in. Failure/missed-run email delivery has not been
+intentionally exercised. See [monitoring evidence](docs/order-reconciliation.md).
+
 ### Operating references
 
 - [Approved pilot scope, ownership, retention policy, and renewal procedure](docs/pilot-operating-policy.md)

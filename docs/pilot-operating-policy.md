@@ -72,9 +72,9 @@ This document does not create reminders or scheduled renewal automation.
 - Renew the active R2 credential before November 11.
 - Review and explicitly accept or resolve the thirteen historical test-data
   gaps. Acceptance of a limited backup baseline is not acceptance for launch.
-- Add a distinct missed-order-reconciliation-run alert; backup success alone
-  does not prove order reconciliation ran. Until then, inspect its last-run
-  status before and after each rehearsal session.
+- Reconciliation monitoring is deployed and received a real automatic success
+  October 13. An intentional missed-run email delivery test remains unperformed;
+  inspect staff review items and the completed-sweep timestamp during rehearsal.
 - Preserve the October 12 staff-download evidence qualification: the saved file
   matched, but browser download-event capture timed out. The customer download
   and hosted navigation checks passed.
