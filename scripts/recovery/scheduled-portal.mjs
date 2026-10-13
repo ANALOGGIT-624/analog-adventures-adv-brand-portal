@@ -67,18 +67,19 @@ export async function runPortalBackup(env = process.env) {
     await writeFile(path.join(captureRoot, "capture", "coverage.json"), JSON.stringify({ ...coverage,
       scope: "Current accessible portal data only; accepted historical gaps remain unresolved.", baseline }), { mode: 0o600, flag: "wx" });
     const sealed = path.join(root, "sealed");
-    await sealDirectory(path.join(captureRoot, "capture"), sealed, keyFile, { kind: "scheduled-portal", store: scope.shop, status: report.status });
+    await sealDirectory(path.join(captureRoot, "capture"), sealed, keyFile, { kind: "scheduled-portal", store: scope.shop, status: report.status }, { consumeSource: true });
     await writeFile(path.join(sealed, "recipient.json"), JSON.stringify(envelope), { mode: 0o600, flag: "wx" });
+    const receipt = await archiveReceipt(sealed, prefix);
     const download = path.join(root, "download");
-    const objects = await transferVerified({ client, bucket, prefix, sealed, download });
+    const objects = await transferVerified({ client, bucket, prefix, sealed, download, consumeSealed: true });
     const restored = path.join(root, "verified");
-    await restoreDirectory(download, restored, keyFile);
+    await restoreDirectory(download, restored, keyFile, { consumeSource: true });
     const recoveredReport = JSON.parse(await readFile(path.join(restored, "capture-report.json"), "utf8"));
     if (JSON.stringify(recoveredReport) !== JSON.stringify(report)) throw new Error("Portal report read-back mismatch");
     if (!coverage.healthy) throw new Error("Portal capture has new coverage gaps");
     await ping(env.PORTAL_BACKUP_MONITOR_URL);
     console.log(JSON.stringify({ portalBackupVerified: true, bucket, prefix, objects, counts: report.counts, knownGaps: coverage.knownGaps }));
-    return { ...await archiveReceipt(sealed, prefix), knownGaps: coverage.knownGaps };
+    return { ...receipt, knownGaps: coverage.knownGaps };
   } catch {
     await ping(env.PORTAL_BACKUP_MONITOR_URL, "/fail").catch(() => {});
     throw new Error("Portal backup failed; credentials suppressed");

@@ -73,7 +73,7 @@ export async function ping(url, suffix = "", fetcher = fetch) {
 }
 
 // Caller creates a unique run prefix. Never delete remote backups or prune versions.
-export async function transferVerified({ client, bucket, prefix, sealed, download, retryDelay = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+export async function transferVerified({ client, bucket, prefix, sealed, download, consumeSealed = false, retryDelay = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   await mkdir(download, { mode: 0o700 });
   const objects = (await readdir(path.join(sealed, "objects"))).sort();
   if (objects.some(name => !/^[a-f0-9]{64}\.enc$/.test(name))) throw new Error("Unexpected archive object");
@@ -106,6 +106,7 @@ export async function transferVerified({ client, bucket, prefix, sealed, downloa
     await pipeline(response.Body, createWriteStream(target, { flags: "wx", mode: 0o600 }), { signal: AbortSignal.timeout(120000) });
     const actual = await hashFile(target);
     if (actual.sha256 !== expected.sha256 || actual.bytes !== expected.bytes) throw new Error("Offsite read-back mismatch");
+    if (consumeSealed) await rm(source);
   }
   return files.length;
 }

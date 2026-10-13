@@ -181,3 +181,14 @@ test("offline drill restores database and preserves an incomplete-data status", 
   assert.match(report.pilotGate, /^not_met/);
   await access(path.join(f.restored, "DRILL-REPORT.json"));
 });
+
+test("disposable captures can release verified intermediate files without changing restored bytes", async t => {
+  const f = await fixture(t);
+  const expected = await readFile(path.join(f.source, "bytes.bin"));
+  await sealDirectory(f.source, f.backup, f.key, {}, { consumeSource: true });
+  await assert.rejects(access(path.join(f.source, "bytes.bin")), { code: "ENOENT" });
+  const manifest = await restoreDirectory(f.backup, f.restored, f.key, { consumeSource: true });
+  assert.deepEqual(await readFile(path.join(f.restored, "bytes.bin")), expected);
+  for (const entry of manifest.entries)
+    await assert.rejects(access(path.join(f.backup, entry.object)), { code: "ENOENT" });
+});

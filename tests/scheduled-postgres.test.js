@@ -119,3 +119,19 @@ test("live database backup requires an explicit provisioned host and separate da
   assert.throws(()=>configuration({...live,DATABASE_URL:live.DATABASE_URL.replace('analog_portal_live','analog_portal_pilot')}));
   assert.throws(()=>configuration({...live,BACKUP_EXPECTED_DATABASE_HOST:'example.com'}));
 });
+
+test("temporary sealed copies are released only after successful remote read-back", async t => {
+  const root = await fixture(t), client = storage();
+  await transferVerified({ client, bucket: "fixture", prefix: "unique/", sealed: path.join(root, "sealed"), download: path.join(root, "download"), consumeSealed: true });
+  await assert.rejects(readFile(path.join(root, "sealed", "COMPLETE.json")), { code: "ENOENT" });
+  await restoreDirectory(path.join(root, "download"), path.join(root, "restored"), path.join(root, "key"));
+  assert.equal(await readFile(path.join(root, "restored", "database.dump"), "utf8"), "synthetic database fixture");
+  assert.ok(client.operations.every(o => !o.type.startsWith("Delete")));
+});
+
+test("failed read-back retains the temporary sealed source", async t => {
+  const root = await fixture(t), client = storage(true);
+  await assert.rejects(transferVerified({ client, bucket: "fixture", prefix: "unique/", sealed: path.join(root, "sealed"), download: path.join(root, "download"), consumeSealed: true }), /mismatch/);
+  const key = [...client.data.keys()][0].replace("unique/", "");
+  assert.ok((await readFile(path.join(root, "sealed", key))).length > 0);
+});

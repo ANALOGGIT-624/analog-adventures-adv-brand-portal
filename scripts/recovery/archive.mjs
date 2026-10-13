@@ -12,6 +12,7 @@ import {
   readFile,
   writeFile,
   lstat,
+  unlink,
   open,
 } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";
@@ -113,6 +114,7 @@ export async function sealDirectory(
   destination,
   keyFile,
   metadata = {},
+  { consumeSource = false } = {},
 ) {
   const key = await loadKey(keyFile);
   await mkdir(destination, { mode: 0o700 });
@@ -133,6 +135,8 @@ export async function sealDirectory(
       ...before,
       encryptedSha256: (await hashFile(encrypted)).sha256,
     });
+    // Only callers owning disposable capture directories may opt in.
+    if (consumeSource) await unlink(sourceFile);
   }
   const manifest = {
     format: "analog-recovery-v1",
@@ -169,7 +173,7 @@ export async function sealDirectory(
     bytes: entries.reduce((n, e) => n + e.bytes, 0),
   };
 }
-export async function restoreDirectory(source, destination, keyFile) {
+export async function restoreDirectory(source, destination, keyFile, { consumeSource = false } = {}) {
   const complete = JSON.parse(
     await readFile(path.join(source, "COMPLETE.json"), "utf8"),
   );
@@ -220,6 +224,7 @@ export async function restoreDirectory(source, destination, keyFile) {
     const actual = await hashFile(target);
     if (actual.sha256 !== entry.sha256 || actual.bytes !== entry.bytes)
       throw new Error("Restored bytes differ from manifest");
+    if (consumeSource) await unlink(path.join(source, entry.object));
   }
   await writeFile(
     path.join(destination, "RESTORE-VERIFIED.json"),

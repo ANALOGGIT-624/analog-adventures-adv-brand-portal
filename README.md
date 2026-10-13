@@ -22,11 +22,23 @@ with client ID `8158f984f0ec6fed1e5f85b44a588777`.
 See [the implementation roadmap](docs/brand-portal-roadmap.md) for the Gantt
 chart, launch gates, pilot sequence, and remaining Neighborhood-style features.
 
-## Current status — October 9, 2026
+## Current status — October 13, 2026
 
-This is a hosted development-store application for **Analog Adventures Test**
-(`analog-adventures-test.myshopify.com`). The separate live Shopify site has not
-been migrated or changed by this project. External pilots are not yet cleared.
+The development rehearsal remains on **Analog Adventures Test**
+(`analog-adventures-test.myshopify.com`). Separate live hosting is now provisioned
+for `16e80f-5b.myshopify.com`, and live Shopify app version 2 is active with its
+approved access update. The staff portal opens successfully; four missing
+merchant-owned definitions were created and their live references verified.
+
+Live PostgreSQL backups have passed encrypted offsite read-back and dump checks.
+The owner approved the live Shopify/R2 baseline: all 996 Shopify files and one
+R2 object downloaded, with older-order access and a Brand Color count mismatch
+explicitly retained as exceptions. The first combined offsite run is in progress;
+full live recovery, customer-account placement/isolation, and real checkout tests
+remain outstanding. External pilots are not yet cleared.
+
+See [the live rollout checklist](docs/live-store-readiness-20261013.md) for current
+evidence, service identities, credential renewal dates, and remaining gates.
 
 ### October 9 reliability checkpoint
 
