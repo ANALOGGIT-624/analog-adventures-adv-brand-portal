@@ -364,3 +364,44 @@ rotation ownership (original R2 key due October 24), acceptance of historical
 test-data gaps and pilot-store selection. Preserve the staff download evidence
 qualification above; the customer end-to-end download and hosted navigation
 checks are complete.
+
+## Approved operating decisions — October 12
+
+Thomas selected a development-store rehearsal before any live-store pilot and
+accepted ownership of backup alerts, recovery-key custody, and credential
+renewals. The recorded retention policy is 30 days of daily backups and 12
+monthly recovery copies. This records policy only: no deletion, paid retention
+feature, Object Lock, or monthly archival automation was enabled. See
+[the operating policy and remaining gates](pilot-operating-policy.md).
+
+## R2 application credential renewal
+
+Thomas created `Brand Portal Private Artwork 20261012`, scoped to
+`analog-brand-portal-private` with Object Read & Write and a 30-day lifetime
+(November 11 expiration), then explicitly approved saving it in the existing
+Render app. No backup-worker permissions changed.
+
+Render's lazy-loading secret editor overwrote the first entry attempt; that
+deployment still signed with the old key. Activated each field before entry,
+verified both values before saving, and confirmed persisted values privately.
+Corrected deployment `dep-db6knd0473hc73dm354g` retained commit `717312a`,
+reported success, and logged live at 21:06:27 UTC (5:06:27 p.m. Eastern).
+
+The replacement credential passed synthetic upload, exact-byte signed download,
+attachment disposition, unsigned/tampered rejection, expiry rejection, and
+cleanup of only its synthetic object. After the corrected deployment, a fresh
+Test Company customer link's signing credential matched the replacement key.
+Its browser-returned download `FSS (8).svg` was 548648 bytes with SHA-256
+`c1a3e3cf4fdcaa3995d54b082863f72150c14011a41354ace29d14ea1baee71c`,
+matching the original artwork. No new business proof was submitted. Synthetic
+upload verification exercised the storage adapter, not the hosted upload form.
+The old key remains active pending explicit revocation approval. Private
+credentials and screenshots remain outside Git.
+
+## Old R2 credential retired — October 13
+
+After Thomas approved continuing the prepared revocation, deleted only the old
+`Brand Portal Private Artwork` token issued September 24. Cloudflare no longer
+lists it; the November 11 replacement and December 28 backup token remain active.
+A fresh customer download used the replacement signing key and returned
+`FSS (9).svg`, matching the original SHA-256 recorded above.

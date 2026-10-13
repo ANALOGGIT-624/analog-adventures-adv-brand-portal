@@ -13,6 +13,7 @@ import { privateArtworkConfig } from "../../app/lib/private-artwork-storage.serv
 import { configuration, transferVerified, ping } from "./scheduled-postgres.mjs";
 import { parseRecipient, wrapKey } from "./recipient.mjs";
 import { sealDirectory, restoreDirectory } from "./archive.mjs";
+import { archiveReceipt } from "./recovery-sets.mjs";
 
 const normalized = gap => JSON.stringify(Object.fromEntries(Object.entries(gap).filter(([k]) => k !== "detail").sort(([a], [b]) => a.localeCompare(b))));
 export function assessPortalCoverage(report, baseline) {
@@ -74,6 +75,7 @@ export async function runPortalBackup(env = process.env) {
     if (!coverage.healthy) throw new Error("Portal capture has new coverage gaps");
     await ping(env.PORTAL_BACKUP_MONITOR_URL);
     console.log(JSON.stringify({ portalBackupVerified: true, bucket, prefix, objects, counts: report.counts, knownGaps: coverage.knownGaps }));
+    return { ...await archiveReceipt(sealed, prefix), knownGaps: coverage.knownGaps };
   } catch {
     await ping(env.PORTAL_BACKUP_MONITOR_URL, "/fail").catch(() => {});
     throw new Error("Portal backup failed; credentials suppressed");

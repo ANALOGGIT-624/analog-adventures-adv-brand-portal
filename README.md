@@ -190,9 +190,14 @@ Backups now preserve paginated refund adjustments and transaction status/amounts
 in addition to refund line items, so restored reports retain this evidence.
 
 Before an external pilot: resolve
-or explicitly accept the historical synthetic-data gaps; establish retention and
-credential-rotation ownership; finish reliability/security review and the hosted
-replacement/cutover portion of the operational recovery drill. The isolated
+or explicitly accept the historical synthetic-data gaps; implement the approved
+retention policy; and finish the remaining reliability/security checks. Thomas
+owns backup alerts, recovery-key custody, and credential renewals. The approved
+next step is a development-store rehearsal, with 30 days of daily backups and
+12 monthly recovery copies as policy. Backblaze now has a 30-day default
+Object Lock for new uploads; monthly archival and automatic expiration remain
+pending.
+See [the pilot operating policy](docs/pilot-operating-policy.md). The isolated
 October 1 rebuild, read-only database, restart and recovered-data checks passed.
 A separately approved temporary recovery app also passed real Shopify staff and
 customer authentication, each downloading the restored original artwork over
@@ -215,12 +220,16 @@ the customer page without staff navigation, preserved all portal/checkout
 records, and returned HTTP 200 for the portal and artwork-link preparation.
 The rebuilt backup worker also completed an immediate verified backup. See
 [the session-renewal evidence](docs/session-renewal-20261001.md).
-Immutable backup retention is not enabled and
+A 30-day default Object Lock was enabled October 13 for new backups; existing
+backups are not retroactively locked, monthly retention remains pending, and
 proposed recovery-time/data-loss targets are not yet proven. The existing app's
-R2 key expires October 24, 2026; backup R2 and Backblaze keys expire December 28.
+R2 key was replaced on October 12 and expires November 11, 2026; backup R2 and
+Backblaze keys expire December 28. The old October 24 key was revoked October 13. A fresh hosted customer download used the replacement signing key
+and matched the original artwork's bytes and SHA-256.
 
 ### Operating references
 
+- [Approved pilot scope, ownership, retention policy, and renewal procedure](docs/pilot-operating-policy.md)
 - [October 1 isolated app-recovery drill and remaining limits](docs/app-recovery-drill-20261001.md)
 - [Hosting and PostgreSQL deployment](docs/durable-hosting.md)
 - [Private artwork storage and authorization](docs/private-artwork-storage.md)

@@ -10,6 +10,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { sealDirectory, restoreDirectory, hashFile } from "./archive.mjs";
+import { archiveReceipt } from "./recovery-sets.mjs";
 
 // Deliberately do not print database errors, child stderr, keys or ping URLs.
 export function configuration(env) {
@@ -144,6 +145,7 @@ export async function runBackup(env = process.env) {
     // Success is signaled only after remote read-back, authenticated decryption and dump check.
     await ping(config.monitor);
     console.log(JSON.stringify({ backupVerified: true, bucket, prefix, objects: objectCount }));
+    return await archiveReceipt(path.join(root, "sealed"), prefix);
   } catch {
     await ping(config.monitor, "/fail").catch(() => {});
     throw new Error("Backup failed; details suppressed to protect credentials");
