@@ -1,3 +1,4 @@
+import { loadCampaignProducts } from "../lib/campaign-products.server.js";
 import { useEffect } from "react";
 import { useFetcher, useLoaderData } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
@@ -38,9 +39,6 @@ export const loader = async ({ request }) => {
         payoutRules: metaobjects(type: $payoutRuleType, first: 100) {
           nodes { id handle displayName fields { key value } }
         }
-        products(first: 50, query: "status:active") {
-          nodes { id title status }
-        }
       }
     `,
     {
@@ -60,7 +58,7 @@ export const loader = async ({ request }) => {
     organizations: payload.data.organizations.nodes.map(normalizeMetaobject),
     campaigns: payload.data.campaigns.nodes.map(normalizeMetaobject),
     payoutRules: payload.data.payoutRules.nodes.map(normalizeMetaobject),
-    products: payload.data.products.nodes,
+    products: await loadCampaignProducts(admin),
   };
 };
 

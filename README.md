@@ -263,11 +263,22 @@ read-only review found an older portal installation and development-only
 backup/reconciliation restrictions. Real checkout and participant invitations
 remain gated on the [live-store readiness plan](docs/live-store-readiness-20261013.md).
 
-Live deployment profiles, store-specific reconciliation, and isolated backup
-paths are prepared and tested locally. The live app is confirmed to be the
-original placeholder registration. Hosting selection, access approval, Shopify
-configuration validation and deployment are pending; live protection is not
-yet active.
+Separate live Render hosting is active, Shopify version 2 is released, and the
+required live definitions are repaired. October 13 daily PostgreSQL and
+Shopify/R2 backups passed verification, covering all 997 captured assets with
+two explicitly accepted baseline gaps. The independent October monthly copy
+also passed object verification; the live portal backup monitor is up. Backblaze
+account caps are approved at $0.02/day storage and $0.10/day downloads, with
+email alerts enabled. The original combined cron attempt remains failed in
+Render history; its monthly stage was completed separately after resolving the
+account cap. A subsequent full scheduled run has not yet been observed.
+
+Independent live-backup recovery passed on October 13: all four PostgreSQL
+tables matched every field in the dump, and all 997 assets were recovered locally.
+Customer-account placement/isolation, pilot configuration, replacement-hosting
+validation, and actual checkout/refund/fulfillment checks remain required
+before participant invitations. See the dated live-store readiness plan for
+backup prefixes, accepted gaps, spending scope, and evidence.
 
 ### Operating references
 

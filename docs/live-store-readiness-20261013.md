@@ -283,3 +283,56 @@ Live embedded dashboard refreshed and explicitly reports “Required metaobject 
 ### Live portal baseline capture prepared
 
 Read-only capture on hosted live app completed with 12 metaobjects, 0 PostgreSQL portal records, 3 accessible orders, 2 companies, 8 drafts, 996 Shopify files and 1 R2 object. All 997 assets downloaded; temporary capture is approximately 1.04 GB on app ephemeral disk, not an offsite backup. Status captured_with_gaps: order_history_window and aa_brand_color count mismatch (reported 1, returned 2). Owner acceptance of this limited live baseline pending; do not reuse development exceptions. Separate live Shopify/R2 Healthchecks monitor created, not pinged/armed yet. Backup worker's actual R2 read-only credential successfully listed live bucket and read the exact synthetic verification object. Enabling combined backup and offsite recovery verification remain pending baseline acceptance. Proposed baseline and private monitor URL saved outside Git under recovery-private/live-rollout-20261013. Temporary capture /tmp/live-baseline-20261013 and key /tmp/live-baseline-key-20261013 remain on app instance for review/cleanup after offsite capture.
+
+### Combined live backup enabled; temporary disk fix deployed
+
+Thomas accepted the two live baseline exceptions. Saved live baseline, separate monitor, BACKUP_PORTAL_ENABLED=1 and BACKUP_MONTHLY_ENABLED=1 in cron. First combined run exported/verified PostgreSQL and captured 996/996 Shopify files but Render terminated it at 1:26pm: temporary /tmp volume exceeded its 2GB limit. This was not a verified portal backup.
+
+Fix 7093592 releases disposable capture files after sealing, sealed local objects only after verified offsite read-back, and downloaded encrypted objects after verified decryption. Original Shopify/R2 data and offsite objects are not deleted. Recovery receipt is collected before disposable sealed files are removed. Defaults preserve files for ordinary recovery tooling. 39 focused backup/recovery tests passed, including failed read-back retaining source and disposable intermediate roundtrip. Live worker rebuilt successfully from 7093592; retry started about 1:31pm. Result pending.
+
+### Daily live backup verified; monthly blocked by Backblaze usage cap
+
+October 13 retry verified PostgreSQL at 1:31pm and Shopify/R2 at 1:41pm EDT. Portal receipt reports 1,087 encrypted archive objects, all 997 assets (996 Shopify files and one R2 object), 12 metaobjects, three accessible orders, two companies, eight drafts and zero portal records. Both owner-accepted baseline gaps remain. A transient streaming upload succeeded on its bounded retry. The temporary-disk fix worked.
+
+Daily database prefix: `recovery/postgresql/scheduled/live/16e80f-5b/2026-10-13T17-31-36.623Z-b71e069a-82b4-4a9f-ace6-8aaf79bced9f/`.
+Daily portal prefix: `recovery/postgresql/scheduled/live/16e80f-5b/portal/2026-10-13T17-31-40.527Z-898f508a-3847-40f7-83a7-d53fe5753141/`.
+
+Monthly preservation failed and the overall job correctly exited 1 at 1:43pm. Independent retry could list the saved pair but its GET failed with HTTP 403 AccessDenied: “Cannot download file, download bandwidth or transaction (Class B) cap exceeded. See the Caps & Alerts page to increase your cap.” This identifies an account usage cap, not evidence that the restricted key needs broader permissions. No cap or credential permissions changed. Monthly recovery remains unverified and portal monitoring must not be manually marked successful. Backblaze session expired when opening Caps & Alerts; owner sign-in requested to inspect the precise cap and cost before proposing any change.
+
+### Backblaze paid-account caps approved and saved
+
+Owner added payment method and explicitly approved storage $0.02/day plus download bandwidth $0.10/day. Dashboard confirms saved limits equivalent to 96 GB storage and 11 GB daily downloads, with email alerts enabled. These are account-wide caps shared by development and live backups, not fixed charges or a guaranteed monthly billing ceiling. Nominal daily amounts total $3.72 across 31 days. Paid account no longer displays Class B/C free-tier transaction caps. Initial retry during propagation still returned 403; after approximately one minute, reading the daily pair succeeded and monthly preservation started. Result pending. No credential permissions expanded.
+
+### October monthly live recovery copy verified
+
+After approved caps propagated, the independent monthly retry completed successfully in 13 minutes 29 seconds. Result: monthlyCreated true, month 2026-10, prefix `recovery/postgresql/scheduled/live/16e80f-5b/monthly/2026-10/edd77399-110c-4dda-a55d-9c3cb2457192/`. The routine checked daily source hashes, copied database and portal encrypted objects, verified byte-for-byte read-back, and published the monthly COMPLETE marker last. This is archive integrity verification, not a new full running-database restoration test.
+
+Healthchecks live Shopify/R2 details explicitly reports “This check is up”, with email integration ON, following the successful monthly retry's completion ping. No manual Ping Now was used. Latest displayed Backblaze download usage was 4 GB/$0.03, below the approved $0.10/day cap. Screenshot evidence: recovery-private/live-rollout-20261013/live-monthly-backup-verified.png and backblaze-approved-caps.png, outside Git. Original Render combined run remains failed in history; monthly repair ran in its Web Shell, so do not describe that original run as successful. Next full scheduled combined run still needs observation. Live recovery, customer access/isolation, and real checkout pilot gates remain open.
+
+### Independent local recovery passed — October 13, 14:28 EDT
+
+Downloaded the verified October monthly pair directly from Backblaze to an owner-only local directory using the existing restricted live key. All 5 database and 1,087 portal encrypted objects matched receipt hashes and authenticated decryption passed with the separately stored recovery private key. Portal restoration produced 1,084 files; catalog integrity/count checks passed for 12 records, 3 accessible orders, and all 997 assets. Two accepted gaps remain; there are zero proof snapshots in this pre-pilot baseline.
+
+Restored database.dump into a newly initialized local PostgreSQL instance with TCP disabled and a private Unix socket. pg_restore completed with exit-on-error. All fields in BulkCheckoutAttempt, PortalRecord, Session and _prisma_migrations matched the source dump, including empty-table comparisons. The local database was stopped after verification. No restored app was started and no copied session credentials were used against Shopify. This establishes independent local database/file recovery, not replacement-hosting readiness or a real artwork workflow on the live store.
+
+Evidence outside Git: live-rollout-20261013/independent-monthly-restore/VERIFIED.json, DATABASE-ALL-FIELDS.json, and portal/restored/DRILL-REPORT.json. Next: editor placement and two owner-accessible live customer accounts for isolation checks. Live dashboard currently reports zero organization stores/campaigns/proofs/payout rules; development fixtures are not live fixtures.
+
+### Live customer-account page saved and first real sign-in verified
+
+Added deployed Brand Portal full-page extension to the active customer-account configuration and saved its Portal API URL as https://analog-portal-live.onrender.com/public/portal. Shopify confirmed Changes saved. Page ID 01a13635-a6b0-74ec-99ec-cff76204bec9; no navigation menu link added yet. Editor simulation reported unable to load, but the real authenticated customer page loaded successfully and showed the appropriate unassigned-organization state.
+
+Owner nominated tinroofholdings@gmail.com and oneil.thomasr@gmail.com for live isolation tests. Existing Chrome sign-in is the first account, confirmed via Profile; it belongs to Analog Adventures Test. Live store currently has no portal organization records. A second isolated test company/organization and test fixtures are needed before cross-company denial checks can pass. Do not use West Virginia Golf Association as an isolation fixture or grant test accounts access to it. Screenshot: live-customer-portal-unassigned-verified.png outside Git. Company/organization access changes remain pending specific confirmation.
+
+### Approved live isolation fixtures created
+
+Thomas approved two isolated assignments. Created draft Portal Isolation Test A linked to existing Analog Adventures Test company and organizer tinroofholdings@gmail.com. Created company Portal Isolation Test B (6833537279), location 8292434175, with existing customer oneil.thomasr@gmail.com as main contact; checkout submits orders as drafts for review. Created draft portal organization Portal Isolation Test B linked to that company. Both organizations remain unavailable to campaigns by default; no campaign, order, payment or real-company membership changed.
+
+Real Chrome session confirmed tinroofholdings@gmail.com sees exactly Portal Isolation Test A, with B absent and zero campaigns/proofs/statements. Evidence: live-isolation-account-a.png outside Git. Signed out of this browser session only and requested owner sign-in as oneil.thomasr@gmail.com. Reverse visibility and cross-company write/private-artwork denial checks remain pending; this is not yet a completed isolation gate.
+
+### Live organization isolation verified in both directions
+
+Both real customer sessions now verified: tinroofholdings@gmail.com sees only Portal Isolation Test A; oneil.thomasr@gmail.com sees only Portal Isolation Test B. Profile pages confirmed each email. Saved separate screenshots outside Git.
+
+Hosted controlled authorization harness passed 12 assertions (10 HTTP requests): both own-portal reads 200, forged foreign organization/customer query parameters returned no foreign records, foreign organization request writes rejected 403 in both directions, anonymous portal/artwork rejected 401, expired and invalid-signature tokens rejected 401. Authorized and business-denial responses used private/no-store caching. Before/after PostgreSQL PortalRecord hashes were identical. Harness used locally signed short-lived tokens inside the hosted app, separately from the genuine browser sign-in checks; no secrets or tokens logged. Result: recovery-private/live-rollout-20261013/hosted-isolation-result.json.
+
+Scope: organization isolation only. Campaigns, private proofs, requests and payout statements are empty. Cross-campaign/write/private-artwork isolation remains open until populated fixtures exist. Campaign UI reports missing prerequisites (available organization, active payout rule, active product); requested owner choice of pilot product and payout terms before preparing unpublished campaign. No purchase authorized by these checks.
