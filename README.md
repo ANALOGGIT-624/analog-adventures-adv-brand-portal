@@ -246,6 +246,11 @@ portal-owned proof IDs was repaired and deployed; the successful run completed
 at 10:48 Eastern. Historical exclusions and pilot qualifications still apply.
 See [the fresh rehearsal and recovery evidence](docs/development-rehearsal-20261013.md).
 
+Live-store preparation now targets `16e80f-5b.myshopify.com`. The initial
+read-only review found an older portal installation and development-only
+backup/reconciliation restrictions. Real checkout and participant invitations
+remain gated on the [live-store readiness plan](docs/live-store-readiness-20261013.md).
+
 ### Operating references
 
 - [Approved pilot scope, ownership, retention policy, and renewal procedure](docs/pilot-operating-policy.md)

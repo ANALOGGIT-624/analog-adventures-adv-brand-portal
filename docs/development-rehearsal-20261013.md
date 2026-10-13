@@ -204,7 +204,10 @@ Private evidence under `recovery-private/rehearsal-20261013/`:
 `backup-recovery-success.png`. Recovery contents and credentials are not committed.
 
 The fresh-record workflow and final-data recovery gates are complete. Remaining
-pilot qualifications include the untested intentional missed-run alert
-transition, physical delivery/actual fund transfers, download-event provenance,
+pilot qualifications include physical delivery/actual fund transfers, download-event provenance,
 operating sign-off, and historical exclusions. Live-store installation and
 configuration remain a separate authorization and validation step.
+
+The subsequent controlled missed-run alert and recovery test passed; Thomas
+confirmed both emails. See [monitoring evidence](order-reconciliation.md).
+Live-store preparation is tracked in the [live readiness plan](live-store-readiness-20261013.md).
