@@ -1,6 +1,7 @@
 # Backup retention rollout
 
-Prepared October 13, 2026. Implementation pending; existing copies remain intact.
+Updated October 13, 2026. Monthly copies deployed and independently decrypted;
+automatic deletion remains disabled and existing copies remain intact.
 Approved policy: 30 days of daily backups and 12 monthly recovery copies.
 
 ## Current implementation findings
@@ -120,4 +121,26 @@ months and pruning daily history require a separately reviewed cleanup stage.
 Validation: 25 focused backup tests passed, including incomplete pairs, damaged
 source/destination data, permission errors, existing-copy corruption, monthly
 reuse, and UTC month rollover. Targeted ESLint and whitespace checks passed.
-Hosted deployment and real monthly recovery verification remain pending.
+Hosted deployment and independent monthly decryption completed below.
+
+## Hosted verification completed — October 13
+
+Render built `fed6b86` successfully and the existing cron now has
+`BACKUP_MONTHLY_ENABLED=1`. The first enabled run started at 12:58:09 UTC.
+One daily upload interruption recovered through the existing bounded retry.
+The database (5 objects) and portal (165 objects) verified successfully, followed
+by the paired monthly set at 13:00:36 UTC. Render confirmed run success at
+13:01:02 UTC (9:01:02 a.m. Eastern), exit code 0.
+
+Monthly prefix:
+`recovery/postgresql/scheduled/monthly/2026-10/a3436b7a-01f7-418f-b5e7-8466a8f17040/`.
+Independent download from this Mac verified all 170 encrypted object hashes and
+successfully decrypted both archives using the separately held RSA recovery key.
+Private evidence is in `recovery-private/monthly-verified-20261013/VERIFIED.json`.
+Thirteen historical gaps remain flagged. This is authenticated archive recovery,
+not another running PostgreSQL/application restore. The earlier hosted recovery
+drill is separate evidence. No backups were deleted and no new service was added.
+
+Remaining: independent lock-mode verification, a reviewed retention cleanup plan
+that preserves at least 12 verified monthly sets, and explicit approval before
+any deletion. Monthly copies currently accumulate without automatic expiration.

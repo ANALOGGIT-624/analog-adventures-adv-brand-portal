@@ -19,8 +19,8 @@ becomes unavailable.
 The approved policy is 30 days of daily backups and 12 monthly recovery copies.
 The initial approval recorded policy only. On October 13, Thomas separately
 approved enabling Object Lock and a 30-day default for new uploads; the
-Backblaze dashboard now confirms Default 30 Days. Monthly selection and
-automatic expiration remain unimplemented. Existing files are not retroactively
+Backblaze dashboard now confirms Default 30 Days. Monthly selection was deployed and independently decrypted on October 13;
+automatic expiration remains unimplemented. Existing files are not retroactively
 locked. No backup deletion is authorized by this policy.
 Existing backups must remain intact while those controls are prepared.
 See the [retention rollout plan](backup-retention-rollout.md) for implementation
@@ -67,7 +67,8 @@ This document does not create reminders or scheduled renewal automation.
 
 ## Rehearsal gates still to close
 
-- Prepare and verify retention implementation without pruning existing copies.
+- Review retention cleanup without pruning existing copies; monthly archival
+  and independent decryption passed October 13.
 - Renew the active R2 credential before November 11.
 - Review and explicitly accept or resolve the thirteen historical test-data
   gaps. Acceptance of a limited backup baseline is not acceptance for launch.

@@ -195,8 +195,9 @@ retention policy; and finish the remaining reliability/security checks. Thomas
 owns backup alerts, recovery-key custody, and credential renewals. The approved
 next step is a development-store rehearsal, with 30 days of daily backups and
 12 monthly recovery copies as policy. Backblaze now has a 30-day default
-Object Lock for new uploads; monthly archival and automatic expiration remain
-pending.
+Object Lock for new uploads. Monthly archival was deployed October 13 and
+both archives passed independent download, hash verification, and decryption;
+automatic expiration remains disabled.
 See [the pilot operating policy](docs/pilot-operating-policy.md). The isolated
 October 1 rebuild, read-only database, restart and recovered-data checks passed.
 A separately approved temporary recovery app also passed real Shopify staff and
@@ -221,7 +222,7 @@ records, and returned HTTP 200 for the portal and artwork-link preparation.
 The rebuilt backup worker also completed an immediate verified backup. See
 [the session-renewal evidence](docs/session-renewal-20261001.md).
 A 30-day default Object Lock was enabled October 13 for new backups; existing
-backups are not retroactively locked, monthly retention remains pending, and
+backups are not retroactively locked, monthly copies are kept without pruning, and
 proposed recovery-time/data-loss targets are not yet proven. The existing app's
 R2 key was replaced on October 12 and expires November 11, 2026; backup R2 and
 Backblaze keys expire December 28. The old October 24 key was revoked October 13. A fresh hosted customer download used the replacement signing key
