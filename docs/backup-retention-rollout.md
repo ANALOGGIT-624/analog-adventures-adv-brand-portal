@@ -144,3 +144,36 @@ drill is separate evidence. No backups were deleted and no new service was added
 Remaining: independent lock-mode verification, a reviewed retention cleanup plan
 that preserves at least 12 verified monthly sets, and explicit approval before
 any deletion. Monthly copies currently accumulate without automatic expiration.
+
+## Read-only retention inventory — October 13
+
+Inventoried every object version under the scheduled credential's allowed
+`recovery/postgresql/scheduled/` prefix with pagination. Found 5,458 versions,
+213,497,512 bytes (about 203.6 MiB), zero delete markers, and no versions older
+than 30 days. There are **zero deletion candidates**. This does not inventory
+older backups outside that credential's prefix.
+
+The oldest listed version is September 29 at 16:38:42 UTC. It reaches 30 days
+on October 29; age alone is not deletion approval or proof that its recovery
+set can safely be removed. Retain all current daily copies, the independently
+verified October monthly pair, and historical recovery evidence. Monthly
+retention counts verified sets, not elapsed days: keep at least the newest
+12 verified months once enough history exists.
+
+Three portal prefixes lack a current COMPLETE marker and are held as incomplete:
+
+- `recovery/postgresql/scheduled/portal/2026-10-03T08-01-41.022Z-86fe76bd-73a8-45c5-80c0-e8a2e5713f2c/`
+- `recovery/postgresql/scheduled/portal/2026-10-05T08-01-16.838Z-fd5dc5c0-2126-4eb4-9f13-b4ad0f3784d5/`
+- `recovery/postgresql/scheduled/portal/2026-10-09T17-01-05.322Z-0dec3085-9950-4e91-9b3e-221948e085bb/`
+
+These prefixes correspond to October 3, October 5, and October 9 uploads. Their
+absence of completion markers does not invalidate later verified backups.
+Preserve them for incident review; never count them as verified recovery points.
+Likewise, the presence of a COMPLETE filename alone is not a new integrity check.
+
+Exact version identifiers and sizes are saved privately in
+`recovery-private/retention-inventory-20261013.json`. The inventory script uses
+only ListObjectVersions and contains no deletion operation. No lifecycle
+expiration was enabled. Before cleanup is proposed, re-inventory, verify the
+retained monthly copies and paired sources, inspect per-version lock status,
+and obtain approval for the exact eligible versions.
