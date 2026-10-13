@@ -3,6 +3,7 @@ import prisma from "../db.server";
 import { unauthenticated } from "../shopify.server";
 import { reconcileOrder } from "./order-attribution.server";
 import { reconcileBatch } from "./order-reconciliation";
+import { monitoredReconciliation } from "./reconciliation-monitor";
 const id = "internal:order-reconciliation";
 const shop = "analog-adventures-test.myshopify.com";
 let running = false;
@@ -16,6 +17,7 @@ export async function runOrderReconciliation() {
   if (running) return { busy: true };
   running = true;
   try {
+    return await monitoredReconciliation(async () => {
     const { admin } = await unauthenticated.admin(shop);
     return await reconcileBatch({
       admin,
@@ -36,6 +38,7 @@ export async function runOrderReconciliation() {
       processOrder: (payload) =>
         reconcileOrder({ admin, payload, shop, recovery: true }),
     });
+    }, { url: process.env.ORDER_RECONCILIATION_MONITOR_URL });
   } finally {
     running = false;
   }

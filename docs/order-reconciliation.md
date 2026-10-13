@@ -56,3 +56,23 @@ October 12 follow-up: the automatic checkpoint completed at 18:56:49 UTC,
 scanning all eleven orders with no recovery or review items. Attribution and
 business-record hashes still matched October 9. This establishes subsequent
 automatic execution; it does not prove every intervening timer tick ran.
+
+## Separate reconciliation monitoring — October 13 preparation
+
+Prepared `ORDER_RECONCILIATION_MONITOR_URL` and a dedicated Healthchecks check
+named Portal order reconciliation, using the project's existing email integration.
+The period is 15 minutes with 15 minutes of grace (a missing-run alert roughly
+30 minutes after the last success). The check has not received its first ping.
+The private ping URL stays outside Git and needs to be installed in Render.
+
+The monitor wrapper sends empty start/success/failure requests to hc-ping.com
+only. Success follows persisted batch processing; review items send failure.
+Exceptions send failure without exception text or order data. Busy attempts do
+not ping because the existing concurrency guard returns before monitoring.
+Monitoring outages do not prevent reconciliation, but are logged as failures;
+a stopped or hung scheduler eventually misses the independent check deadline.
+This monitors batch execution, not a guaranteed time to finish a large sweep.
+
+Validation: 12 reconciliation/monitor tests pass, targeted ESLint and production
+build pass. No Shopify query or attribution-writing logic changed. Deployment,
+first real ping, and end-to-end notification delivery remain pending.
