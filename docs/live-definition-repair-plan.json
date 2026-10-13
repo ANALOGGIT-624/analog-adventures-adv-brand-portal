@@ -1,0 +1,536 @@
+[
+  {
+    "type": "aa_payout_rule",
+    "name": "Payout Rule",
+    "description": "Versioned fixed-dollar or percentage organization proceeds formula.",
+    "displayNameKey": "rule_name",
+    "access": {
+      "storefront": "NONE"
+    },
+    "fieldDefinitions": [
+      {
+        "key": "rule_name",
+        "name": "Rule Name",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "rule_id",
+        "name": "Rule ID",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "version",
+        "name": "Version",
+        "description": null,
+        "required": true,
+        "type": "number_integer",
+        "validations": []
+      },
+      {
+        "key": "method",
+        "name": "Method",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "rate",
+        "name": "Rate",
+        "description": null,
+        "required": true,
+        "type": "number_decimal",
+        "validations": []
+      },
+      {
+        "key": "basis",
+        "name": "Revenue Basis",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "deductions",
+        "name": "Allowed Deductions",
+        "description": null,
+        "required": false,
+        "type": "list.single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "settlement_delay_days",
+        "name": "Settlement Delay Days",
+        "description": null,
+        "required": false,
+        "type": "number_integer",
+        "validations": []
+      },
+      {
+        "key": "minimum_payout",
+        "name": "Minimum Payout",
+        "description": null,
+        "required": false,
+        "type": "number_decimal",
+        "validations": []
+      },
+      {
+        "key": "effective_date",
+        "name": "Effective Date",
+        "description": null,
+        "required": false,
+        "type": "date",
+        "validations": []
+      },
+      {
+        "key": "active",
+        "name": "Active",
+        "description": null,
+        "required": true,
+        "type": "boolean",
+        "validations": []
+      },
+      {
+        "key": "notes",
+        "name": "Notes",
+        "description": null,
+        "required": false,
+        "type": "multi_line_text_field",
+        "validations": []
+      }
+    ]
+  },
+  {
+    "type": "aa_organization_store",
+    "name": "Organization Store",
+    "description": "Private source record for a branded organization micro-store.",
+    "displayNameKey": "store_name",
+    "access": {
+      "storefront": "NONE"
+    },
+    "fieldDefinitions": [
+      {
+        "key": "store_name",
+        "name": "Store Name",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "store_id",
+        "name": "Store ID",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "slug",
+        "name": "Public Slug",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "company",
+        "name": "Company",
+        "description": null,
+        "required": true,
+        "type": "company_reference",
+        "validations": []
+      },
+      {
+        "key": "brand_kit",
+        "name": "Brand Kit",
+        "description": null,
+        "required": false,
+        "type": "metaobject_reference",
+        "validations": [
+          {
+            "name": "metaobject_definition_id",
+            "value": "gid://shopify/MetaobjectDefinition/21041643775"
+          }
+        ]
+      },
+      {
+        "key": "status",
+        "name": "Status",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "public_description",
+        "name": "Public Description",
+        "description": null,
+        "required": false,
+        "type": "multi_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "logo",
+        "name": "Store Logo",
+        "description": null,
+        "required": false,
+        "type": "file_reference",
+        "validations": []
+      },
+      {
+        "key": "banner",
+        "name": "Store Banner",
+        "description": null,
+        "required": false,
+        "type": "file_reference",
+        "validations": []
+      },
+      {
+        "key": "primary_color",
+        "name": "Primary Color",
+        "description": null,
+        "required": false,
+        "type": "color",
+        "validations": []
+      },
+      {
+        "key": "secondary_color",
+        "name": "Secondary Color",
+        "description": null,
+        "required": false,
+        "type": "color",
+        "validations": []
+      },
+      {
+        "key": "collection",
+        "name": "Shopify Collection",
+        "description": null,
+        "required": false,
+        "type": "collection_reference",
+        "validations": []
+      },
+      {
+        "key": "organizer_name",
+        "name": "Organizer Name",
+        "description": null,
+        "required": false,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "organizer_email",
+        "name": "Organizer Email",
+        "description": null,
+        "required": false,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "active",
+        "name": "Active",
+        "description": null,
+        "required": true,
+        "type": "boolean",
+        "validations": []
+      },
+      {
+        "key": "internal_notes",
+        "name": "Internal Notes",
+        "description": null,
+        "required": false,
+        "type": "multi_line_text_field",
+        "validations": []
+      }
+    ]
+  },
+  {
+    "type": "aa_store_campaign",
+    "name": "Store Campaign",
+    "description": "Versioned schedule, catalog, fulfillment, and payout terms for an organization store.",
+    "displayNameKey": "campaign_name",
+    "access": {
+      "storefront": "NONE"
+    },
+    "fieldDefinitions": [
+      {
+        "key": "campaign_name",
+        "name": "Campaign Name",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "campaign_id",
+        "name": "Campaign ID",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "organization_store",
+        "name": "Organization Store",
+        "description": null,
+        "required": true,
+        "type": "metaobject_reference",
+        "validations": [
+          {
+            "name": "metaobject_definition_id",
+            "value": {
+              "resolveLiveDefinitionType": "aa_organization_store"
+            }
+          }
+        ]
+      },
+      {
+        "key": "status",
+        "name": "Status",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "starts_at",
+        "name": "Starts At",
+        "description": null,
+        "required": false,
+        "type": "date_time",
+        "validations": []
+      },
+      {
+        "key": "closes_at",
+        "name": "Closes At",
+        "description": null,
+        "required": false,
+        "type": "date_time",
+        "validations": []
+      },
+      {
+        "key": "products",
+        "name": "Products",
+        "description": null,
+        "required": true,
+        "type": "list.product_reference",
+        "validations": []
+      },
+      {
+        "key": "collection",
+        "name": "Collection",
+        "description": null,
+        "required": false,
+        "type": "collection_reference",
+        "validations": []
+      },
+      {
+        "key": "pricing_mode",
+        "name": "Pricing Mode",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "payout_rule",
+        "name": "Payout Rule",
+        "description": null,
+        "required": true,
+        "type": "metaobject_reference",
+        "validations": [
+          {
+            "name": "metaobject_definition_id",
+            "value": {
+              "resolveLiveDefinitionType": "aa_payout_rule"
+            }
+          }
+        ]
+      },
+      {
+        "key": "fundraising_goal",
+        "name": "Fundraising Goal",
+        "description": null,
+        "required": false,
+        "type": "number_decimal",
+        "validations": []
+      },
+      {
+        "key": "fulfillment_mode",
+        "name": "Fulfillment Mode",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "terms_version",
+        "name": "Terms Version",
+        "description": null,
+        "required": false,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "terms_accepted_at",
+        "name": "Terms Accepted At",
+        "description": null,
+        "required": false,
+        "type": "date_time",
+        "validations": []
+      },
+      {
+        "key": "production_after_close",
+        "name": "Produce After Close",
+        "description": null,
+        "required": true,
+        "type": "boolean",
+        "validations": []
+      },
+      {
+        "key": "internal_notes",
+        "name": "Internal Notes",
+        "description": null,
+        "required": false,
+        "type": "multi_line_text_field",
+        "validations": []
+      }
+    ]
+  },
+  {
+    "type": "aa_payout_statement",
+    "name": "Payout Statement",
+    "description": "Auditable campaign settlement and payment record.",
+    "displayNameKey": "statement_id",
+    "access": {
+      "storefront": "NONE"
+    },
+    "fieldDefinitions": [
+      {
+        "key": "statement_id",
+        "name": "Statement ID",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "campaign",
+        "name": "Campaign",
+        "description": null,
+        "required": true,
+        "type": "metaobject_reference",
+        "validations": [
+          {
+            "name": "metaobject_definition_id",
+            "value": {
+              "resolveLiveDefinitionType": "aa_store_campaign"
+            }
+          }
+        ]
+      },
+      {
+        "key": "status",
+        "name": "Status",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "period_start",
+        "name": "Period Start",
+        "description": null,
+        "required": false,
+        "type": "date",
+        "validations": []
+      },
+      {
+        "key": "period_end",
+        "name": "Period End",
+        "description": null,
+        "required": false,
+        "type": "date",
+        "validations": []
+      },
+      {
+        "key": "gross_revenue",
+        "name": "Gross Revenue",
+        "description": null,
+        "required": true,
+        "type": "number_decimal",
+        "validations": []
+      },
+      {
+        "key": "refunds",
+        "name": "Refunds",
+        "description": null,
+        "required": true,
+        "type": "number_decimal",
+        "validations": []
+      },
+      {
+        "key": "deductions",
+        "name": "Deductions",
+        "description": null,
+        "required": true,
+        "type": "number_decimal",
+        "validations": []
+      },
+      {
+        "key": "organization_proceeds",
+        "name": "Organization Proceeds",
+        "description": null,
+        "required": true,
+        "type": "number_decimal",
+        "validations": []
+      },
+      {
+        "key": "currency",
+        "name": "Currency",
+        "description": null,
+        "required": true,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "paid_at",
+        "name": "Paid At",
+        "description": null,
+        "required": false,
+        "type": "date_time",
+        "validations": []
+      },
+      {
+        "key": "payment_reference",
+        "name": "Payment Reference",
+        "description": null,
+        "required": false,
+        "type": "single_line_text_field",
+        "validations": []
+      },
+      {
+        "key": "report_file",
+        "name": "Report File",
+        "description": null,
+        "required": false,
+        "type": "file_reference",
+        "validations": []
+      },
+      {
+        "key": "notes",
+        "name": "Notes",
+        "description": null,
+        "required": false,
+        "type": "multi_line_text_field",
+        "validations": []
+      }
+    ]
+  }
+]

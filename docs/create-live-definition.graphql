@@ -1,0 +1,1 @@
+mutation CreatePortalDefinition($definition: MetaobjectDefinitionCreateInput!) { metaobjectDefinitionCreate(definition: $definition) { metaobjectDefinition { id type name fieldDefinitions { key type { name } validations { name value } } } userErrors { field message code } } }
