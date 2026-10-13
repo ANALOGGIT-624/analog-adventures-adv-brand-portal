@@ -80,9 +80,11 @@ This document does not create reminders or scheduled renewal automation.
   [fresh-record rehearsal checklist](development-rehearsal-20261013.md).
 - Reconciliation monitoring is deployed and received a real automatic success
   October 13, with another successful check-in around 09:36 Eastern. Owner inbox
-  receipt of the integration test is confirmed. An intentional missed-run
-  transition remains unverified;
-  inspect staff review items and the completed-sweep timestamp during rehearsal.
+  receipt of the integration test is confirmed. An accelerated missed-run
+  transition and recovery passed at 10:53–10:54 Eastern with the original
+  15-minute period/grace restored. Inbox receipt of these specific alerts is
+  pending owner confirmation. Continue inspecting staff review items and the
+  completed-sweep timestamp during operation.
 - Preserve the October 12 staff-download evidence qualification: the saved file
   matched, but browser download-event capture timed out. The customer download
   and hosted navigation checks passed.

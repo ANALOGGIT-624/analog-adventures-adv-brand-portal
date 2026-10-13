@@ -101,3 +101,26 @@ assigned. Thomas supplied an inbox screenshot showing “DOWN | TEST” at
 09:30:59 Eastern and “OK, all checks up” in the project overview, confirming
 inbox receipt. This was the integration test notification, not a real outage. It does not exercise a real missed-run or failure
 transition. No app or backup job was paused and no check assignments changed.
+
+## Controlled missed-run transition — October 13
+
+Thomas approved temporarily shortening this existing check to a one-minute
+period and one-minute grace, including alert emails to the owner. The app and
+backup services continued running. Healthchecks observed the last automatic
+success at 10:51 Eastern, then late and **up → down at 10:53 Eastern** when no
+new success arrived under that accelerated deadline. No artificial failure ping
+was sent.
+
+Restored the normal **15-minute period and 15-minute grace**. The staff
+**Check missed orders now** action completed a real reconciliation sweep at
+`2026-10-13T14:54:49.775Z`; both fresh rehearsal orders remained verified.
+Healthchecks received its actual start/success signals (#15/#16) and recorded
+**down → up at 10:54 Eastern**, with a two-second execution and 1m33s monitored
+downtime. No Ping Now or synthetic success request was used. The monitor is up
+and its original schedule is restored.
+
+This verifies missing-success detection and recovery signaling on the real
+check with an accelerated deadline; it does not claim the app stopped or prove
+a 30-minute production outage. Owner inbox receipt of these particular DOWN
+and recovery notifications is pending confirmation. Private screenshot evidence:
+`recovery-private/rehearsal-20261013/monitor-transition-evidence.png`.
