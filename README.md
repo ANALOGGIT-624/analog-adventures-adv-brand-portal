@@ -275,8 +275,19 @@ account cap. A subsequent full scheduled run has not yet been observed.
 
 Independent live-backup recovery passed on October 13: all four PostgreSQL
 tables matched every field in the dump, and all 997 assets were recovered locally.
-Customer-account placement/isolation, pilot configuration, replacement-hosting
-validation, and actual checkout/refund/fulfillment checks remain required
+Live customer-account placement and scoped organization/campaign/private-proof
+isolation passed with two real sign-ins plus 22 hosted authorization assertions.
+Two draft Brass Ball Marker campaigns use the approved $2/item payout rule.
+Customer approval of synthetic proof B and independent recovery of both SVGs
+passed; recovered bytes match the originals and B retains approved status.
+The fresh combined backup completed successfully at 15:25 EDT, covering 999
+assets and both proof records. All four restored PostgreSQL tables again matched
+every field. The real signed-in customer download of proof B also matched the
+original SVG byte for byte. Replacement-hosting validation and actual
+refund/fulfillment checks remain required. Controlled live order #1016 was
+paid for $21.51 and automatically verified against campaign B, one unit,
+and production proof Version 1; it remains unfulfilled. Post-order recovery
+and payout/archive verification also remain required
 before participant invitations. See the dated live-store readiness plan for
 backup prefixes, accepted gaps, spending scope, and evidence.
 
@@ -609,3 +620,10 @@ container on a separate temporary web service. Read-only business access,
 anonymous denial and a service restart passed. Both temporary services are
 suspended. Real Shopify sign-in, replacement artwork storage and original-app
 cutover remain untested; see the linked recovery report for limits and evidence.
+
+Live order #1016 recovery: the independently downloaded post-order archive
+retains its verified attribution, one-unit/$2 rule snapshot, and byte-identical
+proof Version 1. The approved full $21.51 refund remains pending at Shopify;
+final statement reconciliation and final-state recovery are still open.
+
+Live recovery update (October 14): the scheduled backup has now been restored to an isolated Render PostgreSQL database through its private network; all four tables match every field. Temporary read-only app preparation passed 13 security-boundary/target tests. App access, hosted authentication/artwork and routing/rollback are still pending. See [live readiness evidence](docs/live-store-readiness-20261013.md). This does not approve participant invitations or settle order #1016's pending refund.

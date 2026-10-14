@@ -336,3 +336,120 @@ Both real customer sessions now verified: tinroofholdings@gmail.com sees only Po
 Hosted controlled authorization harness passed 12 assertions (10 HTTP requests): both own-portal reads 200, forged foreign organization/customer query parameters returned no foreign records, foreign organization request writes rejected 403 in both directions, anonymous portal/artwork rejected 401, expired and invalid-signature tokens rejected 401. Authorized and business-denial responses used private/no-store caching. Before/after PostgreSQL PortalRecord hashes were identical. Harness used locally signed short-lived tokens inside the hosted app, separately from the genuine browser sign-in checks; no secrets or tokens logged. Result: recovery-private/live-rollout-20261013/hosted-isolation-result.json.
 
 Scope: organization isolation only. Campaigns, private proofs, requests and payout statements are empty. Cross-campaign/write/private-artwork isolation remains open until populated fixtures exist. Campaign UI reports missing prerequisites (available organization, active payout rule, active product); requested owner choice of pilot product and payout terms before preparing unpublished campaign. No purchase authorized by these checks.
+
+### Brass Ball Marker draft campaigns and picker repair
+
+Owner selected Brass Ball Marker and approved a fixed $2-per-item payout. Created active rule LIVE-PILOT-BRASS-2USD v1, fixed_per_unit rate 2, revenue basis net_merchandise. Created draft campaigns LIVE-BRASS-A-20261013 and LIVE-BRASS-B-20261013 for the two isolated test organizations, selecting the exact product Brass Golf Ball Markers - Laser Engraved Golf Accessory. Both retain retail pricing, individual shipping and batch-after-close defaults; no live publication or purchase. Organizations remain draft but are available for campaign selection.
+
+Campaign picker originally loaded only the first 50 active products, hiding the selected brass product. Fix 092d3af adds cursor pagination, deduplication, and explicit errors for partial/invalid results. Three regression tests passed, Shopify 2026-07 GraphQL validation passed, production build passed, and Render live app deployment succeeded at 14:54 EDT. Reopened form confirmed the exact brass product and both draft saves.
+
+Prepared synthetic SVG proofs marked NOT FOR PRODUCTION outside Git. File chooser automation timed out in both IAB and Chrome, including direct file-input attempts. No proof upload succeeded; artwork isolation remains pending. Browser upload setup/user file selection is the immediate blocker. Existing organization isolation results remain valid for their earlier empty-campaign scope, not evidence of populated campaign/proof isolation.
+
+### Populated live campaign/private-artwork isolation passed
+
+Native Chrome picker successfully attached synthetic proof A; owner completed B selection after the native path dialog stalled. Both SVGs labeled NOT FOR PRODUCTION uploaded through staff UI as Version 1 for their matching draft campaign. No real production artwork or purchase involved.
+
+At 19:07 UTC, hosted bidirectional harness passed 22 assertions, with one organization/campaign/proof per account. In both directions: forged foreign identity queries leaked no foreign records; foreign organization and campaign requests returned 403; own artwork download-link issuance returned 200 with 60-second expiry; foreign download returned 404 without a URL; foreign proof approval/change requests returned 403. Anonymous and invalid/expired credentials returned 401. PostgreSQL PortalRecord hashes unchanged. Harness used short-lived locally signed tokens inside live hosting, while actual Shopify browser sessions independently verified customer identity/visibility. Download byte integrity and successful customer approval are separate workflow checks, not claimed by URL issuance.
+
+Evidence: hosted-bidirectional-isolation-summary.json and live-customer-b-private-proof.png outside Git; repeatable harness hosted-bidirectional-isolation-check.mjs also outside Git. Full report remains /tmp/live-populated-isolation-result-20261013.json on app instance. Request and payout-statement fixtures remain empty; their populated variants are not claimed tested. Live company/campaign/private-proof isolation gate passes for these scoped fixtures. Both campaigns remain draft. Next: customer approval/download workflow, fresh backup/recovery of the new proofs, then exact checkout total approval and controlled real purchase.
+
+### Customer approval and fresh recovery in progress
+
+Approved synthetic proof B through the real oneil.thomasr@gmail.com customer session. Reloaded customer and staff pages both show approved. Campaign remains draft and SVG remains labeled NOT FOR PRODUCTION. Captured live-proof-b-approved.png outside Git.
+
+Triggered combined live backup at 15:10 EDT. PostgreSQL verified at 15:11, prefix recovery/postgresql/scheduled/live/16e80f-5b/2026-10-13T19-11-01.125Z-de6e401a-6965-4908-9cd7-daf6a6659d83/. Shopify file capture reached 996/996; interrupted upload retried automatically. Final combined result and independent fresh proof recovery are still pending. Recovery downloader requires a daily pair created after 19:10 UTC, refusing the earlier empty-proof baseline.
+
+### Approved artwork recovered independently — passed
+
+The fresh combined live backup completed at 15:25:43 EDT with exitCode 0; Render reported success at 15:25:48. Portal capture includes 2 PortalRecord proofs, 3 R2 objects, 996 Shopify files, and 999 assets. Existing October monthly copy was verified without replacing its earlier baseline. Fresh daily pair: recovery/postgresql/scheduled/live/16e80f-5b/pairs/2026-10-13T19-21-05.340Z-33d51d6c-d0f8-463d-9013-400bc44d6280.json. Two known baseline gaps remain.
+
+Independently downloaded 5 database and 1,091 portal archive objects from Backblaze; all receipt hashes and authenticated decryption passed. Restored the fresh PostgreSQL dump into a separate local PostgreSQL 18 cluster with TCP disabled. All four tables matched every field against the dump; stopped the temporary cluster after verification. Both recovered SVG files exactly match original bytes and their proof content hashes. Recovered A remains submitted, and B retains its customer-approved status. No live database restore or modification was performed.
+
+Private evidence: approved-artwork-restore/VERIFIED.json, DATABASE-ALL-FIELDS.json, ARTWORK-VERIFIED.json; customer approval screenshot live-proof-b-approved.png and completed job screenshot live-fresh-backup-success.png. This closes fresh artwork/approval backup recovery. Customer download bytes, replacement hosting, scheduled-run observation, and controlled actual purchase/refund/fulfillment remain separate gates before invitations.
+
+### Real customer artwork download — passed
+
+Prepared a fresh secure download through the genuine signed-in Portal Isolation Test B customer session and downloaded Open proof file through Chrome. The 654-byte isolation-artwork-B.svg exactly matches the original; SHA-256 7195e73c9e72b45282bd141d33fbbf39b63cf6be87df1de3e18db92915ad8410. Evidence: customer-download-verified.json outside Git. This closes successful customer download-byte verification for B, supplementing prior bidirectional unauthorized-download denials.
+
+Controlled checkout preparation: owner chose to provide a delivery address here; recipient/full address is pending. Proposed first order is one Brass Ball Marker with individual shipping and the approved $2/unit organizer rule. B company currently submits checkouts as draft orders for review; account checkout may therefore require staff review/payment completion before it becomes a paid order. Do not claim payment from draft submission. Both organizations/campaigns remain draft, with no start/close dates, so the public campaign is not yet purchasable. Review a bounded campaign availability window and exact checkout total before purchase. No payment or invitations performed.
+
+### Approved temporary publication and checkout preparation
+
+Owner explicitly approved temporary publication of organization B and campaign B through October 14. Updated only B organization status to live and campaign lifecycle to live with close date 2026-10-14; A remains draft. Public /community/stores/portal-isolation-test-b renders the intended campaign and Brass Golf Ball Marker. Added one Logo Upload / Side 2 Logo Upload variant (48645252481279), $14.99, through the campaign page. Cart confirmed quantity 1.
+
+Checkout authenticated as test company B, retains Submit for review / choose payment later. Shipping is locked to company B and shows (No address), with no address-entry control. The displayed $16.22 due-later estimate is not a verified shipped total and must not be approved as final. No order submitted or payment made. Owner provided a checkout destination privately; requested specific approval before persisting it as test company B delivery address. Address is intentionally omitted from this repository. Evidence: live-test-b-published.png and live-checkout-missing-company-address.png outside Git.
+
+### Test-company address repaired; checkout estimate ready
+
+Owner approved saving the supplied delivery address to test company B. Saved shipping address on existing location 8292434175; no billing address or checkout permissions changed. Refreshed the existing customer checkout: one marker $14.99, Economy shipping $4.90, estimated tax $1.62, total due later $21.51, due today $0.00. Checkout still requires Submit for review and says final tax/total confirmed after submission. No draft/order submission or payment yet. Evidence: live-checkout-shipping-total.png outside Git. Address omitted from repository.
+
+### Live checkout submitted for review only
+
+Owner explicitly authorized review submission only, not payment. Selected Choose payment method later and submitted once. Customer confirmation says Submitted / In review and Your order has been submitted for review. Staff queue shows exactly one open draft for company B: #D10, Shopify DraftOrder 1311383748863, $21.51 USD. Draft line carries signed campaign attribution plus campaign and organization names for B. Staff Collect payment remains available and was not used. This verifies the unpaid review path, not a paid sale, paid-order attribution, fulfillment, refund or payout. No payment authorization has been granted. Customer evidence: live-test-submitted-for-review.png outside Git.
+
+### Unpaid draft preflight checked
+
+Read-only staff inspection confirms #D10 quantity 1, variant 48645252481279/SKU BBM32RU, $14.99 subtotal, $4.90 Economy shipping, $1.62 estimated tax, $21.51 total, and review requirement. Signed attribution property plus correct B campaign/organization properties are present. No Collect payment, Send invoice, or conversion action used. Implementation review confirms the permanent approved-artwork/payout snapshot is created by order attribution using the order creation timestamp; draft metadata is not proof of that completed snapshot. Continue to respect review-only authorization. Paid-order attribution and the remaining real financial workflow require separate owner authorization.
+
+### Real payment authorized; card entry pending
+
+Owner authorized the real order at a maximum of $21.51. Opened draft #D10 Collect payment > Credit card; Shopify shows Charge $21.51 and empty secure card-entry fields. No stored payment method was offered, no card data entered, and no charge action taken. The next required input is owner entry in Shopify's secure form. Do not use Mark as paid as a substitute for an actual charge. Evidence: live-order-card-entry-required.png outside Git.
+
+### Real paid order and automatic attribution verified
+
+After owner reported completing the order, refreshed #D10: Completed, linked real order #1016 (7226278412543), created October 13 at 16:13:15 EDT. Order page confirms Paid $21.51 and a processed card-payment timeline entry; Unfulfilled. No second charge attempted. Portal Attributed orders already lists #1016 verified, campaign live-brass-b-20261013, 1 attributed unit, production proof Version 1. No manual missed-order scan was needed for this verification. Evidence: live-order-1016-attribution-verified.png outside Git. Synthetic artwork remains NOT FOR PRODUCTION; actual manufacturing/shipping, refund, payout, archive, and post-order independent backup recovery remain unverified.
+
+### Administrative production rehearsal and full refund submitted
+
+Owner approved administrative rehearsal and full $21.51 refund, with no manufacturing or shipping. Post-order combined backup started 16:15:36 EDT; capture includes a payout statement, but precedes subsequent batch/refund changes. Completion and independent recovery remain pending; a later final-state backup is still needed.
+
+Saved initial draft payout statement showing $2.00 proceeds, unpaid. Closed campaign B at 2026-10-13T20:16:47Z after selecting today's close date (future October 14 date correctly rejected). Created batch LIVE-BRASS-B-20261013-BATCH-20261013201703: one #1016 unit, SKU BBM32RU, proof Version 1, hash 7195e73c9e72b45282bd141d33fbbf39b63cf6be87df1de3e18db92915ad8410. Unbatched units became zero, preventing another batch of the reserved unit. Added conspicuous administrative-only notes. Later cancelled the batch; locked cancellation and nothing unbatched verified. No production or Shopify fulfillment performed.
+
+Submitted itemized full refund: quantity 1, $14.99 merchandise, $4.90 shipping, $1.62 tax = $21.51 to original payment; restock item selected. Shopify reports refund pending/processing and sent its refund notification. Do not claim card settlement. Payout view shows zero eligible units and zero calculated proceeds, but correctly blocks statement reconciliation while refund transaction is pending. Existing draft statement still reflects earlier $2; it is not payable/approved and must be refreshed after refund resolves. No archive or payout transfer performed. Evidence outside Git: live-production-snapshot-verified.png, live-refund-processing.png, live-payout-pending-refund-blocked.png.
+
+### Post-order independent recovery passed; refund still pending
+
+Post-order combined backup finished successfully at 16:31:40 EDT, exitCode 0. Capture: 18 metaobjects, 2 PortalRecords, 4 orders, 9 drafts, 999 assets; two known baseline gaps unchanged. Independently downloaded and authenticated-decrypted 5 database archive objects and 1,093 portal objects, validating all receipt hashes. Pair: recovery/postgresql/scheduled/live/16e80f-5b/pairs/2026-10-13T20-25-30.646Z-18fa5fd5-d2ce-4e0b-a131-70c9910c4bf3.json.
+
+Recovered #1016 has verified attribution, exactly one unit of variant 48645252481279, campaign live-brass-b-20261013, fixed_per_unit $2 rule snapshot and approved proof Version 1. Recovered artwork bytes exactly match original B SVG and snapshot content hash. Evidence: paid-order-restore/VERIFIED.json and ORDER-1016-VERIFIED.json outside Git. This archive captured the pre-refund state, not the later cancellation/final refund. Database archive decrypted but this turn did not repeat an actual PostgreSQL import; earlier fresh-artwork import passed all-field comparisons.
+
+Latest Shopify recheck still reports $21.51 refund pending. No duplicate refund, payout approval, archive, or fabricated paid statement performed. Final statement reconciliation, final-state backup/recovery, and archive wait for gateway resolution.
+
+### October 14 scheduled backup and independent workflow recovery passed
+
+Browser access restored. Render confirms scheduled 04:00 EDT trigger, success at 04:18:24, exitCode 0; 999 assets, 4 orders, 3 PortalRecords and 18 metaobjects. Independently downloaded 5 database and 1,099 portal archive objects; all receipt hashes and authenticated decryption passed. Recovered #1016 verified attribution, its pending $21.51 refund transaction and quantity-one refund line, cancelled production batch, and byte-identical approved B artwork. Evidence: scheduled-oct14-restore/VERIFIED.json and WORKFLOW-VERIFIED.json; scheduled-oct14-success.png. This establishes scheduled-run recovery of the pending-refund state, not settled-refund recovery or replacement hosting. Database archive decrypted; no new PostgreSQL import performed this turn. Final reconciliation/archive remain gated on refund completion.
+
+### October 14 scheduled PostgreSQL import — passed
+
+Imported the October 14 scheduled database dump into a new isolated local PostgreSQL 18 cluster with TCP disabled, using pg_restore --exit-on-error. Compared every field in BulkCheckoutAttempt, PortalRecord, Session, and _prisma_migrations against COPY data from the original dump: all four matched. Stopped the temporary cluster after verification. Evidence: scheduled-oct14-restore/DATABASE-ALL-FIELDS.json outside Git. No live infrastructure or source data changed, no new paid service created.
+
+Replacement-hosting preflight found scripts/start-recovery-web.mjs deliberately pins the October 12 development recovery app, database, reader role, schema and R2 bucket. Those guards must not simply be removed to run the live drill. A live drill requires separately confirmed temporary identities, a pinned release, isolated restored data and restricted artwork access; then separately reviewed live routing/rollback and a controlled window. Existing one-time development drill spending approval is not reused. Refund remains pending on latest Shopify check; final statement/archive remain blocked.
+
+### Proposed live replacement-hosting drill — October 14 (not provisioned)
+
+Purpose: prove the verified live backup can operate on replacement hosting before participant invitations. Source baseline: October 14 08:12 UTC pair, independently decrypted and imported locally with all four database tables matching. Baseline has a pending refund; this drill must preserve that state rather than fabricate settlement.
+
+Proposed new temporary resources (names subject to availability): analog-portal-live-recovery-db-20261014, analog-portal-live-recovery-app-20261014, and private R2 bucket analog-portal-live-recovery-20261014. Use smallest paid Render database and web compute in the same region, minimum database storage; no new recurring cron or workspace upgrade. Pricing reference: https://render.com/pricing and https://render.com/articles/how-much-does-cloud-application-hosting-cost-for-small-businesses (checked October 14). At $7/month web + $6/month database + 5 GB at $0.30/GB/month, base 24-hour cost is approximately $0.48 using a 30-day month. Proposed incremental Render spending ceiling: $1 total for less than 24 hours, including build/transfer headroom. This is an operating limit, not an automatic provider-enforced cap; confirm creation summaries and existing included usage before provisioning. Existing B2 account caps remain unchanged. Any incremental object-store charge outside existing limits requires review.
+
+Preparation/verification sequence:
+1. Build a dedicated recovery-target guard from pinned production commit 092d3afbe65246f04054188883d5f5c9b69ea399; retain explicit host/database/schema/role/bucket checks and fail closed. Validate the read-only HTTP boundary and prevent reconciliation/business writers. Never weaken existing development or live production guards.
+2. Create isolated empty PostgreSQL, import the downloaded dump with fail-on-error, compare schema and all business/checkout fields. Limit app access to restored business records; copied session credentials stay inaccessible until a separately approved authentication phase.
+3. Restore the original private artwork objects to the separate bucket, compare hashes, and verify authorized download plus unsigned/tampered/expired denial with a time-limited read-only credential. New credential access requires action-time confirmation.
+4. Deploy a temporary read-only web service; verify startup, persistence after restart, test-order and cancelled-batch consistency. This stage does not change live routing and does not yet establish original-app authentication/cutover.
+5. Prepare exact original-app/extension routing changes and reversal to analog-portal-live.onrender.com. Request a separate controlled maintenance window before pausing the live portal/backup and switching routing. Prevent concurrent token refresh and reconciliation. Never import the older pending-refund snapshot over current live data.
+6. Verify genuine staff and both test-customer access, private artwork delivery, isolation and rollback. Record cutoff and measured duration; acknowledge unrelated live Shopify changes during the drill. Restore original routing/services and verify monitoring before ending window.
+7. Stop temporary compute promptly; request specific permanent deletion approval for only temporary resources. Database storage may remain billable until deletion. Keep source backups and evidence.
+
+No temporary services, credentials, public routes, or new charges created by this preparation. Previous one-time recovery budgets are not reused.
+
+### Temporary live recovery database provisioned — in progress
+
+Owner approved a new $1 total Render budget for this drill, less than 24 hours. At 2026-10-14T16:31:39.459306+00:00 created analog-portal-live-recovery-db-20261014, ID dpg-db7qsbjbc2fs738613s0-a, Ohio, PostgreSQL 18, 256 MB/0.1 CPU, 1 GB storage. Creation summary $6.30/month prorated (~$0.21/day). Autoscaling/HA disabled. Explicitly confirmed blocking all public internet ingress; private network only. Still creating storage volume on latest check. No backup imported, new reader credential or web service created yet. Evidence: live-recovery-db-private.png. Cleanup deadline is less than 24 hours from creation; $1 is a manual operating budget, not provider-enforced. Next: readiness, restore via private network, scoped reader and guarded temporary app.
+
+### October 14 private-network hosted restore — passed
+
+Database available; public ingress remains blocked. Owner approved passing this temporary database credential and the October 14 backup through the existing Render backup-service shell. Restored only dpg-db7qsbjbc2fs738613s0-a / analog_portal_live_recovery_20261014, requiring an empty target and a transaction. All four tables matched every field at 2026-10-14T16:36:23.728Z. Evidence: hosted-recovery-oct14/HOSTED-ALL-FIELDS.json and hosted-restore-passed.png outside Git. Initial module-launch syntax error made no database connection; corrected launcher succeeded. Shell history/echo were disabled before transmitting credentials.
+
+Connection used the private hostname with mandatory TLS (sslmode=require), not certificate-verified external TLS. Render documents internal self-signed certificates and lack of verify-ca/verify-full support: https://render.com/docs/postgresql-creating-connecting . A strict certificate probe failed as expected; public ingress was not opened.
+
+Prepared dedicated Dockerfile.live-recovery and exact-target startup guard; original development recovery guard is unchanged. Thirteen target and HTTP boundary tests passed (loopback test required sandbox escalation). New guard pins private host, temporary database, reader role, schema, app URL and artwork bucket. Existing scheduler checks exclude this replacement URL. Prepared locally an expiring read-only role (October 15 12:00 UTC), views of business records/checkout attempts, and empty recovery Session table; copied public.Session stays inaccessible. No role created or app credential saved to Render yet. Synthetic Shopify credentials are proposed for initial deployment. No live routing change, new R2 key, payout action or invitation performed. New limited app-access confirmation is pending; original $1 budget and cleanup deadline still apply.

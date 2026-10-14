@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {assertLiveRecoveryTarget,LIVE_RECOVERY_URL} from '../scripts/live-recovery-target.mjs';
+const valid={SHOPIFY_APP_URL:LIVE_RECOVERY_URL,PORTAL_DATA_BACKEND:'postgresql',DATABASE_URL:'postgresql://recovery_reader_20261014:dummy@dpg-db7qsbjbc2fs738613s0-a/analog_portal_live_recovery_20261014?sslmode=require&schema=recovery_app',ARTWORK_R2_BUCKET:'analog-portal-live-recovery-20261014'};
+test('accepts only the isolated live-drill target',()=>assert.doesNotThrow(()=>assertLiveRecoveryTarget(valid)));
+for(const [name,change] of Object.entries({liveApp:{SHOPIFY_APP_URL:'https://analog-portal-live.onrender.com'},liveBucket:{ARTWORK_R2_BUCKET:'analog-brand-portal-live'},wrongBackend:{PORTAL_DATA_BACKEND:'sqlite'},missingURL:{DATABASE_URL:''}}))test('rejects '+name,()=>assert.throws(()=>assertLiveRecoveryTarget({...valid,...change})));
+for(const [name,change] of Object.entries({liveHost:u=>u.hostname='dpg-db75212j9qps73b7gu6g-a',hostSuffix:u=>u.hostname+='attacker.example',liveDatabase:u=>u.pathname='/analog_portal_live',ownerRole:u=>u.username='analog_portal_live_recovery_20261014_user',publicSchema:u=>u.searchParams.set('schema','public'),noTLS:u=>u.searchParams.set('sslmode','disable')}))test('rejects '+name,()=>{const u=new URL(valid.DATABASE_URL);change(u);assert.throws(()=>assertLiveRecoveryTarget({...valid,DATABASE_URL:u.href}));});
