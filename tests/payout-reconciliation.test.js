@@ -301,3 +301,110 @@ test("pending, failed, tax-adjusted, excessive and truncated refunds require rev
     );
   }
 });
+
+function settledPendingRefund() {
+  const entry = adjustmentRefund("21.51", { item: "14.99" });
+  entry.orderAdjustments.nodes.push({
+    reason: "PENDING_REFUND_DISCREPANCY",
+    amountSet: { shopMoney: { amount: "-21.51" } },
+    taxAmountSet: { shopMoney: { amount: "0" } },
+  });
+  return entry;
+}
+function reconcileSettledRefund(entry, overrides = {}) {
+  return reconcileCampaignOrders(
+    [
+      order({
+        amount: "14.99",
+        quantity: 1,
+        currentQuantity: 0,
+        rate: "2",
+        refunds: [entry],
+        ...overrides,
+      }),
+    ],
+    campaignId,
+  );
+}
+test("settled pending pair preserves merchandise refund and zero proceeds", () => {
+  for (const reverse of [false, true]) {
+    const entry = settledPendingRefund();
+    if (reverse) entry.orderAdjustments.nodes.reverse();
+    const result = reconcileSettledRefund(entry);
+    assert.equal(result.refundsCents, 1499);
+    assert.equal(result.refundedUnits, 1);
+    assert.equal(result.eligibleUnits, 0);
+    assert.equal(result.proceedsCents, 0);
+    assert.equal(result.refundReviewCount, 0);
+    assert.equal(
+      reconcileSettledRefund(entry, { method: "percentage", rate: "10" })
+        .proceedsCents,
+      0,
+    );
+  }
+});
+test("unsettled, incomplete, unmatched and taxed pending pairs stay blocked", () => {
+  for (const mutate of [
+    (r) => {
+      r.transactions.nodes[0].status = "PENDING";
+    },
+    (r) => {
+      r.transactions.nodes[0].status = "FAILURE";
+    },
+    (r) => {
+      r.transactions.nodes = [];
+    },
+    (r) => {
+      delete r.transactions;
+    },
+    (r) => {
+      r.transactions.nodes.push({ kind: "REFUND", status: "PENDING" });
+    },
+    (r) => {
+      r.transactions.pageInfo = { hasNextPage: true };
+    },
+    (r) => {
+      r.orderAdjustments.pageInfo = { hasNextPage: true };
+    },
+    (r) => {
+      r.refundLineItems.pageInfo = { hasNextPage: true };
+    },
+    (r) => {
+      r.orderAdjustments.nodes[0].amountSet.shopMoney.amount = "21.50";
+    },
+    (r) => {
+      r.orderAdjustments.nodes[1].taxAmountSet.shopMoney.amount = "-1";
+    },
+    (r) => {
+      r.orderAdjustments.nodes.shift();
+    },
+    (r) => {
+      r.orderAdjustments.nodes.push(
+        structuredClone(r.orderAdjustments.nodes[1]),
+      );
+    },
+  ]) {
+    const entry = settledPendingRefund();
+    mutate(entry);
+    assert.equal(reconcileSettledRefund(entry).refundReviewCount, 1);
+  }
+});
+test("settled pair preserves unrelated goodwill adjustments", () => {
+  const entry = settledPendingRefund();
+  entry.orderAdjustments.nodes.push(
+    adjustmentRefund("-10").orderAdjustments.nodes[0],
+  );
+  const result = reconcileSettledRefund(entry, { amount: "100" });
+  assert.equal(result.refundsCents, 2499);
+  assert.equal(result.refundReviewCount, 0);
+});
+test("pending pairs cannot balance across separate refunds", () => {
+  const first = settledPendingRefund();
+  const second = adjustmentRefund("0");
+  second.orderAdjustments.nodes = [first.orderAdjustments.nodes.pop()];
+  assert.equal(
+    reconcileSettledRefund(first, { refunds: [first, second] })
+      .refundReviewCount,
+    1,
+  );
+});

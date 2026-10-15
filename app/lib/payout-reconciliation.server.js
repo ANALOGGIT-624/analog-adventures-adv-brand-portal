@@ -128,8 +128,41 @@ function refundsForOrder(order) {
       total.cents += cents;
       itemRefunds.set(id, (itemRefunds.get(id) || 0) + cents);
     }
+    const adjustments = refund.orderAdjustments?.nodes || [];
+    const settledPendingEntries = new Set();
+    // Shopify can retain equal-and-opposite pending/ordinary discrepancies
+    // after settlement. Cancel only exact, untaxed pairs in this refund, with
+    // complete transaction/adjustment data and successful refund transactions.
+    if (
+      !refund.transactions?.pageInfo?.hasNextPage &&
+      !refund.orderAdjustments?.pageInfo?.hasNextPage &&
+      transactions.some((t) => t.kind === "REFUND") &&
+      transactions.every((t) => t.kind !== "REFUND" || t.status === "SUCCESS")
+    ) {
+      for (const pending of adjustments) {
+        const pendingCents = toCents(pending.amountSet?.shopMoney?.amount);
+        if (
+          pending.reason !== "PENDING_REFUND_DISCREPANCY" ||
+          pendingCents >= 0 ||
+          toCents(pending.taxAmountSet?.shopMoney?.amount) !== 0
+        )
+          continue;
+        const balancing = adjustments.find(
+          (entry) =>
+            !settledPendingEntries.has(entry) &&
+            entry.reason === "REFUND_DISCREPANCY" &&
+            toCents(entry.amountSet?.shopMoney?.amount) === -pendingCents &&
+            toCents(entry.taxAmountSet?.shopMoney?.amount) === 0,
+        );
+        if (balancing) {
+          settledPendingEntries.add(pending);
+          settledPendingEntries.add(balancing);
+        }
+      }
+    }
     let adjustment = 0;
-    for (const entry of refund.orderAdjustments?.nodes || []) {
+    for (const entry of adjustments) {
+      if (settledPendingEntries.has(entry)) continue;
       if (
         entry.reason !== "REFUND_DISCREPANCY" ||
         toCents(entry.taxAmountSet?.shopMoney?.amount) !== 0
